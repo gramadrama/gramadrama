@@ -46,6 +46,7 @@ struct MainWindowView: View {
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var dictation = DictationSettings.shared
     @AppStorage(MainWindowTab.defaultsKey) private var tab: MainWindowTab = .start
+    @ObservedObject private var highlight = WindowHighlight.shared
 
     /// Wysokość okna (podgląd `--preview-window` renderuje każdą zakładkę w całości).
     var height: CGFloat = 800
@@ -57,20 +58,25 @@ struct MainWindowView: View {
         VStack(spacing: 0) {
             tabBar(current)
             Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    switch current {
-                    case .start: StartTab(model: model)
-                    case .writing: WritingTab()
-                    case .dictation: DictationTab(model: model)
-                    case .apps: AppsTab(model: model)
-                    case .connection: ServicesTab(model: model)
-                    case .privacy: PrivacyTab()
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        switch current {
+                        case .start: StartTab(model: model)
+                        case .writing: WritingTab()
+                        case .dictation: DictationTab(model: model)
+                        case .apps: AppsTab(model: model)
+                        case .connection: ServicesTab(model: model)
+                        case .privacy: PrivacyTab()
+                        }
                     }
+                    .padding(28)
+                    // Inny język interfejsu (idzie za głównym językiem tekstu): zakładka od nowa, już w nowym języku.
+                    .id(UI.language)
                 }
-                .padding(28)
-                // Inny język interfejsu (idzie za głównym językiem tekstu): zakładka od nowa, już w nowym języku.
-                .id(UI.language)
+                // Wskazana grupa (WindowHighlight) na widok — po przełączeniu zakładki, gdy jej treść już jest.
+                .onChange(of: highlight.request) { _, _ in scrollToHighlight(proxy) }
+                .onAppear { scrollToHighlight(proxy) }
             }
         }
         .frame(width: 580, height: height)
@@ -94,6 +100,13 @@ struct MainWindowView: View {
         .onChange(of: dictation.speechBackend) { _, _ in Task { await model.checkSpeechServer() } }
         // Stany usług to teksty z chwili sprawdzenia — po zmianie języka interfejsu sprawdzamy od nowa.
         .onChange(of: UILanguage(primary: settings.textLanguages.primary)) { _, _ in Task { await model.refresh() } }
+    }
+
+    private func scrollToHighlight(_ proxy: ScrollViewProxy) {
+        guard let target = highlight.target else { return }
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(target.rawValue, anchor: .top) }
+        }
     }
 
     /// Pasek zakładek jak w ustawieniach macOS: ikona nad nazwą, wybrana na lawendowym tle. Kropka w cegle

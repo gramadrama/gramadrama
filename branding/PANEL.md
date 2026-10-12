@@ -81,7 +81,7 @@ reserved for actions on the text. Changing the mode immediately runs the correct
   lavender, last, with its key („Enter”; macOS „↩”).
   - **Something must be set up** (no model or Ollama on a new install — macOS tells a missing Ollama from a stopped one
     when „Ten Mac” does not answer —, a model the server does not have, a refused key, no second language for Translate): „Otwórz Usługi” (“Open Services”) or „Otwórz Pisanie” (“Open Writing”) opens the
-    app on that tab and closes the panel; no „Spróbuj ponownie” (“Try again”), which would not help.
+    app on that tab, with the group the cause is in ringed for a few seconds, and closes the panel; no „Spróbuj ponownie” (“Try again”), which would not help.
   - **The server does not answer:** „Spróbuj ponownie” runs the same text in the same mode again, „Otwórz Usługi” next
     to it; away from home without the sign-in the first button is „Zaloguj się…” (“Sign in…”).
   - **The model slipped up** (the connection broke, an empty answer, an answer that changed a link or wrote another

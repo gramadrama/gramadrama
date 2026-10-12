@@ -19,6 +19,11 @@ enum Brand {
     static let brick = adaptive(0xAD4E2C, dark: 0xEBA27F)
     /// Fala pod słowem — w każdej aplikacji i obu motywach ta sama (jak na Linuksie).
     static let wave = rgb(0xD07A52)
+    /// Tło ostrzeżenia (`finding-tint`): pigułka „Wymaga uwagi” w oknie.
+    static let findingTint = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? nsColor(0xEBA27F).withAlphaComponent(0.16)
+                                                                     : nsColor(0xD07A52).withAlphaComponent(0.16)
+    })
     /// Plakietka bieżącego sprawdzania nad dowolną aplikacją: biały na niej 5,4:1.
     static let badge = rgb(0xAD4E2C)
     static let badgeHover = rgb(0x9A4426)

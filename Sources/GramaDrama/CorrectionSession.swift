@@ -277,6 +277,10 @@ final class CorrectionSession: ObservableObject {
         changes = mode == .translate ? [] : Diff.changes(segments, original: original)
         elapsed = Date().timeIntervalSince(started)
         phase = .done
+        // Pierwsza udana korekta: okno przestaje pokazywać Pierwsze kroki (MainWindowModel.firstRun).
+        if UserDefaults.standard.object(forKey: MainWindowModel.firstCorrectionKey) == nil {
+            UserDefaults.standard.set(Date(), forKey: MainWindowModel.firstCorrectionKey)
+        }
         // source: model / cache / joined — ile razy panel dostał wynik bez nowego zapytania (etap 4C).
         EventLog.write("session", ["mode": mode.rawValue, "ms": Int(elapsed * 1000), "source": backend.lastSource,
                                    "changes": changes.count, "chars": original.count, "model_only": usesModelOnly,

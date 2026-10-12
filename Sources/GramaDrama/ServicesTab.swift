@@ -58,7 +58,7 @@ struct ServicesTab: View {
     // MARK: Model językowy
 
     private var languageModelSection: some View {
-        SettingsSection(title: tr("Model językowy"), note: tr("Korekta, tłumaczenie i sprawdzanie modelem.")) {
+        SettingsSection(title: tr("Model językowy"), note: tr("Korekta, tłumaczenie i sprawdzanie modelem."), ring: .languageModel) {
             SettingsCard {
                 LocationRow(selection: $settings.modelLocation,
                             subtitle: settings.modelLocation == .local ? tr("Ollama na tym Macu; tekst nie opuszcza komputera.")
@@ -111,6 +111,9 @@ struct ServicesTab: View {
             case .stopped(.some):
                 Button(ollama.launching ? tr("Uruchamiam…") : tr("Uruchom")) { ollama.launch(then: refreshServices) }
                     .disabled(ollama.launching)
+            case .missing where model.firstRun:
+                // Nowa instalacja: to jest krok, który zostaje do pierwszej korekty (Pierwsze kroki na Starcie).
+                Button(tr("Pobierz Ollamę…")) { NSWorkspace.shared.open(LocalOllama.downloadPage) }.buttonStyle(.borderedProminent)
             case .missing:
                 Button(tr("Pobierz Ollamę…")) { NSWorkspace.shared.open(LocalOllama.downloadPage) }
             default:
@@ -252,7 +255,7 @@ struct ServicesTab: View {
     }
 
     private var modelRow: some View {
-        SettingsRow(mark: .status(model.models.isEmpty ? nil : model.models.contains(settings.model)), title: "Model",
+        SettingsRow(mark: .status(model.diagnostics?.models.map { $0.contains(settings.model) }), title: "Model",
                     subtitle: modelSubtitle) {
             if !model.models.isEmpty {
                 Picker("", selection: $settings.model) {
@@ -412,7 +415,7 @@ struct ServicesTab: View {
     // MARK: Rozpoznawanie mowy
 
     private var speechSection: some View {
-        SettingsSection(title: tr("Rozpoznawanie mowy"), note: tr("Do dyktowania.")) {
+        SettingsSection(title: tr("Rozpoznawanie mowy"), note: tr("Do dyktowania."), ring: .speechRecognition) {
             SettingsCard {
                 LocationRow(selection: $dictation.speechBackend,
                             subtitle: dictation.speechBackend == .local ? tr("Whisper na tym Macu; nagranie nie opuszcza komputera.")
@@ -531,7 +534,8 @@ struct ServicesTab: View {
     // MARK: Dostęp zdalny
 
     private var remoteSection: some View {
-        SettingsSection(title: tr("Dostęp zdalny"), note: tr("Opcjonalny: serwery z sieci domowej poza domem, przez bramę z logowaniem OIDC (np. Pocket ID).")) {
+        SettingsSection(title: tr("Dostęp zdalny"), note: tr("Opcjonalny: serwery z sieci domowej poza domem, przez bramę z logowaniem OIDC (np. Pocket ID)."),
+                        ring: .remoteAccess) {
             SettingsCard {
                 if RemoteConfig.configuration == nil && !remoteExpanded {
                     SettingsRow(mark: .icon("person.badge.key"), title: tr("Nie skonfigurowano"),

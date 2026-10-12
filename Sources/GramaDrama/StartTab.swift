@@ -10,6 +10,7 @@ struct StartTab: View {
     @ObservedObject private var appState = AppState.shared
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var dictation = DictationSettings.shared
+    @ObservedObject private var ollama = LocalOllama.shared
     @AppStorage(MainWindowTab.defaultsKey) private var tab: MainWindowTab = .start
     @State private var trial = Self.sampleText(for: Settings.shared.textLanguages.primary)
 
@@ -24,6 +25,7 @@ struct StartTab: View {
 
     var body: some View {
         header
+        if model.firstRun { firstStepsSection }
         trySection
         permissionsSection
         shortcutsSection
@@ -38,21 +40,80 @@ struct StartTab: View {
             Text("GramaDrama").font(.title.bold())
             Text(tr("Pisz bez dramatu.")).foregroundStyle(.secondary)
             let problems = model.problems
-            // Kliknięcie prowadzi do zakładki, w której naprawisz pierwszy problem.
-            Button { if let first = problems.first { tab = first.tab } } label: {
+            // Nowa instalacja, w której został tylko model: krok do zrobienia, nie awaria — neutralnie, nie „Wymaga uwagi”.
+            let oneStep = model.firstRun && !problems.isEmpty && problems.allSatisfy { $0.tab == .connection }
+            // Kliknięcie prowadzi do zakładki, w której naprawisz pierwszy problem, i obrysowuje jego grupę.
+            Button { if let first = problems.first { show(first) } } label: {
                 Label(problems.isEmpty ? tr("Wszystko gotowe")
-                                       : tr("Wymaga uwagi: {problems}", ["problems": problems.map(\.title).joined(separator: ", ")]),
-                      systemImage: problems.isEmpty ? "checkmark" : "exclamationmark.triangle.fill")
+                      : oneStep ? tr("Jeszcze jeden krok: model językowy")
+                      : tr("Wymaga uwagi: {problems}", ["problems": problems.map(\.title).joined(separator: ", ")]),
+                      systemImage: problems.isEmpty ? "checkmark" : oneStep ? "arrow.right.circle" : "exclamationmark.triangle.fill")
                     .font(.callout.weight(.semibold))
-                    .foregroundStyle(problems.isEmpty ? Brand.sage : Brand.brick)
+                    .foregroundStyle(problems.isEmpty ? Brand.sage : oneStep ? Brand.ink : Brand.brick)
                     .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(problems.isEmpty ? Brand.sageBackground : Brand.wave.opacity(0.16), in: Capsule())
+                    .background(problems.isEmpty ? Brand.sageBackground : oneStep ? Brand.subtle : Brand.findingTint, in: Capsule())
             }
+            .help(problems.isEmpty ? "" : tr("Pokaż, co poprawić"))
             .buttonStyle(.plain)
             .disabled(problems.isEmpty)
             .opacity(model.diagnostics == nil ? 0.4 : 1)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Zakładka problemu; model i serwer mowy — z obwódką wokół ich grupy w Usługach.
+    private func show(_ problem: MainWindowModel.Problem) {
+        switch problem {
+        case .modelServer, .model: WindowHighlight.shared.point(to: .languageModel)
+        case .speechServer: WindowHighlight.shared.point(to: .speechRecognition)
+        default: tab = problem.tab
+        }
+    }
+
+    // MARK: Pierwsze kroki
+
+    /// Nowa instalacja, w której model jeszcze nie działa (`build_first_steps` na Linuksie): co zostało do pierwszej
+    /// korekty, po kolei. Znika, gdy model działa albo po pierwszej udanej korekcie.
+    private var firstStepsSection: some View {
+        let shortcut = settings.correctionShortcut.label
+        return SettingsSection(title: tr("Pierwsze kroki"), note: tr("Potem {shortcut} poprawia tekst w każdej aplikacji.", ["shortcut": shortcut])) {
+            SettingsCard {
+                SettingsRow(mark: .status(setupReady), title: tr("Skrót i dostęp do tekstu"), subtitle: setupText)
+                Divider()
+                SettingsRow(mark: .status(model.diagnostics == nil ? nil : false), title: tr("Model językowy"), subtitle: modelStepText) {
+                    Button(tr("Otwórz Usługi")) { WindowHighlight.shared.point(to: .languageModel) }.buttonStyle(.borderedProminent)
+                }
+                Divider()
+                SettingsRow(mark: .icon("text.cursor"), title: tr("Pierwsza korekta"),
+                            subtitle: tr("W polu Wypróbuj poniżej: kliknij w tekst i naciśnij {shortcut}.", ["shortcut": shortcut]))
+            }
+        }
+    }
+
+    private var setupReady: Bool { model.accessibility && !model.problems.contains(.hotKey) }
+
+    private var setupText: String {
+        if !model.accessibility { return tr("Dokończ to w części „Uprawnienia” poniżej.") }
+        if model.problems.contains(.hotKey) { return tr("Skrót jest zajęty — zmień go w części „Skróty” poniżej.") }
+        return tr("Działają: Dostępność i skrót.")
+    }
+
+    /// Co zostało do działającego modelu, tak jak mówi to zakładka Usługi.
+    private var modelStepText: String {
+        guard let diagnostics = model.diagnostics else { return tr("Sprawdzam…") }
+        if settings.modelLocation == .local {
+            switch ollama.state {
+            case .missing: return tr("Ollama nie jest zainstalowana — pobierz ją albo podaj adres serwera.")
+            case .stopped: return tr("Ollama jest zainstalowana, ale nie działa — uruchom ją.")
+            default: break
+            }
+            if !diagnostics.modelReachable { return tr("Ollama na tym Macu nie odpowiada.") }
+            return (diagnostics.models ?? []).isEmpty ? tr("Ollama działa, ale nie ma jeszcze modelu — pobierz go.")
+                                                      : tr("Ollama działa, ale nie ma wybranego modelu — pobierz go albo wybierz inny.")
+        }
+        if settings.modelServerURL.trimmed.isEmpty { return tr("Podaj adres serwera modelu.") }
+        return diagnostics.modelReachable ? tr("Na serwerze nie ma wybranego modelu — wybierz inny.")
+                                          : tr("Serwer modelu nie odpowiada — sprawdź adres.")
     }
 
     // MARK: Wypróbuj

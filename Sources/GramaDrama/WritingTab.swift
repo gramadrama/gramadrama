@@ -52,7 +52,8 @@ struct WritingTab: View {
     /// Jeden albo dwa języki (`build_languages` na Linuksie): korekta, sprawdzanie i dyktowanie w nich, tłumaczenie
     /// między nimi. Interfejs aplikacji zostaje po polsku.
     private var languagesSection: some View {
-        SettingsSection(title: tr("Języki tekstu"), note: tr("Korekta, sprawdzanie i dyktowanie w jednym albo dwóch językach; tłumaczenie między nimi.")) {
+        SettingsSection(title: tr("Języki tekstu"), note: tr("Korekta, sprawdzanie i dyktowanie w jednym albo dwóch językach; tłumaczenie między nimi."),
+                        ring: .textLanguages) {
             SettingsCard {
                 SettingsRow(mark: .icon("globe"), title: tr("Język główny")) {
                     Picker("", selection: Binding(get: { settings.textLanguages.primary }, set: selectPrimary)) {

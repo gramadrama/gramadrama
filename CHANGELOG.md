@@ -54,6 +54,10 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
 - A failed correction says what happened and what to do, with the same causes and buttons as on Linux (open the app on
   the right tab, try again, sign in; ↩ does the first one), and a slip of the model is retried once on its own first.
   When Ollama on this Mac does not answer, the panel says whether it is missing or not running.
+- A new install shows the **First steps** on Home until the language model works, and the status pill says
+  „One more step: the language model” instead of a warning. The panel's buttons, the steps and the status pill open the
+  window on the right tab with the group to fix ringed and scrolled into view. Ollama without any model is no longer
+  „Everything is ready”.
 - Dictation while holding Fn / 🌐: Whisper on the Mac with a live preview in the pill and long recordings split at
   pauses, or a server.
 - Services on this Mac or on a server, Ollama with model download, the API key in the keychain, remote access

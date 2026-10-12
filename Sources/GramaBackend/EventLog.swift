@@ -49,6 +49,11 @@ package enum EventLog {
         package var id: String { bundleID }
     }
 
+    /// Czy w logu (także w poprzednim pliku) jest takie zdarzenie, np. udana korekta sprzed zapisania jej daty.
+    package static func contains(_ event: String) -> Bool {
+        entries().contains { $0["event"] as? String == event }
+    }
+
     private static func entries() -> [[String: Any]] {
         let rotated = directory.appendingPathComponent("events.1.jsonl")
         let content = queue.sync {

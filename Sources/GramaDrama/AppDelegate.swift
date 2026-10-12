@@ -137,11 +137,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     /// albo logowanie w dostępie zdalnym (PANEL.md, „Błąd”).
     static func perform(_ action: ProblemAction) {
         switch action {
-        case .openServices: openMainWindow(at: .connection)
-        case .openWriting: openMainWindow(at: .writing)
-        case .login: signIn()
+        case .openServices: point(to: .languageModel)
+        case .openWriting: point(to: .textLanguages)
+        case .login:
+            point(to: .remoteAccess)
+            signIn()
         case .retry: break
         }
+    }
+
+    /// Okno na zakładce grupy z przyczyną, a sama grupa w obwódce i na widoku (`--show` i `--login` na Linuksie).
+    static func point(to target: WindowHighlight.Target) {
+        WindowHighlight.shared.point(to: target)
+        (NSApp.delegate as? AppDelegate)?.openMainWindow()
     }
 
     static func openMainWindow(at tab: MainWindowTab) {

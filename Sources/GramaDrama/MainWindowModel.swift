@@ -25,7 +25,23 @@ final class MainWindowModel: ObservableObject {
     @Published var speechChecking = false
     @Published var testResult: String?
     @Published var testing = false
+    /// Była już udana korekta (data pierwszej w ustawieniach, a sprzed jej zapisywania — zdarzenie w logu).
+    @Published var hasCorrected = MainWindowModel.correctedBefore()
     private var refreshGeneration = 0
+
+    /// Data pierwszej udanej korekty (`CorrectionSession`): od niej okno nie pokazuje już Pierwszych kroków.
+    static let firstCorrectionKey = "firstCorrectionAt"
+
+    private static func correctedBefore() -> Bool {
+        UserDefaults.standard.object(forKey: firstCorrectionKey) != nil || EventLog.contains("session")
+    }
+
+    /// Nowa instalacja, w której model jeszcze nie działa (na Linuksie: nie wybrano modelu; na Macu model jest wybrany
+    /// od początku, więc liczy się, czy była już udana korekta). Start pokazuje wtedy Pierwsze kroki, a pigułka mówi
+    /// „Jeszcze jeden krok”, nie „Wymaga uwagi” — to krok do zrobienia, nie awaria.
+    var firstRun: Bool {
+        !hasCorrected && (diagnostics == nil || problems.contains { $0 == .modelServer || $0 == .model })
+    }
 
     /// Modele z serwera modelu (na tym Macu — pobrane do Ollamy).
     var models: [String] { diagnostics?.models ?? [] }
@@ -60,7 +76,8 @@ final class MainWindowModel: ObservableObject {
         if AppState.shared.hotKeyStatus.values.contains(where: { $0 != nil && $0 != noErr }) { list.append(.hotKey) }
         if let diagnostics {
             if !diagnostics.modelReachable { list.append(.modelServer) }
-            else if !models.isEmpty, !models.contains(Settings.shared.model) { list.append(.model) }
+            // Ollama bez żadnego modelu to też brak modelu (pusta lista, nie „serwer nie podał listy”).
+            else if let models = diagnostics.models, !models.contains(Settings.shared.model) { list.append(.model) }
         }
         if DictationSettings.shared.enabled, DictationSettings.shared.speechBackend == .server {
             if DictationSettings.shared.speechEndpoint == nil { list.append(.speechServer) }
@@ -196,6 +213,7 @@ final class MainWindowModel: ObservableObject {
         case "capture_refused":
             trialStatus = (false, tr("Skrót dotarł, ale: {reason}.", ["reason": tr(EventLog.reasonText(entry["reason"] as? String))]))
         case "session":
+            hasCorrected = true
             let changes = entry["changes"] as? Int ?? 0
             let count = changes == 0 ? tr("bez zmian") : UI.count(changes, ("poprawka", "poprawki", "poprawek"), ("change", "changes"))
             trialStatus = (true, tr("Gotowe w {time}: {changes} — ↩ wstawi, ⎋ anuluje.",

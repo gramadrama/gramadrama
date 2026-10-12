@@ -5,20 +5,40 @@ import GramaCore
 // Klocki okna aplikacji. Zasada: podpis pod opcją w jednej linii, bez czasów, limitów i poleceń dla deweloperów —
 // szczegóły są w dokumentacji. Znak stanu (✓ / ⚠︎) tylko tam, gdzie coś może nie działać (uprawnienia, usługi).
 
-/// Sekcja z tytułem i najwyżej jednym zdaniem objaśnienia.
+/// Sekcja z tytułem i najwyżej jednym zdaniem objaśnienia. `ring`: grupa, którą może wskazać `WindowHighlight` —
+/// wtedy jej treść dostaje lawendową obwódkę (2 px, 4 px od karty) i okno przewija ją na widok.
 struct SettingsSection<Content: View>: View {
     let title: String
     var note: String? = nil
+    var ring: WindowHighlight.Target? = nil
     @ViewBuilder let content: Content
+    @ObservedObject private var highlight = WindowHighlight.shared
+
+    init(title: String, note: String? = nil, ring: WindowHighlight.Target? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.note = note
+        self.ring = ring
+        self.content = content()
+    }
 
     var body: some View {
+        let ringed = ring != nil && highlight.target == ring
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.headline)
             if let note {
                 Text(note).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             content
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Brand.lavender, lineWidth: 2)
+                        .padding(-6)
+                        .opacity(ringed ? 1 : 0)
+                        .animation(.easeOut(duration: 0.2), value: ringed)
+                        .allowsHitTesting(false)
+                }
         }
+        .id(ring?.rawValue ?? "section " + title)
     }
 }
 
