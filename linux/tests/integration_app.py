@@ -19,7 +19,8 @@ section the session's PATH and XDG_DATA_DIRS start in a tree of fake apps (apps_
   dictionary       Pisanie › Słownik i reguły: the words of Enchant's list (the latest first) and the rules turned off;
                    the bin removes a word from the list file, Włącz turns a rule on in rules.json, the own words are
                    saved, and the Dyktowanie tab links to them
-  try              Ctrl+Alt+G in the Wypróbuj field: the arrow-key refusal, the panel, Enter; the field
+  try              Ctrl+Alt+G in the Wypróbuj field right after the focus came back to it unchanged (the
+                   text ibus-daemon drops, its caret confirmed by AT-SPI): the panel, Enter; the field
                    holds the correction, the shortcut counts as confirmed, "Ostatnie użycie" follows
                    and names the app; the GramaDrama app is never on its own list
   apps_list        the Aplikacje rows for a simulated log (written while another window is active) and
@@ -780,17 +781,28 @@ def t_tabs(rig):
 
 def t_try(rig):
     s = rig.s
-    rig.action('focus-try')  # the focus moved into the field without a click, as at the start: the caret is not known yet
+    # The focus comes back to the field from another widget, without a click and with its text unchanged:
+    # ibus-daemon drops the app's update as identical to the last one, the engine takes that text untrusted
+    # (FieldContext.settle) and AT-SPI confirms the caret, so the first shortcut corrects at once. The click and
+    # the arrow keys first make this field's state the last one ibus-daemon handed on, whatever field the
+    # scenarios before used.
+    rig.focus_try()
+    rig.nudge()
+    log = s.env['GRAMADRAMA_ENGINE_LOG']
+    logged = os.path.getsize(log) if os.path.exists(log) else 0
+    rig.action('focus-try')
     wait_until(lambda: rig.state()['try']['focus'], 5, what='the Wypróbuj field focused')
     time.sleep(0.5)
-    s.combo('ctrl', 'alt', 'g')  # right after the field got focus: the engine asks for an arrow key
-    rig.wait_try('warning', 'Skrót działa, ale GramaDrama nie zna jeszcze pozycji kursora')
-    rig.wait_row('hotkey', 'ok', 'sprawdzone w polu Wypróbuj')
     rig.stub.chunks, rig.stub.chunk_delay = stream(FIXED, pieces=4), 0.25
     chats = len(rig.stub.chats())
-    rig.nudge()
     s.combo('ctrl', 'alt', 'g')
     rig.wait_try('busy', 'Skrót działa. Model poprawia tekst')
+    rig.wait_row('hotkey', 'ok', 'sprawdzone w polu Wypróbuj')
+    with open(log, 'rb') as f:
+        f.seek(logged)
+        events = [json.loads(line)['ev'] for line in f.read().splitlines() if line.strip()]
+    check('surrounding_unchanged' in events and 'caret_confirmed' in events and 'refused' not in events,
+          'the unchanged text taken and its caret confirmed by AT-SPI, no refusal', events)
     rig.wait_try('ok', 'Gotowe. Enter wstawi poprawkę', timeout=15)
     check(len(rig.stub.chats()) == chats + 1, 'one request to Bielik', len(rig.stub.chats()))
     check(TRY_TEXT in rig.stub.chats()[-1]['messages'][-1]['content'], 'the field text was sent')

@@ -357,8 +357,8 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
             pass
 
     def focus_try_fresh(self):
-        """Tests: the Wypróbuj field gets the focus as at the start of the app, from another widget and without a click,
-        so the engine does not know the caret yet."""
+        """Tests: the Wypróbuj field gets the focus back from another widget, without a click and with its text
+        unchanged, so ibus-daemon drops the app's update and the engine takes the text it last handed on."""
         self.show_tab('start')
         self.refresh_button.grab_focus()
         self.try_view.grab_focus()
