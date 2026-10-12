@@ -52,6 +52,24 @@ struct DiffMarksTests {
         #expect(marked == ["wyślę", ",", "piątek"])
     }
 
+    /// Ta sama poprawka w dwóch kształtach, które daje diff słów zależnie od wersji Swifta (6.3 lokalnie, macos-15
+    /// w CI): wspólna spacja po jednej albo po drugiej stronie. Zaznaczenie ma być w obu takie samo.
+    @Test func marksDoNotDependOnWhereTheDiffPutsTheSpace() {
+        let result = "Jutro wyślę cały raport."
+        let joined: [DiffSegment] = [.same("Jutro "), .removed("wysle"), .added("wyślę cały"), .same(" raport.")]
+        let split: [DiffSegment] = [.same("Jutro "), .removed("wysle"), .added("wyślę"), .same(" "), .added("cały "), .same("raport.")]
+        for segments in [joined, split] {
+            #expect(Diff.marks(segments).map { (result as NSString).substring(with: $0) } == ["wyślę cały"])
+        }
+    }
+
+    @Test func anAddedSpaceAloneStaysMarkedAndLinesAreNotJoined() {
+        // „wcale” → „w cale”: sama spacja to poprawka, więc zostaje zaznaczona.
+        #expect(Diff.marks([.same("w"), .added(" "), .same("cale")]) == [NSRange(location: 1, length: 1)])
+        // Zmiany w dwóch liniach zostają osobno.
+        #expect(Diff.marks([.added("Raz"), .same("\n"), .added("Dwa")]) == [NSRange(location: 0, length: 3), NSRange(location: 4, length: 3)])
+    }
+
     @Test func editMarksFollowTheEditedText() {
         let original = "Jutro wysle raport."
         let edited = "Jutro wyślę cały raport."

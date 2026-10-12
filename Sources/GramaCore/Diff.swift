@@ -102,22 +102,44 @@ package enum Diff {
     /// Co poprawka zmieniła w wyniku: zakresy (UTF-16) dodanego tekstu, które panel kładzie na tle szałwii
     /// (PANEL.md, „Treść”). Usuniętego tekstu w wyniku nie ma — mówi o nim lista zmian — więc miejsce w polu
     /// to miejsce w wyniku.
+    ///
+    /// Zmiany rozdzielone samymi spacjami to jedno zaznaczenie, bez spacji na jego brzegach („wyślę cały”, nie
+    /// „wyślę” i „cały ”). Diff słów (`CollectionDifference`) może przypisać wspólną spację raz do jednej, raz do
+    /// drugiej strony — zależnie od wersji Swifta — więc dopiero to scalenie daje ten sam wygląd w każdym buildzie.
+    /// Sama dodana spacja (np. „w cale”) zostaje zaznaczona: to też poprawka.
     package static func marks(_ segments: [DiffSegment]) -> [NSRange] {
-        var marks: [NSRange] = []
-        var offset = 0
+        var raw: [NSRange] = []
+        var result = ""
         for segment in segments {
             switch segment {
             case .same(let text):
-                offset += (text as NSString).length
+                result += text
             case .added(let text):
-                let length = (text as NSString).length
-                marks.append(NSRange(location: offset, length: length))
-                offset += length
+                raw.append(NSRange(location: (result as NSString).length, length: (text as NSString).length))
+                result += text
             case .removed:
                 break
             }
         }
-        return marks
+        let text = result as NSString
+        func spacesOnly(_ range: NSRange) -> Bool {
+            text.substring(with: range).allSatisfy { $0 == " " || $0 == "\t" }
+        }
+        var merged: [NSRange] = []
+        for range in raw where range.length > 0 {
+            if let last = merged.last, spacesOnly(NSRange(location: NSMaxRange(last), length: range.location - NSMaxRange(last))) {
+                merged[merged.count - 1] = NSRange(location: last.location, length: NSMaxRange(range) - last.location)
+            } else {
+                merged.append(range)
+            }
+        }
+        return merged.map { range in
+            guard !spacesOnly(range) else { return range }
+            var start = range.location, end = NSMaxRange(range)
+            while start < end, text.character(at: start) == 0x20 || text.character(at: start) == 0x09 { start += 1 }
+            while end > start, text.character(at: end - 1) == 0x20 || text.character(at: end - 1) == 0x09 { end -= 1 }
+            return NSRange(location: start, length: end - start)
+        }
     }
 
     /// Dłuższego tekstu edycja nie porównuje z oryginałem po każdym klawiszu (`MARKS_MAX` na Linuksie).

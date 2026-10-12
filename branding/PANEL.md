@@ -63,7 +63,9 @@ reserved for actions on the text. Changing the mode immediately runs the correct
 - **Result** (modes other than Translate): the corrected text alone, with no struck-through text in it: with many
   corrections a diff is hard to read. What the correction changed (inserted or replaced text, an added comma) sits on
   the sage background, in the normal text colour; deleted text is not shown (the list of changes, on demand, says
-  what went). The label shows exactly the result, so a click or a caret in it is a place in the result.
+  what went). The label shows exactly the result, so a click or a caret in it is a place in the result. On macOS,
+  changes separated only by spaces share one mark, without spaces at its ends („wyślę cały”), whichever way the word
+  diff splits them; a space added alone („w cale”) stays marked.
 - **The result is a field:** a finished result that can be inserted is framed (`#DDD8D0` / `#505852`, corner radius
   8 px, padding 8/10 px) with „Wynik — możesz go poprawić, zanim wstawisz” (“Result — you can edit it before you
   insert it”) and a pencil above it, small and dimmed. Typing or a click edits it at once (Editing); the frame turns
