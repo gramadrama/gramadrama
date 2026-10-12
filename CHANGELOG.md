@@ -58,6 +58,13 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
   „One more step: the language model” instead of a warning. The panel's buttons, the steps and the status pill open the
   window on the right tab with the group to fix ringed and scrolled into view. Ollama without any model is no longer
   „Everything is ready”.
+- One dictionary for checking, corrections and dictation, as on Linux (Writing → Dictionary and rules): the own words
+  (moved there from Dictation, which links to it) and the words added with "Add to dictionary", which GramaDrama keeps
+  as well as the macOS dictionary, together with words learned in other apps that the system's list shows. Checking
+  does not underline them, a correction is told how to spell the ones its text uses, and dictation gets them within its
+  length limit. Words can be removed from the list.
+- "Turn off rule" on the card of a LanguageTool grammar rule and in the correction panel: the rule stays off until it is
+  turned on again in the same section.
 - Dictation while holding Fn / 🌐: Whisper on the Mac with a live preview in the pill and long recordings split at
   pauses, or a server.
 - Services on this Mac or on a server, Ollama with model download, the API key in the keychain, remote access

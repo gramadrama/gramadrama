@@ -1,0 +1,284 @@
+{
+  "description": "The user dictionary on both platforms: linux/gramadrama/dictionary.py and dictation.py, Sources/GramaCore/UserDictionary.swift. Expected values come from the Linux code.",
+  "spelling_note": "Spell these names and terms exactly like this: %s.\n\n",
+  "fragment_note": "Te nazwy i terminy pisz dokładnie tak: %s.\n",
+  "relevant": [
+    {
+      "words": [
+        "Bielik",
+        "GramaDrama",
+        "PR"
+      ],
+      "text": "Jutro wyślę Bielika do gramadramy, a PR potem.",
+      "expected": [
+        "Bielik",
+        "PR"
+      ]
+    },
+    {
+      "words": [
+        "Bielik"
+      ],
+      "text": "Bieliki to ptaki, a Bielikowski to nazwisko.",
+      "expected": [
+        "Bielik"
+      ]
+    },
+    {
+      "words": [
+        "PR"
+      ],
+      "text": "PRy i PR-y, ale nie SPRAWA.",
+      "expected": [
+        "PR"
+      ]
+    },
+    {
+      "words": [
+        "Kowalski"
+      ],
+      "text": "Napisz do kowalskiego jutro.",
+      "expected": [
+        "Kowalski"
+      ]
+    },
+    {
+      "words": [
+        "staging",
+        "Orion"
+      ],
+      "text": "Na stagingu działa, na produkcji nie.",
+      "expected": [
+        "staging"
+      ]
+    },
+    {
+      "words": [
+        "C++",
+        "node.js"
+      ],
+      "text": "Piszę w C++ i node.js.",
+      "expected": [
+        "C++",
+        "node.js"
+      ]
+    },
+    {
+      "words": [
+        "Łódź"
+      ],
+      "text": "Jadę do Łodzi i do łódźki.",
+      "expected": [
+        "Łódź"
+      ]
+    },
+    {
+      "words": [
+        "w00",
+        "w01",
+        "w02",
+        "w03",
+        "w04",
+        "w05",
+        "w06",
+        "w07",
+        "w08",
+        "w09",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15",
+        "w16",
+        "w17",
+        "w18",
+        "w19",
+        "w20",
+        "w21",
+        "w22",
+        "w23",
+        "w24",
+        "w25",
+        "w26",
+        "w27",
+        "w28",
+        "w29"
+      ],
+      "text": "w00 w01 w02 w03 w04 w05 w06 w07 w08 w09 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29",
+      "expected": [
+        "w00",
+        "w01",
+        "w02",
+        "w03",
+        "w04",
+        "w05",
+        "w06",
+        "w07",
+        "w08",
+        "w09",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15",
+        "w16",
+        "w17",
+        "w18",
+        "w19"
+      ]
+    }
+  ],
+  "known": [
+    {
+      "words": [
+        "staging"
+      ],
+      "word": "staging",
+      "expected": true
+    },
+    {
+      "words": [
+        "staging"
+      ],
+      "word": "Staging",
+      "expected": true
+    },
+    {
+      "words": [
+        "staging"
+      ],
+      "word": "STAGING",
+      "expected": true
+    },
+    {
+      "words": [
+        "GramaDrama"
+      ],
+      "word": "gramadrama",
+      "expected": false
+    },
+    {
+      "words": [
+        "GramaDrama"
+      ],
+      "word": "GRAMADRAMA",
+      "expected": true
+    },
+    {
+      "words": [
+        "GramaDrama"
+      ],
+      "word": "Gramadrama",
+      "expected": false
+    },
+    {
+      "words": [
+        "iPhone"
+      ],
+      "word": "IPhone",
+      "expected": true
+    },
+    {
+      "words": [
+        "Kowalski"
+      ],
+      "word": "kowalski",
+      "expected": false
+    },
+    {
+      "words": [
+        "łódź"
+      ],
+      "word": "Łódź",
+      "expected": true
+    },
+    {
+      "words": [
+        "łódź"
+      ],
+      "word": "ŁÓDŹ",
+      "expected": true
+    },
+    {
+      "words": [],
+      "word": "cokolwiek",
+      "expected": false
+    }
+  ],
+  "prompt_words": [
+    {
+      "own": [
+        "GramaDrama",
+        "Bielik"
+      ],
+      "learned": [
+        "staging",
+        "bielik",
+        "Orion"
+      ],
+      "expected": [
+        "GramaDrama",
+        "Bielik",
+        "staging",
+        "Orion"
+      ]
+    },
+    {
+      "own": [],
+      "learned": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "dddddddddd"
+      ],
+      "expected": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      ]
+    },
+    {
+      "own": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "learned": [
+        "abc",
+        "defghij",
+        "k"
+      ],
+      "expected": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "abc"
+      ]
+    }
+  ],
+  "parse": [
+    {
+      "text": "GramaDrama, Bielik\nOrion,, staging ",
+      "expected": [
+        "GramaDrama",
+        "Bielik",
+        "Orion",
+        "staging"
+      ]
+    },
+    {
+      "text": "a;b;A ; c\r\nd e",
+      "expected": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e"
+      ]
+    },
+    {
+      "text": "  Kowalski\t, kowalski , Nowak ",
+      "expected": [
+        "Kowalski",
+        "Nowak "
+      ]
+    }
+  ]
+}

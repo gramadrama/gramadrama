@@ -39,13 +39,12 @@ struct DictationTab: View {
                     .labelsHidden().fixedSize()
                 }
                 Divider()
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(tr("Własne słowa"))
-                    TextField(tr("np. GramaDrama, staging, code review"), text: $dictation.vocabularyText, axis: .vertical)
-                        .lineLimit(1...3)
-                    Text(tr("Imiona, nazwy i żargon — po przecinku.")).font(.caption).foregroundStyle(.secondary)
+                // Słownik jest jeden: własne słowa i dodane do słownika ustawiasz w Pisaniu.
+                SettingsRow(mark: .icon("character.book.closed"), title: tr("Słownik"),
+                            subtitle: tr("Własne słowa i dodane do słownika pomagają rozpoznać imiona, nazwy i żargon.")) {
+                    Button(tr("Pisanie…")) { WindowHighlight.shared.point(to: .dictionary) }
+                        .help(tr("Własne słowa i słowa dodane do słownika ustawisz w zakładce Pisanie"))
                 }
-                .padding(.horizontal, 14).padding(.vertical, 9)
             }
         }
     }

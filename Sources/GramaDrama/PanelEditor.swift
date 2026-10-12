@@ -297,6 +297,11 @@ final class EditorChecker: ObservableObject {
         issues.removeAll { Self.key($0) == Self.key(issue) }
     }
 
+    /// Reguła wyłączona („Wyłącz regułę”) — jej błędy znikają od razu, a następne sprawdzenie jej nie zgłosi.
+    func turnedOff(_ rule: String) {
+        issues.removeAll { $0.rule == rule }
+    }
+
     /// Słowo trafiło do słownika — znika z błędów pisowni od razu (następne sprawdzenie już go nie zgłosi).
     func learned(_ word: String) {
         issues.removeAll { $0.word == word && $0.isSpelling }

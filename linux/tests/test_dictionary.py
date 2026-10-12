@@ -140,3 +140,26 @@ class Rules(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SharedCasesTests(unittest.TestCase):
+    """tests/dictionary_cases.json: the same cases check Sources/GramaCore/UserDictionary.swift on macOS."""
+
+    def setUp(self):
+        self.cases = json.loads((pathlib.Path(__file__).resolve().parents[2] / 'tests' / 'dictionary_cases.json').read_text())
+
+    def test_notes(self):
+        from gramadrama import model_live, prompts
+        self.assertEqual(self.cases['spelling_note'], prompts.SPELLING_NOTE)
+        self.assertEqual(self.cases['fragment_note'], model_live._SPELLING)
+
+    def test_cases(self):
+        from gramadrama.dictation import parse_vocabulary, prompt_words
+        for c in self.cases['relevant']:
+            self.assertEqual(D.relevant(c['words'], c['text']), c['expected'], c['text'])
+        for c in self.cases['known']:
+            self.assertEqual(c['word'] in D.Known(c['words']), c['expected'], c['word'])
+        for c in self.cases['prompt_words']:
+            self.assertEqual(prompt_words(c['own'], c['learned']), c['expected'])
+        for c in self.cases['parse']:
+            self.assertEqual(parse_vocabulary(c['text']), c['expected'], repr(c['text']))

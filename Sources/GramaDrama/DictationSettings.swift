@@ -98,8 +98,6 @@ final class DictationSettings: ObservableObject {
     @Published var language: DictationLanguage { didSet { defaults.set(language.rawValue, forKey: "dictationLanguage") } }
     /// Porządkowanie transkrypcji przez model (wypełniacze, interpunkcja, autokorekty mówcy).
     @Published var cleanup: DictationCleanup { didSet { defaults.set(cleanup.rawValue, forKey: "dictationCleanupMode") } }
-    /// Własne słowa (imiona, nazwy projektów, żargon) — po przecinku albo w osobnych liniach.
-    @Published var vocabularyText: String { didSet { defaults.set(vocabularyText, forKey: "dictationVocabulary") } }
     /// Rozpoznawanie mowy: domyślnie na tym Macu. Serwer dostaje nagranie (WAV) i podpowiedź słów; klucz API
     /// jest w pęku kluczy (`ServerKey.speech`), nie tutaj. Adres i protokół zostają przy powrocie na „Ten Mac”.
     @Published var speechBackend: SpeechBackend { didSet { defaults.set(speechBackend.rawValue, forKey: "speechBackend") } }
@@ -114,25 +112,24 @@ final class DictationSettings: ObservableObject {
         language = defaults.string(forKey: "dictationLanguage").flatMap(DictationLanguage.init) ?? .polish
         cleanup = defaults.string(forKey: "dictationCleanupMode").flatMap(DictationCleanup.init)
             ?? .off
-        vocabularyText = defaults.string(forKey: "dictationVocabulary") ?? ""
         speechBackend = defaults.string(forKey: "speechBackend").flatMap(SpeechBackend.init) ?? .local
         speechServerURL = defaults.string(forKey: "speechServerURL") ?? ""
         speechServerAPI = defaults.string(forKey: "speechServerAPI").flatMap(SpeechServerAPI.init) ?? .openAI
         speechServerModel = defaults.string(forKey: "speechServerModel") ?? "whisper-1"
     }
 
-    var vocabulary: [String] { Self.parseVocabulary(vocabularyText) }
+    /// Słowa dla podpowiedzi Whispera i porządkowania: wszystkie własne ze słownika, potem dodane do słownika
+    /// (najnowsze pierwsze), do `UserDictionary.promptChars` znaków (`prompt_words` na Linuksie).
+    var vocabulary: [String] {
+        let settings = Settings.shared
+        return UserDictionary.promptWords(own: settings.ownWords, learned: settings.learnedLatestFirst)
+    }
 
     /// Serwer mowy z ustawień (nil = pusty albo nieprawidłowy adres).
     var speechEndpoint: SpeechServerEndpoint? { SpeechServerEndpoint(address: speechServerURL, api: speechServerAPI) }
 
     /// „GramaDrama, Bielik\nOllama,, staging " → ["GramaDrama", "Bielik", "Ollama", "staging"] (bez powtórzeń).
-    static func parseVocabulary(_ text: String) -> [String] {
-        var seen = Set<String>()
-        return text.split(whereSeparator: { $0 == "," || $0 == ";" || $0.isNewline })
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
-    }
+    static func parseVocabulary(_ text: String) -> [String] { UserDictionary.parse(text) }
 
     /// Ustawienie klawisza 🌐 w macOS („Naciśnij 🌐, aby…”). Wszystko poza „Nic nie rób” (0) otwiera
     /// po puszczeniu Fn emoji, dyktowanie Apple albo zmienia źródło wprowadzania.

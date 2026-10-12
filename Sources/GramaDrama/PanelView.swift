@@ -386,6 +386,14 @@ struct PanelView: View {
                 if issue.isSpelling || issue.rule == "PL_DIACRITICS" {
                     Button(tr("Dodaj do słownika")) { learn(issue.word) }
                 }
+                // Bez komunikatu: zająłby miejsce w panelu (jak na Linuksie); regułę włączysz w Pisaniu.
+                if issue.canTurnOff {
+                    Button(tr("Wyłącz regułę")) {
+                        Settings.shared.turnOffRule(issue.rule, name: issue.ruleDescription)
+                        editorChecker.turnedOff(issue.rule)
+                        EventLog.write("panel_edit", ["action": "rule_off", "mode": session.mode.rawValue])
+                    }
+                }
             }
             .buttonStyle(.plain)
             .font(.caption)
@@ -393,9 +401,9 @@ struct PanelView: View {
         }
     }
 
-    /// Słowo do słownika macOS — tego samego, którego używa sprawdzanie podczas pisania.
+    /// Słowo do słownika macOS (tego samego, którego używa sprawdzanie podczas pisania) i słownika GramaDramy.
     private func learn(_ word: String) {
-        NSSpellChecker.shared.learnWord(word)
+        UserWords.learn(word)
         editorChecker.learned(word)
         learnedWord = word
         EventLog.write("panel_edit", ["action": "learn_word", "mode": session.mode.rawValue])

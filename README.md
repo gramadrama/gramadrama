@@ -51,10 +51,11 @@ extension provides the page's text, its position and replacements. See [browser 
 On macOS the app uses the input method, the extension, Accessibility or the clipboard, depending on the field.
 Some editors may lose formatting when the text is replaced.
 
-On Linux, **Writing → Dictionary and rules** (*Pisanie → Słownik i reguły*) keeps one dictionary for checking,
+**Writing → Dictionary and rules** (*Pisanie → Słownik i reguły*) keeps one dictionary for checking,
 corrections and dictation: your own words and the words added with **Add to dictionary**. It also lists the
 LanguageTool rules turned off with **Turn off rule** on the card under an underlined word, and turns them on again.
-On macOS the own words are still a dictation setting and rules cannot be turned off yet.
+On Linux the added words are Enchant's lists, shared with GNOME apps; on macOS GramaDrama keeps its own list of the words
+it added to the macOS dictionary and also reads the words the system lists as learned in other apps.
 
 Experimental model-only checking (Linux and macOS) shares its result with the **Correct** mode:
 the shortcut uses a finished correction or waits for a running check of the same text.

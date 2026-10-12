@@ -107,7 +107,7 @@ limitation. The exact scaling limitations are described in the [browser document
 ## Dictionary and rules
 
 **Writing → Dictionary and rules** (*Pisanie → Słownik i reguły*) gathers one dictionary for checking, corrections
-and dictation (Linux; macOS keeps its own words in the Dictation tab):
+and dictation (on macOS the same section, described at the end of this part):
 
 - **Own words** (*Własne słowa*): names, terms and jargon typed by hand, separated by commas.
   They are kept in `settings.json` as `dictation_vocabulary`, the name from when only dictation used them.
@@ -129,6 +129,12 @@ A rule turned off is left out of the request to LanguageTool (`disabledRules`) a
 It stays off in `rules.json` in the configuration directory until it is turned on again. A rule of spelling is not
 offered: a word belongs in the dictionary instead. If `rules.json` is broken, every rule is shown, and the next
 change keeps the old file as `rules.json.bak`.
+
+On macOS the section works the same way, with these differences: the own words are kept in the app's settings (under
+the key the Dictation tab used), and the added words are what GramaDrama itself added to the macOS dictionary (macOS
+has no way to list them) plus the words that `~/Library/Spelling/LocalDictionary` lists as learned in other apps.
+Removing a word also removes it from the macOS dictionary. The rules turned off are kept in the app's settings. The
+same cases of the dictionary are checked on both platforms (`tests/dictionary_cases.json`).
 
 ## Code and settings
 

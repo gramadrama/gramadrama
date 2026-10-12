@@ -238,7 +238,7 @@ final class CorrectionSession: ObservableObject {
     /// macOS (ten sam, którego używa sprawdzanie podczas pisania i karta podkreślenia).
     func revert(_ change: Change, learn: Bool) {
         guard phase == .done, !editing else { return }
-        if learn { NSSpellChecker.shared.learnWord(change.from) }
+        if learn { UserWords.learn(change.from) }
         update(Diff.text(segments, reverting: [change.segments]))
         EventLog.write("panel_edit", ["action": learn ? "learn" : "revert", "mode": mode.rawValue])
     }

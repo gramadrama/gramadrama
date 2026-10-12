@@ -6,6 +6,8 @@ package struct LTMatch: Decodable {
         package struct Category: Decodable { package let id: String }
         package let id: String
         package let category: Category
+        /// Opis reguły („Brak przecinka przed …”) — do listy wyłączonych reguł; nigdy tekst, w którym ją znalazł.
+        package let description: String?
     }
 
     package let message: String

@@ -27,9 +27,10 @@ package enum ModelLive {
     static let textStart = "<<<TEKST>>>"
     static let textEnd = "<<<KONIEC TEKSTU>>>"
 
-    package static func messages(for fragment: String) -> [[String: String]] {
+    /// `spelling`: słowa słownika, których fragment używa — notka przed nim, jak na Linuksie (`model_live`).
+    package static func messages(for fragment: String, spelling: [String] = []) -> [[String: String]] {
         [["role": "system", "content": systemPrompt],
-         ["role": "user", "content": textStart + "\n" + fragment + "\n" + textEnd]]
+         ["role": "user", "content": UserDictionary.fragmentNote(spelling) + textStart + "\n" + fragment + "\n" + textEnd]]
     }
 
     // MARK: Fragmenty

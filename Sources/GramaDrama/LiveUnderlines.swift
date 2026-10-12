@@ -137,6 +137,7 @@ final class LiveUnderlines {
     var onApply: (LiveIssue, String) -> Void = { _, _ in }
     var onIgnore: (LiveIssue) -> Void = { _ in }
     var onLearn: (LiveIssue) -> Void = { _ in }
+    var onTurnOff: (LiveIssue) -> Void = { _ in }
 
     private var window: NSWindow?
     private let canvas = UnderlineCanvas()
@@ -146,7 +147,8 @@ final class LiveUnderlines {
     private lazy var card: IssueCard = IssueCard(
         onApply: { [weak self] issue, suggestion in self?.card.hide(); self?.onApply(issue, suggestion) },
         onIgnore: { [weak self] issue in self?.card.hide(); self?.onIgnore(issue) },
-        onLearn: { [weak self] issue in self?.card.hide(); self?.onLearn(issue) })
+        onLearn: { [weak self] issue in self?.card.hide(); self?.onLearn(issue) },
+        onTurnOff: { [weak self] issue in self?.card.hide(); self?.onTurnOff(issue) })
     /// Słowo, nad którym otwarto kartę — obszar słowa, przerwy i karty nie zamyka jej przy przejściu myszą.
     private var cardWord: NSRect?
 
@@ -257,12 +259,14 @@ private final class IssueCard {
     private let onApply: (LiveIssue, String) -> Void
     private let onIgnore: (LiveIssue) -> Void
     private let onLearn: (LiveIssue) -> Void
+    private let onTurnOff: (LiveIssue) -> Void
 
     init(onApply: @escaping (LiveIssue, String) -> Void, onIgnore: @escaping (LiveIssue) -> Void,
-         onLearn: @escaping (LiveIssue) -> Void) {
+         onLearn: @escaping (LiveIssue) -> Void, onTurnOff: @escaping (LiveIssue) -> Void) {
         self.onApply = onApply
         self.onIgnore = onIgnore
         self.onLearn = onLearn
+        self.onTurnOff = onTurnOff
     }
 
     var frame: NSRect? { panel?.isVisible == true ? panel?.frame : nil }
@@ -273,7 +277,8 @@ private final class IssueCard {
         let view = IssueCardView(issue: issue,
                                  apply: { [weak self] in self?.onApply(issue, $0) },
                                  ignore: { [weak self] in self?.onIgnore(issue) },
-                                 learn: issue.isSpelling || issue.rule == "PL_DIACRITICS" ? { [weak self] in self?.onLearn(issue) } : nil)
+                                 learn: issue.isSpelling || issue.rule == "PL_DIACRITICS" ? { [weak self] in self?.onLearn(issue) } : nil,
+                                 turnOff: issue.canTurnOff ? { [weak self] in self?.onTurnOff(issue) } : nil)
         let hosting = ClickThroughHostingView(rootView: view)
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
@@ -319,6 +324,8 @@ struct IssueCardView: View {
     let apply: (String) -> Void
     let ignore: () -> Void
     let learn: (() -> Void)?
+    /// „Wyłącz regułę” — dla reguły LanguageTool o gramatyce, interpunkcji albo stylu.
+    var turnOff: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -336,6 +343,7 @@ struct IssueCardView: View {
             HStack(spacing: 12) {
                 Button(tr("Ignoruj"), action: ignore)
                 if let learn { Button(tr("Dodaj do słownika"), action: learn) }
+                if let turnOff { Button(tr("Wyłącz regułę"), action: turnOff) }
                 Spacer(minLength: 8)
                 // Warstwa modelu nazywa się w kodzie „bielik”, ale na karcie stoi model, który naprawdę działa.
                 Text(issue.source == .bielik || issue.source == .model ? Settings.shared.modelDisplayName : tr(issue.source.rawValue))

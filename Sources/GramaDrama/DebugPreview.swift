@@ -138,6 +138,10 @@ enum DebugPreview {
                 LiveBadgeView(model: badge)
                 LiveBadgeView(model: expanded)
                 IssueCardView(issue: issues[0], apply: { _ in }, ignore: {}, learn: {})
+                IssueCardView(issue: LiveIssue(range: NSRange(location: 33, length: 8), word: "spotkania", message: "Brak przecinka przed „a”.",
+                                               suggestions: ["spotkania,"], source: .languageTool, rule: "PL_BRAK_PRZECINKA",
+                                               ruleDescription: "Brak przecinka przed spójnikiem"),
+                              apply: { _ in }, ignore: {}, learn: nil, turnOff: {})
                 LiveBadgeView(model: long)
             })),
         ]

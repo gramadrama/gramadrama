@@ -255,7 +255,9 @@ package final class Backend {
             lastSource = "model"
             return try await correctUncached(text, mode: mode, target: target, onPartial: onPartial)
         }
-        let key = [model, modelServerKey, mode.rawValue, target?.rawValue ?? "auto", text.trimmed]
+        // Słowa słownika, o których korekta się dowiaduje, zmieniają prompt — więc i klucz pamięci.
+        let spelling = mode == .translate ? [] : UserDictionary.relevant(settings.dictionaryWords, in: text)
+        let key = ([model, modelServerKey, mode.rawValue, target?.rawValue ?? "auto", text.trimmed] + (spelling.isEmpty ? [] : [spelling.joined(separator: ",")]))
             .joined(separator: "\u{1F}")
         let (core, source) = try await Self.corrections.value(for: key, chars: text.count, background: background,
                                                               onPartial: onPartial) { forward in
@@ -283,7 +285,8 @@ package final class Backend {
 
     private func correctUncached(_ text: String, mode: Mode, target: TranslationTarget?,
                                  onPartial: @escaping @MainActor (String) -> Void) async throws -> String {
-        let messages = Prompts.messages(for: text, mode: mode, target: target, languages: settings.textLanguages)
+        let spelling = mode == .translate ? [] : UserDictionary.relevant(settings.dictionaryWords, in: text)
+        let messages = Prompts.messages(for: text, mode: mode, target: target, languages: settings.textLanguages, spelling: spelling)
         var output = try await chat(messages, temperature: mode.temperature, inputText: text, onPartial: onPartial)
         // Litery obcego pisma (Gemma 4: „piszę” → „pいつze”) przy temperaturze 0 wracają co do znaku, a przy
         // odrobinie losowości nie — jedna ponowna próba; druga taka odpowiedź to błąd, nie poprawka.
@@ -317,7 +320,9 @@ package final class Backend {
             await onWait()
             return (try await liveFragmentUncached(fragment, onPartial: onPartial), "model")
         }
-        let key = [ModelLive.promptVersion, model, modelServerKey, fragment].joined(separator: "\u{1F}")
+        let spelling = UserDictionary.relevant(settings.dictionaryWords, in: fragment)
+        let key = ([ModelLive.promptVersion, model, modelServerKey, fragment] + (spelling.isEmpty ? [] : [spelling.joined(separator: ",")]))
+            .joined(separator: "\u{1F}")
         let (result, source) = try await Self.liveFragments.value(for: key, chars: fragment.count, background: background,
                                                                   onPartial: onPartial, onWait: onWait) { forward in
             try await self.liveFragmentUncached(fragment, onPartial: forward)
@@ -326,7 +331,7 @@ package final class Backend {
     }
 
     private func liveFragmentUncached(_ fragment: String, onPartial: @escaping @MainActor (String) -> Void) async throws -> LiveFragmentResult {
-        let messages = ModelLive.messages(for: fragment)
+        let messages = ModelLive.messages(for: fragment, spelling: UserDictionary.relevant(settings.dictionaryWords, in: fragment))
         for temperature in [0, 0.3] {
             let output: String
             do {

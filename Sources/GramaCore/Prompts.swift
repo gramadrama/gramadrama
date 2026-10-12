@@ -5,9 +5,12 @@ import Foundation
 package enum Prompts {
     /// Pełna lista wiadomości wysyłana do modelu (też dla `--dump-prompts` i porównania z Linuksem). `languages`:
     /// wybrane języki tekstu (profil promptów i rozpoznawanie języka); `prompts`: fragmenty z plików użytkownika
-    /// (`PromptFiles`), `.defaults` — same prompty macOS.
+    /// (`PromptFiles`), `.defaults` — same prompty macOS. `spelling`: słowa słownika, których tekst używa
+    /// (`UserDictionary.relevant`) — notka o ich pisowni stoi przed tekstem w ostatniej wiadomości, więc początek rozmowy
+    /// zostaje ten sam; nie w tłumaczeniu, które może je przetłumaczyć.
     package static func messages(for text: String, mode: Mode, target: TranslationTarget? = nil,
-                                 languages: TextLanguages = .standard, prompts: PromptFiles = .current()) -> [[String: String]] {
+                                 languages: TextLanguages = .standard, prompts: PromptFiles = .current(),
+                                 spelling: [String] = []) -> [[String: String]] {
         let p = prompts.forLanguages(languages)
         if mode == .translate {
             let target = target ?? .automatic(for: text, in: languages)
@@ -25,7 +28,8 @@ package enum Prompts {
                            ["role": "assistant", "content": example.output]]
             }
         }
-        return result + [["role": "user", "content": userPrompt(text, language: TextLanguage.detect(text, among: languages).code, p)]]
+        return result + [["role": "user", "content": UserDictionary.spellingNote(spelling)
+                            + userPrompt(text, language: TextLanguage.detect(text, among: languages).code, p)]]
     }
 
     static func systemPrompt(_ mode: Mode, _ p: PromptFiles) -> String {

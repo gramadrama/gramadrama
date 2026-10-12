@@ -24,14 +24,22 @@ package struct LiveIssue: Equatable {
     package let suggestions: [String]
     package let source: Source
     package let rule: String
+    /// Opis reguły LanguageTool (do listy wyłączonych reguł w Pisaniu).
+    package let ruleDescription: String
 
-    package init(range: NSRange, word: String, message: String, suggestions: [String], source: Source, rule: String) {
+    /// „Wyłącz regułę”: reguła LanguageTool o gramatyce, interpunkcji albo stylu; błąd pisowni to słowo
+    /// do słownika (`can_turn_off` na Linuksie).
+    package var canTurnOff: Bool { source == .languageTool && !isSpelling && !rule.isEmpty }
+
+    package init(range: NSRange, word: String, message: String, suggestions: [String], source: Source, rule: String,
+                 ruleDescription: String = "") {
         self.range = range
         self.word = word
         self.message = message
         self.suggestions = suggestions
         self.source = source
         self.rule = rule
+        self.ruleDescription = ruleDescription
     }
 }
 

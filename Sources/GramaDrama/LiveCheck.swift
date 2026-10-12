@@ -14,6 +14,14 @@ final class LiveChecker {
     static let shared = LiveChecker()
     private let spellTag = NSSpellChecker.uniqueSpellDocumentTag()
     private let backend = Backend()
+    private var knownCache: (words: [String], known: UserDictionary.Known) = ([], UserDictionary.Known())
+
+    /// Słownik użytkownika (`Settings.dictionaryWords`), zbudowany od nowa tylko po zmianie słów.
+    private var known: UserDictionary.Known {
+        let words = Settings.shared.dictionaryWords
+        if words != knownCache.words { knownCache = (words, UserDictionary.Known(words)) }
+        return knownCache.known
+    }
 
     /// Reguły LanguageTool, które w wiadomościach i przy zamaskowanych fragmentach dają fałszywe alarmy.
     /// COMMA_COMPOUND_SENTENCE: przecinek przed „and” w złożonym zdaniu angielskim jest opcjonalny.
@@ -33,13 +41,16 @@ final class LiveChecker {
     func languageTool(_ live: LiveText) async -> [LiveIssue]? {
         let jobs = live.present.map { (live.version($0), $0.languageToolCode, live.mask($0)) }
         var issues: [LiveIssue] = []
+        // Reguły wyłączone kartą („Wyłącz regułę”, Pisanie › Słownik i reguły) LanguageTool też pomija.
+        let off = Settings.shared.rulesOffIDs
+        let disabled = Self.disabledLanguageToolRules + off.filter { !Self.disabledLanguageToolRules.contains($0) }
         for (text, language, mask) in jobs {
-            guard let result = try? await backend.languageTool(text, language: language, disabledRules: Self.disabledLanguageToolRules)
+            guard let result = try? await backend.languageTool(text, language: language, disabledRules: disabled)
             else { return nil }
             let ns = live.text as NSString
             for match in result.matches {
                 let range = NSRange(location: match.offset, length: match.length)
-                guard range.length > 0, NSMaxRange(range) <= ns.length,
+                guard range.length > 0, NSMaxRange(range) <= ns.length, !off.contains(match.rule.id),
                       !mask.intersects(integersIn: range.location..<NSMaxRange(range)) else { continue }
                 let word = ns.substring(with: range)
                 if match.rule.id.hasPrefix("MORFOLOGIK_RULE"), isPlausible(word, at: range.location, in: live.text) { continue }
@@ -47,7 +58,8 @@ final class LiveChecker {
                 // „ze to” → LanguageTool proponuje „z to”; zgubione „że” jest dużo częstsze — dajemy je pierwsze.
                 if let restored = Self.restoringDiacritics(word), !suggestions.contains(restored) { suggestions.insert(restored, at: 0) }
                 issues.append(LiveIssue(range: range, word: word, message: match.message,
-                                        suggestions: Array(suggestions.prefix(3)), source: .languageTool, rule: match.rule.id))
+                                        suggestions: Array(suggestions.prefix(3)), source: .languageTool, rule: match.rule.id,
+                                        ruleDescription: match.rule.description ?? ""))
             }
         }
         return issues
@@ -228,8 +240,9 @@ final class LiveChecker {
     /// camelCase, liczby, ścieżki, albo angielskie słowo w polskim zdaniu (deploy, staging).
     func isPlausible(_ word: String, at location: Int, in text: String) -> Bool {
         guard word.count > 1 else { return true }
-        // „Dodaj do słownika” z karty (słownik użytkownika macOS, wspólny dla wszystkich języków).
-        if NSSpellChecker.shared.hasLearnedWord(word) { return true }
+        // „Dodaj do słownika” z karty (słownik użytkownika macOS, wspólny dla wszystkich języków) i własne słowa z Pisania
+        // w pisowni, jaką przyjmuje lista słów (jak `Known` na Linuksie).
+        if NSSpellChecker.shared.hasLearnedWord(word) || known.contains(word) { return true }
         if word.contains(where: { $0.isNumber || $0 == "_" || $0 == "." || $0 == "/" }) { return true }
         if word.filter(\.isUppercase).count >= 2 { return true }
         if word.first?.isUppercase == true, !Self.isSentenceStart(location, in: text) { return true }

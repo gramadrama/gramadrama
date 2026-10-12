@@ -66,7 +66,7 @@ struct PrivacyTab: View {
         guard dictation.enabled else { return tr("Wyłączone.") }
         let recording = dictation.speechBackend == .local || dictation.speechEndpoint == nil
             ? tr("Nagranie rozpoznaje Whisper na tym Macu i nie jest zapisywane.")
-            : tr("Nagranie (WAV) i podpowiedź słów trafiają do {host}; nie jest zapisywane.",
+            : tr("Nagranie (WAV) i podpowiedź słów ze słownika trafiają do {host}; nagranie nie jest zapisywane.",
                  ["host": dictation.speechEndpoint?.host ?? tr("serwera mowy")])
         return dictation.cleanup == .off ? recording
             : recording + " " + tr("Tekst do porządkowania trafia do modelu na {place}.", ["place": modelPlace])

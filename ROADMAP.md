@@ -17,8 +17,9 @@ Wayland. The set of publication conditions and the evidence that they are met is
 - App settings, a default correction mode per application and turning off chosen applications and pages.
 - The IBus engine and the GNOME extension on Linux, the input method and Accessibility on macOS.
 - Shared browser extension: the text of the active field, corrections, dictation and the position of underlines.
-- On Linux: configurable service protocols, OIDC sign-in, editable prompts and a benchmark of their quality;
-  one dictionary for checking, corrections and dictation, and LanguageTool rules turned off from the card.
+- On Linux: configurable service protocols, OIDC sign-in, editable prompts and a benchmark of their quality.
+- One dictionary for checking, corrections and dictation, and LanguageTool rules turned off from the card
+  (Linux and macOS).
 - On macOS: the model, LanguageTool and speech recognition on this Mac (with an editable address) or on a server; a model
   server in the Ollama or OpenAI-compatible protocol, with the key in the keychain; Ollama on the Mac with model downloads;
   OIDC sign-in for remote access, as on Linux; editable prompts (the same files as on Linux, without the variant

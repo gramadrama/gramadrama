@@ -2,7 +2,7 @@ import SwiftUI
 import GramaCore
 import GramaBackend
 
-/// Pisanie: języki tekstu i to, jak GramaDrama sprawdza tekst. Serwery i modele są w Usługach, tryb ⌥⌘G dla aplikacji —
+/// Pisanie: języki tekstu, to, jak GramaDrama sprawdza tekst, i słownik z regułami. Serwery i modele są w Usługach, tryb ⌥⌘G dla aplikacji —
 /// w Aplikacjach.
 struct WritingTab: View {
     @ObservedObject private var settings = Settings.shared
@@ -45,6 +45,7 @@ struct WritingTab: View {
                 }
             }
         }
+        DictionarySection()
     }
 
     // MARK: Języki tekstu

@@ -1,4 +1,5 @@
 import Foundation
+import os
 import GramaCore
 
 package final class Settings: ObservableObject {
@@ -62,6 +63,17 @@ package final class Settings: ObservableObject {
     /// Strony (host bez „www.”), na których wtyczka przeglądarki nie sprawdza tekstu podczas pisania.
     /// ⌥⌘G i dyktowanie działają tam dalej — to polecenie użytkownika, nie sprawdzanie w tle.
     @Published package var disabledSites: [String] { didSet { defaults.set(disabledSites, forKey: "disabledSites") } }
+    /// Własne słowa (Pisanie › Słownik i reguły): imiona, nazwy i żargon, po przecinku. Ten sam klucz co dawniej słowa
+    /// dyktowania — słownik jest teraz jeden dla sprawdzania, korekty i dyktowania (`dictation_vocabulary` na Linuksie).
+    @Published package var ownWordsText: String { didSet { defaults.set(ownWordsText, forKey: "dictationVocabulary") } }
+    /// Słowa dodane „Dodaj do słownika” w GramaDramie, w kolejności dodania: macOS uczy ich swój słownik, ale nie podaje
+    /// listy nauczonych słów, a korekta i dyktowanie potrzebują ich pisowni.
+    @Published package private(set) var learnedWords: [String] { didSet { defaults.set(learnedWords, forKey: "learnedWords") } }
+    /// Reguły LanguageTool wyłączone kartą („Wyłącz regułę”), w kolejności wyłączenia: identyfikator i opis LanguageTool,
+    /// nigdy tekst, w którym ją znalazł (`rules.json` na Linuksie).
+    @Published package private(set) var rulesOff: [RuleOff] {
+        didSet { defaults.set(rulesOff.map { ["id": $0.id, "name": $0.name] }, forKey: "languageToolRulesOff") }
+    }
 
     private init() {
         // No deployment-specific destinations: a new installation uses the services on this Mac until a server is set.
@@ -92,6 +104,12 @@ package final class Settings: ObservableObject {
         liveUnderlinesEnabled = defaults.object(forKey: "liveUnderlines") as? Bool ?? true
         imeChannelEnabled = defaults.object(forKey: "imeChannel") as? Bool ?? true
         disabledSites = defaults.stringArray(forKey: "disabledSites") ?? []
+        ownWordsText = defaults.string(forKey: "dictationVocabulary") ?? ""
+        learnedWords = defaults.stringArray(forKey: "learnedWords") ?? []
+        rulesOff = (defaults.array(forKey: "languageToolRulesOff") as? [[String: String]] ?? []).compactMap { record in
+            guard let id = record["id"], UserDictionary.isRule(id) else { return nil }
+            return RuleOff(id: id, name: record["name"] ?? "")
+        }
         // Pusty drugi język („”) to jeden język; brak wpisu — wartości domyślne.
         let secondary = defaults.string(forKey: "secondaryLanguage").map { TextLanguage(rawValue: $0) } ?? .english
         let languages = TextLanguages(primary: defaults.string(forKey: "primaryLanguage").flatMap(TextLanguage.init) ?? .polish,
@@ -115,6 +133,44 @@ package final class Settings: ObservableObject {
     }
 
     package var modelDisplayName: String { Self.displayName(ofModel: model) }
+
+    // MARK: Słownik i reguły (dictionary.py na Linuksie)
+
+    package var ownWords: [String] { UserDictionary.parse(ownWordsText) }
+
+    /// Dodane do słownika, najnowsze pierwsze: w GramaDramie, potem z listy systemu (słowa nauczone w innych aplikacjach).
+    package var learnedLatestFirst: [String] { UserDictionary.merge(learnedWords.reversed(), SystemWordList.words.reversed()) }
+
+    /// Cały słownik: własne słowa, potem dodane do słownika (najnowsze pierwsze), każde raz.
+    package var dictionaryWords: [String] { UserDictionary.merge(ownWords, learnedLatestFirst) }
+
+    /// Słowo dodane do słownika (jego naukę w macOS robi `UserWords.learn`); najstarsze ustępują miejsca po 2000.
+    package func recordLearned(_ word: String) {
+        let word = word.trimmingCharacters(in: .whitespaces)
+        guard !word.isEmpty, word.unicodeScalars.count <= UserDictionary.maxWord else { return }
+        var words = learnedWords.filter { $0 != word }
+        words.append(word)
+        learnedWords = Array(words.suffix(2000))
+    }
+
+    package func forgetLearned(_ word: String) { learnedWords.removeAll { $0 == word } }
+
+    package var rulesOffIDs: [String] { rulesOff.map(\.id) }
+
+    /// „Wyłącz regułę”: LanguageTool jej nie sprawdza, aż do „Włącz” w Pisaniu; najstarsza ustępuje miejsca po 200.
+    package func turnOffRule(_ id: String, name: String) {
+        guard UserDictionary.isRule(id) else { return }
+        let name = String(name.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(200))
+        var rules = rulesOff
+        if let index = rules.firstIndex(where: { $0.id == id }) {
+            rules[index] = RuleOff(id: id, name: name)
+        } else {
+            rules.append(RuleOff(id: id, name: name))
+        }
+        rulesOff = Array(rules.suffix(200))
+    }
+
+    package func turnOnRule(_ id: String) { rulesOff.removeAll { $0.id == id } }
 
     /// Tryb „tylko model” działa, gdy włączone jest też sprawdzanie podczas pisania.
     package var modelOnlyActive: Bool { liveCheckEnabled && liveModelOnly }
@@ -212,5 +268,43 @@ package final class Settings: ObservableObject {
         guard !site.isEmpty, disabled != disabledSites.contains(site) else { return }
         // Jedno przypisanie = jedno powiadomienie (lista idzie wtedy raz do przeglądarek).
         disabledSites = disabled ? disabledSites + [site] : disabledSites.filter { $0 != site }
+    }
+}
+
+/// Reguła LanguageTool wyłączona przez użytkownika: identyfikator i opis LanguageTool (do listy w Pisaniu).
+package struct RuleOff: Equatable, Sendable {
+    package let id: String
+    package let name: String
+}
+
+/// Słowa nauczone w słowniku systemu („Naucz się pisowni” także w innych aplikacjach). macOS nie ma API do ich listy;
+/// leży w ~/Library/Spelling/LocalDictionary (jedno słowo w linii). Plik czytamy tylko, gdy się zmienił.
+package enum SystemWordList {
+    private struct State {
+        var stamp = ""
+        var words: [String] = []
+        /// Usunięte w Pisaniu: system może zapisać plik z opóźnieniem.
+        var hidden: Set<String> = []
+    }
+
+    private static let state = OSAllocatedUnfairLock(initialState: State())
+    private static let file = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Spelling/LocalDictionary")
+
+    package static var words: [String] {
+        let attributes = (try? FileManager.default.attributesOfItem(atPath: file.path)) ?? [:]
+        let size = attributes[.size] as? Int ?? 0
+        let stamp = "\((attributes[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0) \(size)"
+        return state.withLock { current in
+            if current.stamp != stamp {
+                current.stamp = stamp
+                let text = size > 0 && size <= 256 * 1024 ? (try? String(contentsOf: file, encoding: .utf8)) : nil
+                current.words = UserDictionary.listWords(text ?? "")
+            }
+            return current.words.filter { !current.hidden.contains($0) }
+        }
+    }
+
+    package static func hide(_ word: String) {
+        state.withLock { _ = $0.hidden.insert(word) }
     }
 }

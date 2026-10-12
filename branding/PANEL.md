@@ -112,7 +112,8 @@ Grammar / style (*Gramatyka / styl*). In the Translate mode the list is empty.
 For each change: **Undo** (*Cofnij*; back arrow) — only this change returns to the original, the other
 corrections stay; when one word is changed into another, also **Keep “…” and add it to the dictionary**
 (*Zostaw „…” i dodaj do słownika*; book) — the word from the original stays and goes into the user dictionary
-(macOS: the system dictionary; Linux: the Enchant dictionary, the same one as for checking while typing).
+(macOS: the system dictionary and GramaDrama's list of added words; Linux: the Enchant dictionary, the same one as
+for checking while typing).
 A change includes adjacent insertions and deletions, so a comma added right after a word is undone together
 with it (then there is only Undo). The diff and the counter are recomputed.
 
@@ -127,7 +128,9 @@ There is no Edit button on either platform: the result is the field. The badge s
 like text in other applications: the dictionary on the Mac (in the chosen languages) immediately, LanguageTool after a
 short pause in typing if it is turned on; no model in the background. An error has a brick wave (the system spell
 checking is turned off), and the cursor on an underlined word shows below the field the word, clickable suggestions,
-the message, **Ignore** (*Ignoruj*) and **Add to dictionary** (*Dodaj do słownika*); otherwise the number of issues,
+the message, **Ignore** (*Ignoruj*) and **Add to dictionary** (*Dodaj do słownika*), or **Turn off rule** (*Wyłącz
+regułę*) for a LanguageTool grammar rule (no message in the panel; Writing › Dictionary and rules turns it on again);
+otherwise the number of issues,
 „Sprawdzam…” (“Checking…”) until LanguageTool answers, or „Bez uwag.” (“No issues.”), always two lines high.
 No autocorrection and no quote substitution. While editing, ↩ inserts the result (like **Replace** (*Zastąp*)),
 ⇧↩ gives a new line, ⎋ ends editing, and only the next ⎋ closes the panel. The modes and the translation direction

@@ -73,6 +73,7 @@ final class LiveMonitor {
         underlines.onApply = { [weak self] issue, suggestion in self?.apply(issue, suggestion) }
         underlines.onIgnore = { [weak self] issue in self?.ignore(issue) }
         underlines.onLearn = { [weak self] issue in self?.learn(issue) }
+        underlines.onTurnOff = { [weak self] issue in self?.turnOff(issue) }
         badge.onClick = { [weak self] in
             self?.badge.hide()
             self?.onOpen()
@@ -243,14 +244,24 @@ final class LiveMonitor {
         showBadge(frame: nil)
     }
 
-    /// Słownik użytkownika macOS — ten sam, którego używają Notatki, Mail i Safari.
+    /// Słownik użytkownika macOS — ten sam, którego używają Notatki, Mail i Safari — i słownik GramaDramy.
     func learn(_ issue: LiveIssue) {
-        NSSpellChecker.shared.learnWord(issue.word)
+        UserWords.learn(issue.word)
         for list in [\LiveMonitor.quickIssues, \LiveMonitor.languageToolIssues, \LiveMonitor.bielikIssues, \LiveMonitor.modelOnlyIssues] {
             self[keyPath: list].removeAll { $0.word == issue.word && $0.isSpelling }
         }
         showBadge(frame: nil)
         Toast.shared.show(tr("Dodano „{word}” do słownika.", ["word": issue.word]))
+    }
+
+    /// „Wyłącz regułę”: jej błędy znikają od razu, a LanguageTool jej nie sprawdza, aż do „Włącz” w Pisaniu.
+    func turnOff(_ issue: LiveIssue) {
+        guard issue.canTurnOff else { return }
+        Settings.shared.turnOffRule(issue.rule, name: issue.ruleDescription)
+        languageToolIssues.removeAll { $0.rule == issue.rule }
+        showBadge(frame: nil)
+        EventLog.write("live_rule_off", ["rule": issue.rule])
+        Toast.shared.show(tr("Wyłączono tę regułę. Włączysz ją w aplikacji GramaDrama (Pisanie › Słownik i reguły)."))
     }
 
     private func tick() {

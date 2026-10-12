@@ -198,6 +198,19 @@ enum ServerSelfTest {
                       "Model przerwał odpowiedź: out of memory · model_error")
             }
 
+            // Słownik użytkownika: korekta dostaje pisownię słów, których tekst używa — przed tekstem, w ostatniej wiadomości.
+            let ownWords = Settings.shared.ownWordsText
+            Settings.shared.ownWordsText = "Bielik, Orion"
+            defer { Settings.shared.ownWordsText = ownWords }
+            let spelling = try HTTPStub { _, _ in .ollama("Napisz do Bielika.") }
+            defer { spelling.stop() }
+            _ = try await Backend(model: "m", server: .init(base: await spelling.baseURL(), api: .ollama), cache: false)
+                .correct("Napisz do bielika.", mode: .fix) { _ in }
+            let sentMessages = (spelling.requests.last.map(json)?["messages"] as? [[String: Any]]) ?? []
+            let lastUser = sentMessages.last?["content"] as? String ?? ""
+            check("słownik: pisownia przed tekstem, tylko użyte słowa",
+                  lastUser.hasPrefix("Spell these names and terms exactly like this: Bielik.\n\n") ? "tak" : lastUser.prefix(60).description, "tak")
+
             // Kod przyczyny nieudanej korekty (`errorKind`, panel: `Problems`) — te same kody co na Linuksie.
             func kind(_ response: @escaping @Sendable (HTTPStub.Request, Int) -> HTTPStub.Response,
                       api: ModelServerAPI = .openAI) async -> String {

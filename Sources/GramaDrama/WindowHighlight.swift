@@ -8,9 +8,9 @@ final class WindowHighlight: ObservableObject {
     static let shared = WindowHighlight()
 
     enum Target: String, CaseIterable {
-        case languageModel, textLanguages, speechRecognition, remoteAccess
+        case languageModel, textLanguages, dictionary, speechRecognition, remoteAccess
 
-        var tab: MainWindowTab { self == .textLanguages ? .writing : .connection }
+        var tab: MainWindowTab { self == .textLanguages || self == .dictionary ? .writing : .connection }
     }
 
     @Published private(set) var target: Target?
