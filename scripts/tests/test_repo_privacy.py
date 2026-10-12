@@ -108,6 +108,32 @@ class ContentTests(unittest.TestCase):
         for path in ('.env.example', '.env.sample', '.env.template', 'auth.example.json'):
             self.assertFalse(guard.scan_bytes(path, b'{}'))
 
+    def test_local_private_words_match_at_a_word_start_in_any_case(self):
+        words = guard.parse_words('# own names, one per line\n\nZorblax\nfixture-host.sh\n')
+        for line in ('Zorblax', 'w ZORBLAXIE', 'see scripts/fixture-host.sh'):
+            with self.subTest(line=line):
+                self.assertEqual({item.rule for item in guard.scan_text('notes.md', line, words)}, {'private-word'})
+        for line in ('prezorblax', 'own names, one per line', 'Zorbla'):
+            with self.subTest(line=line):
+                self.assertFalse(guard.scan_text('notes.md', line, words))
+        # In a binary file only readable strings (metadata) count: compressed bytes spell short words by chance.
+        self.assertEqual({item.rule for item in guard.scan_bytes('image.png', b'\x89PNG\0tEXtSoftware\0Zorblax '
+                                                                  b'screenshot tool\0\x01', words)}, {'private-word'})
+        self.assertFalse(guard.scan_bytes('image.png', b'\x89PNG\0\x93zorblax\x01\xfe', words))
+
+    def test_private_words_cannot_be_suppressed(self):
+        words = guard.parse_words('Zorblax')
+        line = 'Zorblax  # privacy: allow[private-word] a reason long enough'
+        self.assertEqual({item.rule for item in guard.scan_text('notes.md', line, words)}, {'private-word'})
+
+    def test_commit_message_skips_comments_and_the_diff_below_the_scissors(self):
+        words = guard.parse_words('Zorblax')
+        message = ('Panel: a fix\n\nTested with http://' + LAN_IP + '/ today\n# Zorblax in a comment line\n'
+                   '# ------------------------ >8 ------------------------\n+Zorblax in the diff\n')
+        self.assertEqual([(item.path, item.line, item.rule) for item in guard.scan_message(message, words)],
+                         [('commit message', 3, 'private-ip')])
+        self.assertEqual([item.line for item in guard.scan_message('A fix\n\nAfter Zorblax.', words)], [3])
+
 
 class RepositoryTests(unittest.TestCase):
     def setUp(self):
@@ -219,6 +245,55 @@ class RepositoryTests(unittest.TestCase):
             Path(outside, 'config.txt').write_text(TOKEN)
             os.symlink(outside, self.root / 'tracked')
             self.assertEqual([item.rule for item in self.scan(tracked_only=True)], ['unreadable'])
+
+    def cli(self, *args):
+        return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=self.root, text=True, capture_output=True)
+
+    def test_the_clones_word_list_is_used_and_a_missing_one_fails_closed(self):
+        with tempfile.TemporaryDirectory() as outside:
+            Path(outside, 'words.txt').write_text('Zorblax\n')
+            self.write('notes.md', 'Ask Zorblax first.')
+            self.assertEqual(self.cli().returncode, 0)  # no list set: CI and other clones
+            self.git('config', 'privacy.wordsFile', str(Path(outside, 'words.txt')))
+            result = self.cli()
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('notes.md:1: [private-word]', result.stdout)
+            self.assertIn('with the local word list', result.stdout)
+            self.assertNotIn('Zorblax', result.stdout + result.stderr)
+            self.git('config', 'privacy.wordsFile', str(Path(outside, 'missing.txt')))
+            result = self.cli()
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('local word list', result.stderr)
+
+    def test_commit_message_cli_checks_only_the_message(self):
+        self.write('notes.md', TOKEN)
+        message = self.write('message.txt', 'Docs: the setup page\n\nSee http://' + LAN_IP + '/\n')
+        result = self.cli('--message', str(message))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('commit message:3: [private-ip]', result.stdout)
+        self.assertNotIn('notes.md', result.stdout)
+        message.write_text('Docs: the setup page\n')
+        self.assertEqual(self.cli('--message', str(message)).returncode, 0)
+
+    def test_hooks_check_the_staged_files_and_the_message(self):
+        with tempfile.TemporaryDirectory() as outside:
+            Path(outside, 'words.txt').write_text('Zorblax\n')
+            hooks = Path(__file__).resolve().parents[2] / '.githooks'
+            (self.root / 'scripts').mkdir()
+            os.symlink(SCRIPT, self.root / 'scripts' / 'check_repo_privacy.py')
+            self.git('config', 'core.hooksPath', str(hooks))
+            self.git('config', 'privacy.wordsFile', str(Path(outside, 'words.txt')))
+            self.git('config', 'user.name', 'Test')
+            self.git('config', 'user.email', 'test@example.com')
+            self.write('notes.md', 'A plain note.')
+            self.git('add', 'notes.md')
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.git('commit', '--quiet', '-m', 'Notes from Zorblax')
+            self.git('commit', '--quiet', '-m', 'Notes')
+            self.write('notes.md', 'A note for Zorblax.')
+            self.git('add', 'notes.md')
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.git('commit', '--quiet', '-m', 'More notes')
 
 
 if __name__ == '__main__':

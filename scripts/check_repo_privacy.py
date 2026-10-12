@@ -3,6 +3,8 @@
 
 The default scans tracked and non-ignored untracked working files. --staged reads
 the Git index instead (including unchanged files), never unstaged replacements.
+--message checks a commit message (for the commit-msg hook). A local list of private
+words (git config privacy.wordsFile) is checked too; it stays outside the repository.
 This is a heuristic guard, not a secret scanner or a review of images/history.
 """
 from __future__ import annotations
@@ -44,6 +46,7 @@ SECRET_PATTERNS = (
 SECRET_ASSIGNMENT = re.compile(
     r'''["']?\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret)\b["']?'''
     r'''\s*[:=]\s*["']([A-Za-z0-9_./+=:@!$%&*?-]{16,})["']''', re.I)
+BINARY_STRING = re.compile(rb'[\x20-\x7e]{12,}')  # a readable string in a binary file, e.g. image metadata
 ALLOW = re.compile(r'privacy: allow\[([a-z,-]+)\]\s+([^\r\n]+)')
 ALLOWABLE = frozenset(('private-ip', 'home-path', 'local-host'))
 RULES = {
@@ -51,6 +54,7 @@ RULES = {
     'home-path': 'personal home directory; use ~, $HOME or a neutral placeholder',
     'local-host': 'local host name; use localhost, example.com or a configuration variable',
     'secret': 'possible credential or private key; remove it and check whether rotation is needed',
+    'private-word': 'a word from your local private list (privacy.wordsFile); keep it out of the repository',
     'credential-file': 'credential/configuration file name; keep real credentials outside Git',
     'private-artifact': 'local-only investigation directory; publish a reviewed synthetic example instead',
     'too-large': 'file exceeds the 8 MiB scan limit; review and store large assets outside Git',
@@ -90,7 +94,24 @@ def placeholder(value: str) -> bool:
             is not None)
 
 
-def scan_text(path: str, text: str) -> list[Finding]:
+def parse_words(text: str) -> tuple[re.Pattern, ...]:
+    """A local list of private words: one per line, # starts a comment line. A word matches at its start and in
+    any case, so inflected forms (a Polish "Krakowie" for "Krakow") count too."""
+    words = (line.strip() for line in text.splitlines())
+    return tuple(re.compile(r'(?<![\w-])%s' % re.escape(word), re.I) for word in words
+                 if word and not word.startswith('#'))
+
+
+def words_file(root: Path, explicit: str | None) -> Path | None:
+    """--words, else the clone's own setting privacy.wordsFile (relative to the repository), else none."""
+    if explicit is None:
+        result = subprocess.run(['git', '-C', str(root), 'config', '--get', 'privacy.wordsFile'],
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        explicit = os.fsdecode(result.stdout).strip() if result.returncode == 0 else ''
+    return root / Path(explicit).expanduser() if explicit else None
+
+
+def scan_text(path: str, text: str, words: tuple[re.Pattern, ...] = ()) -> list[Finding]:
     findings = []
     for number, line in enumerate(text.splitlines(), 1):
         rules = set()
@@ -116,6 +137,8 @@ def scan_text(path: str, text: str) -> list[Finding]:
             rules.add('secret')
         if any(not placeholder(match.group(1)) for match in SECRET_ASSIGNMENT.finditer(line)):
             rules.add('secret')
+        if any(word.search(line) for word in words):
+            rules.add('private-word')
         for allow in ALLOW.finditer(line):
             # A reason and named rule are required; no wildcard or secret bypass.
             if len(allow.group(2).strip()) >= 12:
@@ -124,7 +147,17 @@ def scan_text(path: str, text: str) -> list[Finding]:
     return findings
 
 
-def scan_bytes(path: str, data: bytes) -> list[Finding]:
+def scan_message(text: str, words: tuple[re.Pattern, ...] = ()) -> list[Finding]:
+    """A commit message as Git stores it: comment lines and everything below the scissors line left out."""
+    kept = []
+    for line in text.splitlines():
+        if re.fullmatch(r'# -+ >8 -+', line):
+            break
+        kept.append('' if line.startswith('#') else line)  # blank, so the line numbers stay those of the file
+    return scan_text('commit message', '\n'.join(kept), words)
+
+
+def scan_bytes(path: str, data: bytes, words: tuple[re.Pattern, ...] = ()) -> list[Finding]:
     if len(data) > MAX_BYTES:
         return [Finding(path, 1, 'too-large')]
     # Scan printable strings in binaries too (for example image metadata), but
@@ -133,7 +166,15 @@ def scan_bytes(path: str, data: bytes) -> list[Finding]:
         text = data.decode('utf-16', errors='replace')
     else:
         text = data.decode('utf-8-sig', errors='replace')
-    findings = scan_text(path, text)
+    if b'\0' in data[:8192] and words:
+        # In compressed image data a short private word turns up by chance: binaries are checked for the words
+        # only in readable strings (metadata), the other rules as before.
+        findings = scan_text(path, text)
+        strings = '\n'.join(match.decode('ascii') for match in BINARY_STRING.findall(data))
+        findings.extend(Finding(path, 1, found.rule) for found in scan_text(path, strings, words)
+                        if found.rule == 'private-word')
+    else:
+        findings = scan_text(path, text, words)
     if ('local-private' in PurePosixPath(path).parts
             or path.startswith(('linux/research/', 'bench/lab/'))):
         findings.append(Finding(path, 1, 'private-artifact'))
@@ -171,7 +212,8 @@ def entries(root: Path, staged: bool, tracked_only: bool):
         yield path, mode, oid
 
 
-def scan_repository(root: Path, staged: bool = False, tracked_only: bool = False) -> tuple[list[Finding], int]:
+def scan_repository(root: Path, staged: bool = False, tracked_only: bool = False,
+                    words: tuple[re.Pattern, ...] = ()) -> tuple[list[Finding], int]:
     findings, count = [], 0
     for path, mode, oid in entries(root, staged, tracked_only):
         if mode == '160000':
@@ -205,8 +247,8 @@ def scan_repository(root: Path, staged: bool = False, tracked_only: bool = False
                     else:
                         data = b''
             count += 1
-            findings.extend(scan_text(path, path))
-            findings.extend([Finding(path, 1, 'too-large')] if size > MAX_BYTES else scan_bytes(path, data))
+            findings.extend(scan_text(path, path, words))
+            findings.extend([Finding(path, 1, 'too-large')] if size > MAX_BYTES else scan_bytes(path, data, words))
         except (OSError, RuntimeError, ValueError):
             findings.append(Finding(path, 1, 'unreadable'))
     return sorted(set(findings), key=lambda found: (found.path, found.line, found.rule)), count
@@ -216,16 +258,36 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--staged', action='store_true', help='scan index contents, for pre-commit use')
     parser.add_argument('--tracked-only', action='store_true', help='omit untracked files in the working tree')
+    parser.add_argument('--message', metavar='FILE', help='check this commit message instead, for commit-msg use')
+    parser.add_argument('--words', metavar='FILE', help='a local list of private words (default: git config '
+                        'privacy.wordsFile); a list that is set but cannot be read fails the check')
     args = parser.parse_args(argv)
     try:
         root = Path(os.fsdecode(git(Path.cwd(), 'rev-parse', '--show-toplevel')).strip())
-        findings, count = scan_repository(root, args.staged, args.tracked_only)
+    except (OSError, RuntimeError) as exc:
+        print('Privacy check failed: %s' % type(exc).__name__, file=sys.stderr)
+        return 2
+    source = words_file(root, args.words)
+    try:
+        words = parse_words(source.read_text(encoding='utf-8')) if source else ()
+    except (OSError, UnicodeDecodeError):
+        print('Privacy check failed: the local word list (privacy.wordsFile) cannot be read', file=sys.stderr)
+        return 2
+    try:
+        if args.message:
+            findings = scan_message(Path(args.message).read_text(encoding='utf-8', errors='replace'), words)
+        else:
+            findings, count = scan_repository(root, args.staged, args.tracked_only, words)
     except (OSError, RuntimeError) as exc:
         print('Privacy check failed: %s' % type(exc).__name__, file=sys.stderr)
         return 2
     for finding in findings:
         print('%s:%d: [%s] %s' % (finding.path, finding.line, finding.rule, RULES[finding.rule]))
-    print('Privacy check: %d file(s), %d finding(s). Values are not printed.' % (count, len(findings)))
+    listed = ', with the local word list' if words else ''
+    if args.message:
+        print('Privacy check of the commit message: %d finding(s)%s. Values are not printed.' % (len(findings), listed))
+    else:
+        print('Privacy check: %d file(s), %d finding(s)%s. Values are not printed.' % (count, len(findings), listed))
     return 1 if findings else 0
 
 

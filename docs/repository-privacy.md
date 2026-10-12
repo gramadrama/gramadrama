@@ -1,7 +1,7 @@
 # Repository prepared for publication
 
-From 2026-10-04 new changes are meant to be suitable for splitting off a future public
-repository. We describe product behaviour and reproducible examples. Names of people,
+This repository is meant to be public: every file, commit message, branch and issue can be read
+by anyone. We describe product behaviour and reproducible examples. Names of people,
 own hosts and domains, account paths, private network topology, logs from everyday
 work and screenshots of a private desktop stay out of the repository.
 
@@ -25,17 +25,35 @@ files in the working tree. It skips deleted files. It reports the path, the line
 and the kind of problem; it does not print the address, home path or secret it found.
 A file ignored by `.gitignore` but already tracked is still checked.
 
-An optional hook checks **the content of the Git index**, also with partial staging:
+Optional hooks check **the content of the Git index** before a commit, also with partial
+staging, and then **the commit message**:
 
 ```sh
 git config core.hooksPath .githooks
 ```
 
 This setting applies to the current clone. If the project already has its own hooks,
-add `python3 scripts/check_repo_privacy.py --staged` to the existing
-`pre-commit` instead of replacing its directory. You can run the same command
-manually after `git add`. CI checks the tracked files after every push and in pull requests.
+add `python3 scripts/check_repo_privacy.py --staged` to the existing `pre-commit`
+and `python3 scripts/check_repo_privacy.py --message "$1"` to `commit-msg` instead of replacing
+their directory. You can run the first command manually after `git add`. Comment lines of the
+message and the diff below the scissors line of `git commit -v` are not checked.
+CI checks the tracked files after every push and in pull requests.
 The CI configuration does not by itself turn on branch protection on GitHub.
+
+### Your own private words
+
+Names that only you know to be private (your hosts, people, accounts, the names of files you keep
+elsewhere) can be listed in a file outside the repository, one per line; lines starting with `#`
+are comments. Point your clone at it:
+
+```sh
+git config privacy.wordsFile ~/private/gramadrama-words.txt
+```
+
+The check and both hooks then also report these words, at the start of a word and in any case,
+so inflected forms count too; in binary files only in readable strings such as metadata. The list never
+goes into Git and CI does not have it. If the configured file cannot be read, the check fails
+instead of quietly skipping it. `--words FILE` uses another list for one run.
 
 ## What the check detects
 
@@ -83,9 +101,9 @@ their content and metadata must be inspected. A token found in the history or
 sent earlier to a Git server needs an assessment of whether it should be revoked.
 
 The check covers the current files or the index, **not the commit history**.
-The future public repository should be created from a separately reviewed export
-with a new history. The existing history of this repository must not be published.
-Deleting a file today does not remove it from earlier commits.
+This repository started on 2026-10-12 from a reviewed export with a new history.
+Deleting a file today does not remove it from earlier commits, so a slip has to be caught
+before the push.
 
 ## CI and local tests
 
