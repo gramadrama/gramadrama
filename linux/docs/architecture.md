@@ -119,10 +119,20 @@ needs a test that shows why it is still safe.
   but not trusted until an update answers a key the user typed. A hotkey on such a field is refused
   with `stale` (press an arrow key and try again). In-process GTK IM modules re-send their state
   before every key, so their updates are trusted.
+- ibus-daemon keeps the last text, caret and anchor it passed to each engine object, across focus
+  changes, and drops an update identical to it. An app that sends its unchanged state again after
+  a focus change (a window switch, or the focus moving between its widgets) therefore sends the
+  engine nothing. The engine keeps the same copy. GNOME Shell turns `SURROUNDING_TEXT` on in the
+  capabilities only in the call that sends the text, so when it comes back on in this focus and
+  the next message from ibus-daemon is not the text, the engine takes its copy as the field's
+  state, untrusted like any first update (log event `surrounding_unchanged`). Only that next
+  message decides, never a timer. An empty text is never taken; a sensitive field's is never kept.
 - When only the caret is in doubt on a text-input-v3 field, the engine asks AT-SPI through the
   live service where the caret is in the text IBus already has (`ConfirmCaret`, 800 ms). A matching
   answer makes the field current; any other answer keeps the refusal. AT-SPI is only a witness: it
-  is never the source of the text and never the way text is written.
+  is never the source of the text and never the way text is written. Right after GNOME Text Editor
+  opens a document it moves the caret itself without telling the input method; AT-SPI does not
+  confirm that caret, so the refusal stays until an arrow key.
 - A selection the app has never reported (Shift+arrows or Ctrl+A in a toolkit that does not send
   the anchor) refuses with `hidden_selection`; an unknown selection refuses with
   `selection_unknown` until something collapses it.
