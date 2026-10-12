@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>GramaDrama</string>
+    <key>CFBundleDisplayName</key>
+    <string>GramaDrama</string>
+    <key>CFBundleIdentifier</key>
+    <string>pl.gramadrama.app</string>
+    <key>CFBundleExecutable</key>
+    <string>GramaDrama</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>__VERSION__</string>
+    <key>CFBundleVersion</key>
+    <string>__BUILD__</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>GramaDrama nagrywa głos tylko wtedy, gdy trzymasz klawisz dyktowania. Mowa jest rozpoznawana na tym Macu i nigdzie nie jest wysyłana.</string>
+    <!-- Powrót z logowania do dostępu zdalnego (Pocket ID): gramadrama://auth?code=… -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>pl.gramadrama.auth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>gramadrama</string>
+            </array>
+        </dict>
+    </array>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+</dict>
+</plist>

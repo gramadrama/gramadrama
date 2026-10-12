@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GramaDrama — podgląd okienka</title>
+<!-- Podgląd popup.html bez wtyczki: atrapa chrome.runtime, stan z parametrów (?connected=0&site=&disabled=1). -->
+<link rel="stylesheet" href="../extension/popup.css">
+<body>
+<script>
+  const params = new URLSearchParams(location.search);
+  let disabled = params.get('disabled') === '1';
+  const state = () => ({ connected: params.get('connected') !== '0', site: params.has('site') ? params.get('site') : 'mail.google.com', disabled });
+  window.chrome = { runtime: {
+    getURL: (name) => `../extension/${name}`,
+    sendMessage: async (message) => {
+      if (message.popup === 'toggle') disabled = message.disabled;
+      return state();
+    },
+  } };
+  fetch('../extension/popup.html').then((r) => r.text()).then((html) => {
+    const doc = new DOMParser().parseFromString(html.replaceAll('icons/', '../extension/icons/'), 'text/html');
+    document.body.innerHTML = [...doc.body.children].filter((e) => e.tagName !== 'SCRIPT').map((e) => e.outerHTML).join('');
+    // i18n.js (GramaUI) before popup.js, as in popup.html.
+    const load = (name) => new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = `../extension/${name}`;
+      script.onload = resolve;
+      document.body.appendChild(script);
+    });
+    load('i18n.js').then(() => load('popup.js'));
+  });
+</script>
+</body>

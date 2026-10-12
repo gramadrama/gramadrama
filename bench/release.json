@@ -1,0 +1,19 @@
+{
+  "_opis": "Progi scripts/release-check.sh. Wynik poniżej progu = wydanie zablokowane. Bench różni się o 1–2 między uruchomieniami (niedeterminizm modelu), stąd zapas. Popraw: odsetek dokładnych (zestaw rośnie: 34 → 52 przypadki 05.10) i limit „innych zmian” (wymyślone słowo, synonim); pomiar Gemmy 4 12B 05.10: 44–45/52, 0/14 fałszywych alarmów, 6–8 innych zmian, mediana 2,3–2,6 s.",
+  "fix": {
+    "minExactRatio": 0.8,
+    "maxFalseAlarms": 1,
+    "maxWrongEdits": 8,
+    "maxMedianSeconds": 6,
+    "maxErrors": 0
+  },
+  "translate": {
+    "minExact": 0,
+    "maxMedianSeconds": 12,
+    "maxErrors": 0
+  },
+  "dictation": {
+    "maxMeanWER": 0.25,
+    "maxMedianAsrMs": 2500
+  }
+}

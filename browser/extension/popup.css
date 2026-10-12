@@ -1,0 +1,75 @@
+/* Kolory marki (branding/BRAND.md), jak w aplikacji na Macu i na Linuksie: lawenda — akcje (przełącznik,
+   focus), szałwia — „działa”, róż — błąd aplikacji; ciepłe neutralne tła. */
+:root {
+  --lavender: #66579E;
+  /* Tło przełącznika z jasną gałką: ta sama lawenda w obu trybach, jak akcent okna na Linuksie. */
+  --lavender-fill: #66579E;
+  --sage: #536B60;
+  --rose: #9E3446;
+  --bg: #FFFEFC;
+  --fg: #343337;
+  --muted: #6B6870;
+  --line: #DDD8D0;
+  --track: #8E8992;
+  --knob: #FFFEFC;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lavender: #BCB0EC;
+    --sage: #ADC8B5;
+    --rose: #F2A7AE;
+    --bg: #242827;
+    --fg: #F1EEE8;
+    --muted: #B9BDB8;
+    --line: #505852;
+    --track: #7A847C;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  width: 300px;
+  margin: 0;
+  padding: 14px 16px 16px;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+header { display: flex; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+h1 { margin: 0; font-size: 15px; font-weight: 700; }
+.status { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+.status.ok { color: var(--sage); }
+.status.off { color: var(--rose); }
+section { padding-top: 12px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+.toggle span { display: flex; flex-direction: column; min-width: 0; }
+.toggle small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+input[type="checkbox"] {
+  appearance: none;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--track);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+input[type="checkbox"]:checked { background: var(--lavender-fill); }
+input[type="checkbox"]:checked::after { transform: translateX(16px); }
+input[type="checkbox"]:disabled { opacity: 0.5; cursor: default; }
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--lavender); outline-offset: 2px; }

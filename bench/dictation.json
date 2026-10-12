@@ -1,0 +1,23 @@
+[
+  {"id": "pl-blad", "voice": "Zosia", "lang": "pl", "text": "Zauważyłem błąd. Teraz dyktuję po polsku, a jest automatycznie tłumaczone na angielski."},
+  {"id": "pl-przeglad", "voice": "Zosia", "lang": "pl", "text": "Zrobiłem przegląd kodu. Sprawdź proszę, czy wszystko działa."},
+  {"id": "pl-krotkie", "voice": "Zosia", "lang": "pl", "text": "Dzięki, super."},
+  {"id": "pl-tak", "voice": "Zosia", "lang": "pl", "text": "Tak, jasne."},
+  {"id": "pl-spotkanie", "voice": "Zosia", "lang": "pl", "rate": 220, "text": "Spotkanie przesuwamy na czwartek, bo w środę mam urlop."},
+  {"id": "pl-zargon", "voice": "Zosia", "lang": "pl", "text": "Zrobiłem deploy na staging, zerknij proszę na PR."},
+  {"id": "pl-slack", "voice": "Zosia", "lang": "pl", "rate": 160, "text": "Czy możesz dodać mnie do kanału na Slacku?"},
+  {"id": "pl-dlugie", "voice": "Zosia", "lang": "pl", "text": "Myślę, że powinniśmy przygotować pełną serię testów, tak żeby każda nowa wersja przez nią przechodziła."},
+  {"id": "pl-tydzien-36s", "voice": "Zosia", "lang": "pl", "maxWER": 0.1, "text": "Cześć, oto wymyślone podsumowanie tygodnia w bibliotece. W poniedziałek skończyliśmy porządkować regały i wszystkie książki stoją już na właściwych miejscach. We wtorek przygotowaliśmy wystawę, bo młodsi czytelnicy chcieli poznać opowieści o podróżach i niezwykłych zwierzętach. W środę przywieźliśmy nowe stoliki do czytelni i jest tam teraz znacznie więcej miejsca, można wygodnie usiąść przy oknie. W czwartek był przegląd katalogu i kilka drobnych poprawek w opisach. Na przyszły tydzień planujemy warsztaty pisania krótkich opowiadań, konkurs dla dzieci i spotkanie z ilustratorem w sprawie wystawy. Jeśli macie pytania, dajcie znać przed końcem dnia.",
+   "note": "syntetyczne nagranie dłuższe niż okno Whispera (30 s): sprawdza zachowanie zdań na granicy okien"},
+  {"id": "pl-plan-48s", "voice": "Zosia", "lang": "pl", "maxWER": 0.1, "text": "Dzień dobry wszystkim, chciałbym opowiedzieć, jak wygląda nasz plan na najbliższy miesiąc. Najpierw kończymy prace nad nową wersją aplikacji, która ma szybciej sprawdzać tekst i lepiej radzić sobie z długimi wiadomościami. Potem przygotujemy dokumentację dla nowych osób w zespole, żeby każdy mógł zacząć pracę bez długiego wdrażania. W połowie miesiąca chcemy zrobić warsztaty z klientem i zebrać uwagi do panelu ustawień. Pod koniec miesiąca planujemy wydanie, ale tylko wtedy, gdy wszystkie testy przejdą bez błędów. Jeżeli coś się opóźni, przesuniemy termin o tydzień i damy znać wcześniej. Na koniec prośba, żebyście codziennie aktualizowali zadania w systemie, bo wtedy łatwiej jest planować kolejne kroki. Dziękuję i do usłyszenia na następnym spotkaniu.",
+   "note": "syntetyczny plan zespołu: sprawdza zachowanie drugiej połowy nagrania po podziale przy pauzach"},
+  {"id": "en-review", "voice": "Samantha", "lang": "en", "text": "Hi team, I pushed the fix to staging. Could you please review the pull request today?"},
+  {"id": "en-meeting", "voice": "Daniel", "lang": "en", "text": "Thanks for the update, let's discuss it at the next meeting."},
+  {"id": "en-short", "voice": "Samantha", "lang": "en", "text": "Sounds good."},
+  {"id": "en-release", "voice": "Flo (English (UK))", "lang": "en", "text": "I think we should run the full test suite before every release."},
+  {"id": "en-questions", "voice": "Eddy (English (US))", "lang": "en", "rate": 210, "text": "Do you have a minute to go through the budget numbers with me?"},
+  {"id": "en-mowa-przy-pl", "voice": "Samantha", "lang": "pl", "required": false, "text": "Could you send me the latest version of the report?",
+   "note": "angielska mowa bez ⇧: najlepiej, żeby została po angielsku"},
+  {"id": "pl-mowa-przy-en", "voice": "Zosia", "lang": "en", "required": false, "text": "Wyślę ci raport jutro rano.",
+   "note": "polska mowa z ⇧ (angielski): Whisper zwykle tłumaczy — tylko do obserwacji"}
+]

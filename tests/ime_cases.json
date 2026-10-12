@@ -1,0 +1,140 @@
+{
+  "description": "Wspólne przypadki dla kanału tekstu przez metodę wprowadzania (macOS: GramaCore ImeScope/ImeEdits, Linux: silnik IBus). Zakresy w jednostkach UTF-16. Sprawdza tests/GramaCoreTests/SharedFixturesTests.swift.",
+  "scope": [
+    {
+      "name": "zaznaczenie ma pierwszeństwo",
+      "reply": {"windowStart": 0, "before": "Ala ", "selected": "ma kota", "after": " i psa", "shortAfter": true},
+      "candidates": [{"scope": "selection", "text": "ma kota", "location": 4}]
+    },
+    {
+      "name": "akapit z kursorem między końcami linii",
+      "reply": {"windowStart": 0, "before": "Pierwszy.\nDrugi z bled", "after": "em.\nTrzeci.", "shortAfter": true},
+      "candidates": [{"scope": "paragraph", "text": "Drugi z bledem.", "location": 10}]
+    },
+    {
+      "name": "jedno zdanie w polu to całe pole",
+      "reply": {"windowStart": 0, "before": "Jedno zdanie", "after": " w polu.", "shortAfter": true},
+      "candidates": [{"scope": "wholeField", "text": "Jedno zdanie w polu.", "location": 0}]
+    },
+    {
+      "name": "okno w środku dokumentu — zakres w układzie dokumentu",
+      "reply": {"windowStart": 100, "before": "koniec.\nAkapit z kur", "after": "sorem.\nNastępny.", "shortAfter": false},
+      "candidates": [{"scope": "paragraph", "text": "Akapit z kursorem.", "location": 108}]
+    },
+    {
+      "name": "odpowiedź w mailu: tylko nowa wiadomość",
+      "reply": {"windowStart": 0, "before": "Cześć Aniu,\nwysy", "after": "łam poprawki.\n\nOd: Anna Nowak <anna@example.com>\nWysłano: poniedziałek\nDo: Tomasz\nTemat: Raport\n\nHej?", "shortAfter": true},
+      "candidates": [
+        {"scope": "newMessage", "text": "Cześć Aniu,\nwysyłam poprawki.", "location": 0},
+        {"scope": "paragraph", "text": "wysyłam poprawki.", "location": 12}
+      ]
+    },
+    {
+      "name": "mail bez cytatu: całe pole, gdy aplikacja oddała komplet",
+      "wholeFieldWhenComplete": true,
+      "reply": {"windowStart": 0, "before": "Cześć,\nwysyłam raport", "after": ".\nPozdrawiam", "shortAfter": true},
+      "candidates": [
+        {"scope": "wholeField", "text": "Cześć,\nwysyłam raport.\nPozdrawiam", "location": 0},
+        {"scope": "paragraph", "text": "wysyłam raport.", "location": 7}
+      ]
+    },
+    {
+      "name": "fragment z obrazkiem (U+FFFC) pominięty, zostaje akapit",
+      "wholeFieldWhenComplete": true,
+      "reply": {"windowStart": 0, "before": "Hej ￼\nDruga linia z bled", "after": "em.\n\nOd: A <a@b.pl>\nWysłano: dziś\nDo: B\nTemat: X\n\nstare", "shortAfter": true},
+      "candidates": [{"scope": "paragraph", "text": "Druga linia z bledem.", "location": 6}]
+    },
+    {
+      "name": "sam obrazek w akapicie — zwykła droga",
+      "reply": {"windowStart": 0, "before": "Tylko ￼ tu", "after": "", "shortAfter": true},
+      "refusal": "attachments"
+    },
+    {
+      "name": "okno ucięte za kursorem (aplikacja nie potwierdza końca) — zwykła droga",
+      "reply": {"windowStart": 0, "before": "słowo słowo słowo słowo ", "after": "dalej bez końca", "shortAfter": false},
+      "refusal": "cut"
+    },
+    {
+      "name": "okno ucięte przed kursorem — zwykła droga",
+      "reply": {"windowStart": 50, "before": "środek akapitu", "after": " koniec.\n", "shortAfter": true},
+      "refusal": "cut"
+    },
+    {
+      "name": "kursor w pustej linii obok tekstu",
+      "reply": {"windowStart": 0, "before": "Tekst.\n", "after": "\nDalej.", "shortAfter": true},
+      "refusal": "emptyParagraph"
+    },
+    {
+      "name": "puste pole — zwykła droga",
+      "reply": {"windowStart": 0, "before": "  ", "after": "", "shortAfter": true},
+      "refusal": "noText"
+    },
+    {
+      "name": "niespójna odpowiedź: początek okna + tekst przed kursorem ≠ kursor",
+      "reply": {"windowStart": 5, "selectionLocation": 3, "before": "abc", "after": "", "shortAfter": true},
+      "refusal": "noText"
+    }
+  ],
+  "edits": [
+    {
+      "name": "poprawki słowami, link między nimi nietknięty",
+      "original": "Wysylam poprawiona wersje raportu, zobacz tutaj: https://example.com i daj znac.",
+      "corrected": "Wysyłam poprawioną wersję raportu, zobacz tutaj: https://example.com i daj znać.",
+      "base": 40,
+      "expected": "Wysyłam poprawioną wersję raportu, zobacz tutaj: https://example.com i daj znać.",
+      "untouched": ["https://example.com", "zobacz tutaj"],
+      "maxEdits": 4
+    },
+    {
+      "name": "dopisany przecinek",
+      "original": "Wiem że tak",
+      "corrected": "Wiem, że tak",
+      "base": 0,
+      "expected": "Wiem, że tak"
+    },
+    {
+      "name": "usunięta litera (pusta podmiana)",
+      "original": "ze zdjęciem",
+      "corrected": "z zdjęciem",
+      "base": 7,
+      "expected": "z zdjęciem"
+    },
+    {
+      "name": "PowerPoint: ⇧↩ (U+000B) i ↩ (CR) zostają, choć model zwraca \\n",
+      "original": "Raz\u000BDwa z bledem\rTrzy",
+      "corrected": "Raz\nDwa z błędem\nTrzy",
+      "base": 0,
+      "expected": "Raz\u000BDwa z błędem\rTrzy",
+      "noSeparatorInEdits": true
+    },
+    {
+      "name": "CRLF zostaje",
+      "original": "a\r\nbledem",
+      "corrected": "a\nbłędem",
+      "base": 0,
+      "expected": "a\r\nbłędem"
+    },
+    {
+      "name": "zmieniony podział na linie — odmowa (poprawka do schowka)",
+      "original": "Jedna linia i druga",
+      "corrected": "Jedna linia\ni druga",
+      "base": 0,
+      "failure": "lineStructureChanged"
+    },
+    {
+      "name": "bez zmian — nic do zrobienia",
+      "original": "Bez zmian.",
+      "corrected": "Bez zmian.",
+      "base": 0,
+      "noChange": true
+    },
+    {
+      "name": "emoji (dwie jednostki UTF-16) i ę rozłożone na e + akcent",
+      "original": "Hej 😀 dziékuje bardzo",
+      "corrected": "Hej 😀 dziękuję bardzo",
+      "base": 3,
+      "expected": "Hej 😀 dziękuję bardzo",
+      "untouched": ["😀"]
+    }
+  ]
+}

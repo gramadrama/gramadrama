@@ -1,0 +1,439 @@
+/* GramaDrama correction panel (branding/PANEL.md), loaded by GNOME Shell with the extension.
+ * Two variants follow org.gnome.desktop.interface color-scheme: .gd-dark ('prefer-dark') and
+ * .gd-light (everything else), set on the panel's and the toast's root actor.
+ * Palette (branding/BRAND.md): lavender = the app's actions, brick = what the live check found,
+ * sage = corrected text, on warm neutrals. Colours inside the diff and the change list are Pango
+ * markup (panel.js, INK), because CSS does not reach markup spans. */
+
+/* ---- containers ---- */
+.gd-panel {
+  padding: 16px;
+  spacing: 12px;
+  border-radius: 16px;
+}
+
+.gd-toast {
+  padding: 10px 16px 10px 12px;
+  spacing: 10px;
+  border-radius: 12px;
+  max-width: 440px;
+}
+
+.gd-dark {
+  color: #f1eee8;
+  background-color: rgba(36, 40, 39, 0.98);
+  border: 1px solid #505852;
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.40);
+}
+
+.gd-light {
+  color: #343337;
+  background-color: rgba(255, 254, 252, 0.98);
+  border: 1px solid #ddd8d0;
+  box-shadow: 0 8px 24px 0 rgba(28, 27, 31, 0.12);
+}
+
+.gd-toast-text {
+  font-size: 10.5pt;
+}
+
+/* ---- header: logo, title, translation direction, status badge ---- */
+.gd-header {
+  spacing: 8px;
+}
+
+.gd-title {
+  font-size: 11pt;
+  font-weight: bold;
+}
+
+.gd-badge {
+  spacing: 6px;
+  font-size: 9pt;
+}
+
+/* the number of corrections: sage, like the corrected text */
+.gd-badge-count {
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: bold;
+}
+
+.gd-dark .gd-badge-count { color: #adc8b5; background-color: #34483c; }
+.gd-light .gd-badge-count { color: #536b60; background-color: #e9f0e9; }
+
+.gd-badge-ok {
+  font-weight: bold;
+}
+
+.gd-dark .gd-badge-dim { color: #b9bdb8; }
+.gd-light .gd-badge-dim { color: #6b6870; }
+.gd-dark .gd-badge-ok { color: #adc8b5; }
+.gd-light .gd-badge-ok { color: #536b60; }
+.gd-dark .gd-badge-error .gd-badge-icon { color: #f2a7ae; }
+.gd-light .gd-badge-error .gd-badge-icon { color: #9e3446; }
+
+.gd-direction {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 9pt;
+  font-weight: bold;
+}
+
+.gd-dark .gd-direction { color: #f1eee8; border: 1px solid #505852; }
+.gd-dark .gd-direction:hover { background-color: #303631; }
+.gd-dark .gd-direction:active { background-color: #3a413c; }
+.gd-light .gd-direction { color: #343337; border: 1px solid #ddd8d0; }
+.gd-light .gd-direction:hover { background-color: #f0ede7; }
+.gd-light .gd-direction:active { background-color: #e7e3dc; }
+
+/* × in the header: Anuluj for the pointer (Esc for the keyboard) */
+.gd-close {
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.gd-dark .gd-close { color: #b9bdb8; }
+.gd-dark .gd-close:hover { color: #f1eee8; background-color: #303631; }
+.gd-dark .gd-close:active { background-color: #3a413c; }
+.gd-light .gd-close { color: #6b6870; }
+.gd-light .gd-close:hover { color: #343337; background-color: #f0ede7; }
+.gd-light .gd-close:active { background-color: #e7e3dc; }
+
+/* ---- modes: the active one is neutral (lavender is kept for the actions on the text) ---- */
+.gd-modes {
+  spacing: 4px;
+}
+
+.gd-mode {
+  padding: 4px;
+  border-radius: 6px;
+  font-size: 9.5pt;
+}
+
+.gd-dark .gd-mode { color: #b9bdb8; }
+.gd-dark .gd-mode:hover { color: #f1eee8; background-color: rgba(255, 255, 255, 0.05); }
+.gd-dark .gd-mode:active { background-color: rgba(255, 255, 255, 0.09); }
+.gd-light .gd-mode { color: #6b6870; }
+.gd-light .gd-mode:hover { color: #343337; background-color: rgba(52, 51, 55, 0.04); }
+.gd-light .gd-mode:active { background-color: rgba(52, 51, 55, 0.08); }
+.gd-dark .gd-mode:checked, .gd-dark .gd-mode:checked:hover {
+  color: #f1eee8;
+  font-weight: bold;
+  background-color: #303631;
+}
+.gd-light .gd-mode:checked, .gd-light .gd-mode:checked:hover {
+  color: #343337;
+  font-weight: bold;
+  background-color: #f0ede7;
+}
+
+/* ---- content ---- */
+.gd-text-scroll {
+  max-height: 220px;
+}
+
+.gd-text {
+  font-size: 11.5pt;
+}
+
+.gd-original {
+  font-size: 9.5pt;
+}
+
+.gd-dark .gd-dim, .gd-dark .gd-original { color: #b9bdb8; }
+.gd-light .gd-dim, .gd-light .gd-original { color: #6b6870; }
+
+.gd-separator {
+  height: 1px;
+}
+
+.gd-dark .gd-separator { background-color: #505852; }
+.gd-light .gd-separator { background-color: #ddd8d0; }
+
+/* An editable result is a field (branding/PANEL.md, Content): what it is above it, a frame, lavender while it is edited
+ * (the panel draws the caret and never has the keyboard). The label sits close to the field it names. */
+.gd-field-box {
+  spacing: 4px;
+}
+
+.gd-field-label {
+  spacing: 6px;
+  font-size: 8.5pt;
+}
+
+.gd-dark .gd-field-label { color: #b9bdb8; }
+.gd-light .gd-field-label { color: #6b6870; }
+
+.gd-text-scroll.gd-field {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.gd-dark .gd-text-scroll.gd-field { border: 1px solid #505852; }
+.gd-light .gd-text-scroll.gd-field { border: 1px solid #ddd8d0; }
+.gd-dark .gd-text-scroll.gd-field-active { border-color: #bcb0ec; }
+.gd-light .gd-text-scroll.gd-field-active { border-color: #66579e; }
+
+/* a failed correction (branding/PANEL.md, Errors): what happened in the error colour on its tint, then what to do; its
+ * buttons take the place of Kopiuj and Zastąp, the first one (Enter's) lavender with its key */
+.gd-problem {
+  padding: 12px 14px;
+  border-radius: 12px;
+  spacing: 4px;
+  background-color: rgba(196, 86, 106, 0.16);
+}
+
+.gd-problem-title {
+  font-size: 11pt;
+  font-weight: bold;
+}
+
+.gd-problem-text {
+  font-size: 10pt;
+}
+
+.gd-dark .gd-problem-title { color: #f2a7ae; }
+.gd-light .gd-problem-title { color: #9e3446; }
+.gd-dark .gd-problem-text { color: #f1eee8; }
+.gd-light .gd-problem-text { color: #343337; }
+
+.gd-problem-actions {
+  spacing: 8px;
+}
+
+.gd-button-box {
+  spacing: 6px;
+}
+
+.gd-keycap {
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 8.5pt;
+}
+
+.gd-dark .gd-keycap { border: 1px solid #f1eee8; }
+.gd-light .gd-keycap { border: 1px solid #343337; }
+.gd-dark .gd-primary .gd-keycap { border-color: #181b1b; }
+.gd-light .gd-primary .gd-keycap { border-color: #fffefc; }
+
+/* change list: a subtle box, max 130 px of rows, shown on demand */
+.gd-changes {
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+.gd-dark .gd-changes { background-color: #303631; }
+.gd-light .gd-changes { background-color: #f0ede7; }
+
+.gd-changes-scroll {
+  max-height: 130px;
+}
+
+.gd-changes-list {
+  spacing: 6px;
+}
+
+.gd-change {
+  font-size: 10pt;
+}
+
+/* the caret of the result being edited (drawn by the panel, which never has the keyboard): lavender, an action */
+.gd-dark .gd-caret { background-color: #bcb0ec; }
+.gd-light .gd-caret { background-color: #66579e; }
+
+/* under the edited text: the check's finds at the caret, two lines high whatever it shows (macOS issueBar) */
+.gd-check-bar { spacing: 4px; min-height: 44px; }
+.gd-check-count { font-size: 8.5pt; }
+.gd-dark .gd-check-count { color: #b9bdb8; }
+.gd-light .gd-check-count { color: #6b6870; }
+.gd-dark .gd-check-count.gd-check-found, .gd-light .gd-check-count.gd-check-found { color: #d07a52; }
+
+/* Cofnij and Zostaw i dodaj do słownika at a change: small, quiet, as the × */
+.gd-change-row {
+  spacing: 2px;
+}
+
+.gd-change-button {
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.gd-dark .gd-change-button { color: #b9bdb8; }
+.gd-dark .gd-change-button:hover { color: #f1eee8; background-color: #3a413c; }
+.gd-dark .gd-change-button:active { background-color: #444c46; }
+.gd-light .gd-change-button { color: #6b6870; }
+.gd-light .gd-change-button:hover { color: #343337; background-color: #e7e3dc; }
+.gd-light .gd-change-button:active { background-color: #ddd8d0; }
+
+/* ---- footer: note + scope, Kopiuj / Zastąp ---- */
+.gd-footer {
+  spacing: 8px;
+}
+
+.gd-note {
+  font-size: 8.5pt;
+}
+
+.gd-dark .gd-note { color: #b9bdb8; }
+.gd-light .gd-note { color: #6b6870; }
+
+/* Pokaż / Ukryj zmiany (Ctrl+I): quiet, as it only shows more */
+.gd-changes-toggle {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 9pt;
+  font-weight: bold;
+}
+
+.gd-dark .gd-changes-toggle { color: #b9bdb8; }
+.gd-dark .gd-changes-toggle:hover { color: #f1eee8; background-color: #303631; }
+.gd-dark .gd-changes-toggle:active { background-color: #3a413c; }
+.gd-light .gd-changes-toggle { color: #6b6870; }
+.gd-light .gd-changes-toggle:hover { color: #343337; background-color: #f0ede7; }
+.gd-light .gd-changes-toggle:active { background-color: #e7e3dc; }
+
+/* a secondary action: outlined; the primary one is lavender, the colour of the app's actions */
+.gd-button {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 10pt;
+  font-weight: bold;
+}
+
+.gd-dark .gd-button { color: #f1eee8; border: 1px solid #505852; }
+.gd-dark .gd-button:hover { background-color: #303631; }
+.gd-dark .gd-button:active { background-color: #3a413c; }
+.gd-dark .gd-button:insensitive { color: #7a847c; border-color: #3a413c; background-color: transparent; }
+.gd-light .gd-button { color: #343337; border: 1px solid #ddd8d0; }
+.gd-light .gd-button:hover { background-color: #f0ede7; }
+.gd-light .gd-button:active { background-color: #e7e3dc; }
+.gd-light .gd-button:insensitive { color: #8e8992; border-color: #e7e3dc; background-color: transparent; }
+
+/* the primary action (Zastąp; Kopiuj when the text cannot be replaced) */
+.gd-dark .gd-button.gd-primary { color: #181b1b; border-color: #bcb0ec; background-color: #bcb0ec; }
+.gd-dark .gd-button.gd-primary:hover { border-color: #dcd5f2; background-color: #dcd5f2; }
+.gd-dark .gd-button.gd-primary:active { border-color: #a99ce0; background-color: #a99ce0; }
+.gd-dark .gd-button.gd-primary:insensitive { color: #7a847c; border-color: #303631; background-color: #303631; }
+.gd-light .gd-button.gd-primary { color: #fffefc; border-color: #66579e; background-color: #66579e; }
+.gd-light .gd-button.gd-primary:hover { border-color: #574a88; background-color: #574a88; }
+.gd-light .gd-button.gd-primary:active { border-color: #4b3f77; background-color: #4b3f77; }
+.gd-light .gd-button.gd-primary:insensitive { color: #8e8992; border-color: #f0ede7; background-color: #f0ede7; }
+
+/* ---- the dictation pill (hud.js): macOS DictationHUD, 230x40 ---- */
+.gd-hud {
+  padding: 0 14px 0 12px;
+  spacing: 9px;
+  border-radius: 20px;
+  min-height: 40px;
+}
+
+.gd-hud-bars {
+  spacing: 3px;
+}
+
+/* brick: something live (the microphone is on) */
+.gd-hud-bar {
+  border-radius: 1.5px;
+}
+
+.gd-dark .gd-hud-bar { background-color: #eba27f; }
+.gd-light .gd-hud-bar { background-color: #ad4e2c; }
+
+.gd-hud-label {
+  font-size: 10.5pt;
+  font-weight: bold;
+}
+
+.gd-hud-time {
+  font-size: 9.5pt;
+  font-feature-settings: "tnum";
+}
+
+.gd-hud-lang {
+  font-size: 9pt;
+  font-weight: bold;
+}
+
+.gd-dark .gd-hud-time, .gd-dark .gd-hud-spinner, .gd-dark .gd-hud-lang { color: #b9bdb8; }
+.gd-light .gd-hud-time, .gd-light .gd-hud-spinner, .gd-light .gd-hud-lang { color: #6b6870; }
+.gd-dark .gd-hud-lang-en { color: #eba27f; }
+.gd-light .gd-hud-lang-en { color: #ad4e2c; }
+
+/* ---- the live check's badge and its list (live.js): macOS LiveMonitor ---- */
+/* The badge is drawn by live.js (lava.js): lavender blobs while a check runs, then a brick circle with the
+ * count (white on #ad4e2c: 5.4:1), over any app in either theme. The button itself paints nothing. */
+.gd-live-badge {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.gd-live-count {
+  color: #ffffff;
+  font-size: 8.5pt;
+  font-weight: bold;
+  font-feature-settings: "tnum";
+}
+
+.gd-live-list {
+  padding: 12px;
+  spacing: 8px;
+  border-radius: 12px;
+}
+
+.gd-live-header { spacing: 12px; }
+.gd-live-summary { font-weight: bold; font-size: 10pt; }
+/* "Popraw…": the badge's click, an outlined secondary action */
+.gd-live-open { padding: 2px 10px; border-radius: 6px; font-size: 9pt; font-weight: bold; }
+.gd-dark .gd-live-open { color: #f1eee8; border: 1px solid #505852; }
+.gd-dark .gd-live-open:hover { background-color: #303631; }
+.gd-light .gd-live-open { color: #343337; border: 1px solid #ddd8d0; }
+.gd-light .gd-live-open:hover { background-color: #f0ede7; }
+.gd-live-row { spacing: 2px; }
+.gd-live-line { spacing: 6px; }
+.gd-live-word { font-size: 10pt; }
+.gd-live-arrow { font-size: 10pt; }
+.gd-dark .gd-live-arrow { color: #b9bdb8; }
+.gd-light .gd-live-arrow { color: #6b6870; }
+/* a suggestion is an action: the first in lavender, the others on a lavender tint */
+.gd-live-fix {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 9.5pt;
+  font-weight: bold;
+}
+.gd-dark .gd-live-fix { color: #bcb0ec; background-color: #353047; }
+.gd-dark .gd-live-fix:hover { background-color: #423b5c; }
+.gd-dark .gd-live-fix.gd-live-first { color: #181b1b; background-color: #bcb0ec; }
+.gd-dark .gd-live-fix.gd-live-first:hover { background-color: #dcd5f2; }
+.gd-light .gd-live-fix { color: #66579e; background-color: #eeeaf7; }
+.gd-light .gd-live-fix:hover { background-color: #dcd5f2; }
+.gd-light .gd-live-fix.gd-live-first { color: #fffefc; background-color: #66579e; }
+.gd-light .gd-live-fix.gd-live-first:hover { background-color: #574a88; }
+.gd-live-message, .gd-live-more { font-size: 8.5pt; }
+.gd-dark .gd-live-message, .gd-dark .gd-live-more { color: #b9bdb8; }
+.gd-light .gd-live-message, .gd-light .gd-live-more { color: #6b6870; }
+
+/* The live check's underline card (underlines.js): under the word, as macOS IssueCard. */
+.gd-mark-card {
+  padding: 10px;
+  spacing: 8px;
+  border-radius: 10px;
+}
+.gd-mark-message { font-size: 8.5pt; }
+.gd-dark .gd-mark-message, .gd-dark .gd-mark-source { color: #b9bdb8; }
+.gd-light .gd-mark-message, .gd-light .gd-mark-source { color: #6b6870; }
+.gd-mark-fixes { spacing: 6px; }
+.gd-mark-actions { spacing: 12px; }
+.gd-mark-action { font-size: 8.5pt; padding: 1px 2px; border-radius: 4px; }
+.gd-dark .gd-mark-action { color: #b9bdb8; }
+.gd-dark .gd-mark-action:hover { color: #f1eee8; background-color: #303631; }
+.gd-light .gd-mark-action { color: #6b6870; }
+.gd-light .gd-mark-action:hover { color: #343337; background-color: #f0ede7; }
+.gd-mark-source { font-size: 8pt; }
+.gd-mark-icon { padding: 3px; border-radius: 5px; }
+.gd-mark-glyph { icon-size: 14px; }
+.gd-mark-tip { font-size: 8.5pt; padding: 3px 7px; border-radius: 5px; }
+.gd-mark-tip.gd-dark { color: #181b1b; background-color: #f1eee8; border: none; box-shadow: none; }
+.gd-mark-tip.gd-light { color: #fffefc; background-color: #343337; border: none; box-shadow: none; }

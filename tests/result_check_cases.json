@@ -1,0 +1,231 @@
+{
+  "description": "Kontrola wyniku po naprawach: linki, wzmianki, kod i emoji jak w oryginale, pusta odpowiedź to błąd. Ten sam plik czytają macOS (PostProcess.refusal) i Linux (core.clean). Pisany ręcznie; refusal: null, \"empty\" albo \"protected\".",
+  "cases": [
+    {
+      "name": "chronione fragmenty bez zmian",
+      "original": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "output": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "mode": "fix",
+      "refusal": null,
+      "result": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:"
+    },
+    {
+      "name": "zgubiona wzmianka",
+      "original": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "output": "Zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "mode": "fix",
+      "refusal": "protected"
+    },
+    {
+      "name": "zmieniony kod",
+      "original": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "output": "@Łukasz zobacz `master` 🙂 https://example.com/a_b :rocket:",
+      "mode": "improve",
+      "refusal": "protected"
+    },
+    {
+      "name": "zgubiony link",
+      "original": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "output": "@Łukasz zobacz `main` 🙂 :rocket:",
+      "mode": "translate",
+      "refusal": "protected"
+    },
+    {
+      "name": "zgubiony kod emoji",
+      "original": "@Łukasz zobacz `main` 🙂 https://example.com/a_b :rocket:",
+      "output": "@Łukasz zobacz `main` 🙂 https://example.com/a_b",
+      "mode": "casual",
+      "refusal": "protected"
+    },
+    {
+      "name": "kropka zdania po linku",
+      "original": "zobacz https://example.com/a",
+      "output": "Zobacz https://example.com/a.",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Zobacz https://example.com/a."
+    },
+    {
+      "name": "kropka zdania po wzmiance",
+      "original": "dzieki @Łukasz",
+      "output": "Dzięki @Łukasz.",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Dzięki @Łukasz."
+    },
+    {
+      "name": "przywrócone @ wzmianki",
+      "original": "@jan napisz",
+      "output": "jan, napisz",
+      "mode": "fix",
+      "refusal": null,
+      "result": "@jan, napisz"
+    },
+    {
+      "name": "godzina to nie kod emoji",
+      "original": "standup o 9:30: :coffee:",
+      "output": "Standup o 9:30 :coffee:",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Standup o 9:30 :coffee:"
+    },
+    {
+      "name": "podmienione emoji wraca",
+      "original": "super 🙂",
+      "output": "Super 😊",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Super 🙂"
+    },
+    {
+      "name": "emotikon zamiast emoji wraca",
+      "original": "super 🙂",
+      "output": "Super ;)",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Super 🙂"
+    },
+    {
+      "name": "link z escapowanym podkreśleniem",
+      "original": "mr: https://gitlab.example.com/x/-/merge_requests/1",
+      "output": "MR: https://gitlab.example.com/x/-/merge\\_requests/1",
+      "mode": "fix",
+      "refusal": null,
+      "result": "MR: https://gitlab.example.com/x/-/merge_requests/1"
+    },
+    {
+      "name": "link w nawiasach ostrych",
+      "original": "link: https://gitlab.example.com/x",
+      "output": "Link: <https://gitlab.example.com/x>",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Link: https://gitlab.example.com/x"
+    },
+    {
+      "name": "Luźniej może dodać emoji",
+      "original": "super dzieki",
+      "output": "Super, dzięki! 🎉",
+      "mode": "casual",
+      "refusal": null,
+      "result": "Super, dzięki! 🎉"
+    },
+    {
+      "name": "Ulepsz może dodać kod emoji",
+      "original": "super 🙂",
+      "output": "Super 🙂 :tada:",
+      "mode": "improve",
+      "refusal": null,
+      "result": "Super 🙂 :tada:"
+    },
+    {
+      "name": "Popraw nie dodaje emoji",
+      "original": "super dzieki",
+      "output": "Super, dzięki! 🎉",
+      "mode": "fix",
+      "refusal": "protected"
+    },
+    {
+      "name": "Popraw nie dodaje kodu emoji",
+      "original": "super dzieki",
+      "output": "Super, dzięki! :tada:",
+      "mode": "fix",
+      "refusal": "protected"
+    },
+    {
+      "name": "tłumaczenie zachowuje emoji autora",
+      "original": "super dzieki 🙂",
+      "output": "Great, thanks! 🎉",
+      "mode": "translate",
+      "refusal": null,
+      "result": "Great, thanks! 🙂"
+    },
+    {
+      "name": "emoji w linku to nie dodane emoji",
+      "original": "zobacz",
+      "output": "Zobacz https://example.com/🙂",
+      "mode": "improve",
+      "refusal": "protected"
+    },
+    {
+      "name": "emoji w kodzie to nie dodane emoji",
+      "original": "zobacz",
+      "output": "Zobacz `🙂`",
+      "mode": "improve",
+      "refusal": "protected"
+    },
+    {
+      "name": "pusta odpowiedź",
+      "original": "test",
+      "output": "",
+      "mode": "fix",
+      "refusal": "empty"
+    },
+    {
+      "name": "same białe znaki",
+      "original": "test",
+      "output": " \n",
+      "mode": "translate",
+      "refusal": "empty"
+    },
+    {
+      "name": "sam komentarz to bez zmian",
+      "original": "ok dzięki",
+      "output": "(The original text does not contain any errors.)",
+      "mode": "fix",
+      "refusal": null,
+      "result": "ok dzięki"
+    },
+    {
+      "name": "sam podpis zastępczy to bez zmian",
+      "original": "ok",
+      "output": "[Your name]",
+      "mode": "fix",
+      "refusal": null,
+      "result": "ok"
+    },
+    {
+      "name": "zmieniony e-mail",
+      "original": "napisz do admin@example.com",
+      "output": "Napisz do admin@example.org.",
+      "mode": "fix",
+      "refusal": "protected"
+    },
+    {
+      "name": "kropka zdania po e-mailu",
+      "original": "napisz do admin@example.com",
+      "output": "Napisz do admin@example.com.",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Napisz do admin@example.com."
+    },
+    {
+      "name": "zmieniony blok kodu",
+      "original": "zobacz:\n```\nx=1\n```",
+      "output": "Zobacz:\n```\nx = 1\n```",
+      "mode": "fix",
+      "refusal": "protected"
+    },
+    {
+      "name": "odmieniona wzmianka",
+      "original": "@Kasia sprawdzisz?",
+      "output": "@Kasiu, sprawdzisz?",
+      "mode": "fix",
+      "refusal": "protected"
+    },
+    {
+      "name": "przetłumaczony kanał",
+      "original": "pisz na #general",
+      "output": "Pisz na #ogólny.",
+      "mode": "translate",
+      "refusal": "protected"
+    },
+    {
+      "name": "dwukropek po godzinie",
+      "original": "spotkanie o 9:30:",
+      "output": "Spotkanie o 9:30.",
+      "mode": "fix",
+      "refusal": null,
+      "result": "Spotkanie o 9:30."
+    }
+  ]
+}

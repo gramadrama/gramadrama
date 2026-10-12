@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><title>GD fixture</title>
+<style>
+body{font:16px sans-serif;margin:12px}
+textarea,input,div[contenteditable]{display:block;width:90%;margin:6px 0;font:16px sans-serif}
+textarea{height:110px} div[contenteditable]{border:1px solid #888;min-height:70px;padding:4px}
+p{margin:4px 0}
+</style></head>
+<body>
+<textarea id="ta"></textarea>
+<input id="in" type="text">
+<input id="pw" type="password">
+<div id="ce" contenteditable="true"></div>
+<div id="rich" contenteditable="true"></div>
+<script>
+// Ground truth for the isolated-session harness. Every event is console.logged as
+// "GDLOG <json>" (pure ASCII: non-ASCII is \u-escaped) and read from Chrome's stderr
+// (--enable-logging=stderr). 'input' events carry the state of ALL fields (values,
+// selections, innerHTML); keydown/keyup carry key names. Offsets are Unicode code points
+// (like IBus surrounding text; an emoji counts as 1).
+// Keyboard macros (F-keys pass through the input method):
+//   F9 reset all fields      Shift+F9 long text (60 paragraphs) in ta, caret in paragraph 30
+//   F10 dump all fields      F2/F3 select 'KOT' / caret before 'słowo' in ta
+//   F4/F5 same in in         F6 focus pw (caret at 3)
+//   F7/F8 same in ce (2nd paragraph)   Shift+F2/Shift+F3 same in rich (1st paragraph)
+//   Shift+F4 caret at the end of ta    Shift+F6 caret at the end of in
+//   Shift+F7 geometry: client rects of test words (for pointer tests; mousedown/mouseup
+//            are logged with client coordinates, so one click calibrates screen offsets)
+// URL hash '#focus=ID' focuses a field at load with the caret at its end.
+const TA = 'Pierwszy akapit: zażółć gęślą jaźń.\nDrugi akapit ma błąd 😀 i słowo KOT w środku zdania.\nTrzeci akapit — koniec.';
+const IN = 'Pole jednoliniowe: źdźbło 😀 i słowo PIES tutaj.';
+const PW = 'tajneHasło1';
+const CE = ['Pierwszy akapit edytora: zażółć gęślą jaźń.', 'Drugi akapit ma błąd 😀 i słowo KOT w środku zdania.', 'Trzeci akapit — koniec.'];
+const RICH = '<p>Zwykły akapit z <b>pogrubieniem</b> i <a href="https://example.invalid/">linkiem</a>, a słowo KOT stoi na końcu.</p><p>Drugi akapit bogatego edytora.</p>';
+const $ = id => document.getElementById(id);
+const FIELDS = ['ta', 'in', 'pw', 'ce', 'rich'];
+
+function ascii(s) { return s.replace(/[\u007f-￿]/g, c => '\\u' + ('000' + c.charCodeAt(0).toString(16)).slice(-4)); }
+function emit(obj) { obj.t = Date.now(); console.log('GDLOG ' + ascii(JSON.stringify(obj))); }
+function blocks(el) { return [...el.children]; }
+function cplen(s) { return Array.from(s).length; }
+function ceText(el) { return blocks(el).map(p => p.textContent).join('\n'); }
+function ceOffset(el, node, offset) {
+  const ps = blocks(el);
+  let base = 0;
+  for (const p of ps) {
+    if (p === node || p.contains(node)) {
+      const r = document.createRange(); r.selectNodeContents(p); r.setEnd(node, offset);
+      return base + cplen(r.toString());
+    }
+    base += cplen(p.textContent) + 1;
+  }
+  return node === el ? ps.slice(0, offset).reduce((n, p) => n + cplen(p.textContent) + 1, 0) : null;
+}
+function snap(el) {
+  if (el.isContentEditable) {
+    const s = getSelection(), inside = s.rangeCount && el.contains(s.anchorNode);
+    return {text: ceText(el), html: el.innerHTML,
+            sel: inside ? [ceOffset(el, s.anchorNode, s.anchorOffset), ceOffset(el, s.focusNode, s.focusOffset)] : null};
+  }
+  const v = el.value;
+  return {text: v, sel: [cplen(v.slice(0, el.selectionStart)), cplen(v.slice(0, el.selectionEnd)), el.selectionDirection]};
+}
+function state() { const st = {active: document.activeElement && document.activeElement.id}; for (const id of FIELDS) st[id] = snap($(id)); return st; }
+function out(ev, el, extra) { emit(Object.assign({ev, id: el.id}, snap(el), extra || {})); }
+function reset() {
+  $('ta').value = TA; $('in').value = IN; $('pw').value = PW;
+  $('ce').innerHTML = CE.map(t => '<p>' + t + '</p>').join('');
+  $('rich').innerHTML = RICH;
+}
+function selWord(el, word) { const i = el.value.indexOf(word); el.focus(); el.setSelectionRange(i, i + word.length); }
+function caretAt(el, word) { const i = word === null ? el.value.length : el.value.indexOf(word); el.focus(); el.setSelectionRange(i, i); }
+function ceRange(el, pIdx, word, collapse) {
+  const p = blocks(el)[pIdx], walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+  let tn; while ((tn = walker.nextNode()) && tn.textContent.indexOf(word) < 0);
+  const i = tn.textContent.indexOf(word);
+  el.focus();
+  const r = document.createRange(); r.setStart(tn, i); r.setEnd(tn, collapse ? i : i + word.length);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+function rect(r) { return {x: r.left, y: r.top, w: r.width, h: r.height}; }
+function ceWordRect(el, pIdx, word) {
+  const p = blocks(el)[pIdx], walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+  let tn; while ((tn = walker.nextNode()) && tn.textContent.indexOf(word) < 0);
+  const i = tn.textContent.indexOf(word), r = document.createRange();
+  r.setStart(tn, i); r.setEnd(tn, i + word.length);
+  return rect(r.getBoundingClientRect());
+}
+function taWordRect(ta, word) {
+  // Mirror element with the textarea's text metrics; the span marks the word.
+  const cs = getComputedStyle(ta), m = document.createElement('div'), sp = document.createElement('span');
+  for (const k of ['boxSizing', 'width', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'wordSpacing',
+                   'lineHeight', 'textIndent', 'tabSize', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+                   'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth', 'borderStyle']) m.style[k] = cs[k];
+  Object.assign(m.style, {position: 'absolute', left: '0', top: '0', visibility: 'hidden', whiteSpace: 'pre-wrap', overflowWrap: 'break-word'});
+  const i = ta.value.indexOf(word);
+  m.appendChild(document.createTextNode(ta.value.slice(0, i))); sp.textContent = word; m.appendChild(sp);
+  m.appendChild(document.createTextNode(ta.value.slice(i + word.length)));
+  document.body.appendChild(m);
+  const r = ta.getBoundingClientRect(), mr = m.getBoundingClientRect(), sr = sp.getBoundingClientRect();
+  m.remove();
+  return {x: r.left + sr.left - mr.left - ta.scrollLeft, y: r.top + sr.top - mr.top - ta.scrollTop, w: sr.width, h: sr.height};
+}
+function geometry() {
+  return {ce: {KOT: ceWordRect($('ce'), 1, 'KOT'), 'słowo': ceWordRect($('ce'), 1, 'słowo'), Pierwszy: ceWordRect($('ce'), 0, 'Pierwszy')},
+          rich: {KOT: ceWordRect($('rich'), 0, 'KOT'), 'słowo': ceWordRect($('rich'), 0, 'słowo')},
+          ta: {KOT: taWordRect($('ta'), 'KOT'), 'słowo': taWordRect($('ta'), 'słowo'), Pierwszy: taWordRect($('ta'), 'Pierwszy')},
+          fields: Object.fromEntries(FIELDS.map(id => [id, rect($(id).getBoundingClientRect())])),
+          inner: [innerWidth, innerHeight], dpr: devicePixelRatio};
+}
+function longText() {
+  const ps = []; for (let i = 0; i < 60; i++) ps.push('Akapit ' + i + ': zażółć gęślą jaźń 😀 — to jest dość długi akapit testowy numer ' + i + '.');
+  $('ta').value = ps.join('\n'); const i = $('ta').value.indexOf('Akapit 30:') + 20;
+  $('ta').focus(); $('ta').setSelectionRange(i, i);
+}
+reset();
+for (const id of FIELDS) {
+  const el = $(id);
+  el.addEventListener('beforeinput', e => emit({ev: 'beforeinput', id, inputType: e.inputType, data: e.data, isComposing: e.isComposing}));
+  el.addEventListener('input', e => emit({ev: 'input', id, inputType: e.inputType, data: e.data, isComposing: e.isComposing, state: state()}));
+  for (const t of ['compositionstart', 'compositionupdate', 'compositionend']) el.addEventListener(t, e => out(t, el, {data: e.data}));
+  el.addEventListener('focus', () => out('focus', el));
+  el.addEventListener('blur', () => emit({ev: 'blur', id}));
+}
+const MACROS = {
+  F2: () => selWord($('ta'), 'KOT'), F3: () => caretAt($('ta'), 'słowo'),
+  F4: () => selWord($('in'), 'PIES'), F5: () => caretAt($('in'), 'słowo'),
+  F6: () => { $('pw').focus(); $('pw').setSelectionRange(3, 3); },
+  F7: () => ceRange($('ce'), 1, 'KOT', false), F8: () => ceRange($('ce'), 1, 'słowo', true),
+  F9: () => { reset(); emit({ev: 'reset', state: state()}); },
+  F10: () => emit({ev: 'dump', state: state()}),
+  'S-F2': () => ceRange($('rich'), 0, 'KOT', false), 'S-F3': () => ceRange($('rich'), 0, 'słowo', true),
+  'S-F4': () => caretAt($('ta'), null), 'S-F6': () => caretAt($('in'), null),
+  'S-F9': longText,
+  'S-F7': () => emit({ev: 'geom', geom: geometry()}),
+};
+function keyInfo(e) {
+  return {id: document.activeElement && document.activeElement.id, key: e.key, code: e.code, keyCode: e.keyCode,
+          ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey, altGraph: e.getModifierState('AltGraph'),
+          repeat: e.repeat, isComposing: e.isComposing};
+}
+document.addEventListener('keydown', e => {
+  emit(Object.assign({ev: 'keydown'}, keyInfo(e)));
+  const name = (e.shiftKey ? 'S-' : '') + e.key, act = /^F\d+$/.test(e.key) && MACROS[name];
+  if (act) {
+    e.preventDefault(); act();
+    setTimeout(() => emit({ev: 'macro', macro: name, state: state()}), 30);
+  }
+}, true);
+document.addEventListener('keyup', e => emit(Object.assign({ev: 'keyup'}, keyInfo(e))), true);
+for (const t of ['mousedown', 'mouseup'])
+  document.addEventListener(t, e => emit({ev: t, x: e.clientX, y: e.clientY, detail: e.detail,
+                                          target: e.target && e.target.id}), true);
+document.addEventListener('selectionchange', () => {
+  const a = document.activeElement;
+  if (a && FIELDS.includes(a.id)) emit(Object.assign({ev: 'selectionchange', id: a.id}, {sel: snap(a).sel}));
+});
+const m = /focus=(\w+)/.exec(location.hash);
+if (m && $(m[1])) {
+  const el = $(m[1]); el.focus();
+  if (el.isContentEditable) { const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r); }
+  else el.setSelectionRange(el.value.length, el.value.length);
+}
+emit({ev: 'loaded', state: state()});
+</script>
+</body></html>

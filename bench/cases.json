@@ -1,0 +1,262 @@
+[
+ {
+  "lang": "pl",
+  "input": "Mysle ze jutro bedzie lepiej, zobaczymy.",
+  "expected": "Myślę, że jutro będzie lepiej, zobaczymy."
+ },
+ {
+  "lang": "pl",
+  "input": "Wysłałem ci maila ktory dotyczy spotkania w piatek.",
+  "expected": "Wysłałem ci maila, który dotyczy spotkania w piątek."
+ },
+ {
+  "lang": "pl",
+  "input": "Nie wiem czy zdąże to skończyć do końca tygodnia.",
+  "expected": "Nie wiem, czy zdążę to skończyć do końca tygodnia."
+ },
+ {
+  "lang": "pl",
+  "input": "Wziąść pod uwage trzeba to że klient chce zmian.",
+  "expected": "Wziąć pod uwagę trzeba to, że klient chce zmian."
+ },
+ {
+  "lang": "pl",
+  "input": "Dzięki za info, spróbóje to ogarnąć jeszcze dziś.",
+  "expected": "Dzięki za info, spróbuję to ogarnąć jeszcze dziś."
+ },
+ {
+  "lang": "pl",
+  "input": "Poszłem do biura ale nikogo niebyło.",
+  "expected": "Poszedłem do biura, ale nikogo nie było."
+ },
+ {
+  "lang": "pl",
+  "input": "W załączeniu przesyłam ofertę, prosze o informację zwrotną.",
+  "expected": "W załączeniu przesyłam ofertę, proszę o informację zwrotną."
+ },
+ {
+  "lang": "pl",
+  "input": "@Łukasz daj znać jak skończysz deploy na staging :rocket:",
+  "expected": "@Łukasz daj znać, jak skończysz deploy na staging :rocket:"
+ },
+ {
+  "lang": "pl",
+  "input": "Spotkanie jest o 15:00 w sali konferencyjnej.",
+  "expected": "Spotkanie jest o 15:00 w sali konferencyjnej."
+ },
+ {
+  "lang": "pl",
+  "input": "Bardzo przepraszam za opóźnienie, wynikło ono z przyczyn od nas niezależnych.",
+  "expected": "Bardzo przepraszam za opóźnienie, wynikło ono z przyczyn od nas niezależnych."
+ },
+ {
+  "lang": "en",
+  "input": "I think their is a problem with the build, can you check it.",
+  "expected": "I think there is a problem with the build, can you check it?"
+ },
+ {
+  "lang": "en",
+  "input": "Me and Anna was working on this yesterday.",
+  "expected": "Anna and I were working on this yesterday."
+ },
+ {
+  "lang": "en",
+  "input": "Please find attached the the report you requested.",
+  "expected": "Please find attached the report you requested."
+ },
+ {
+  "lang": "en",
+  "input": "Its a good idea, lets discuss it tommorow.",
+  "expected": "It's a good idea, let's discuss it tomorrow."
+ },
+ {
+  "lang": "en",
+  "input": "The results are very good and we are happy with them.",
+  "expected": "The results are very good and we are happy with them."
+ },
+ {
+  "lang": "en",
+  "input": "Could you send me the invoice untill friday?",
+  "expected": "Could you send me the invoice by Friday?"
+ },
+ {
+  "lang": "mix",
+  "input": "Hej, mam pytanie odnośnie tego PR, czy możemy zrobic merge dzisiaj?",
+  "expected": "Hej, mam pytanie odnośnie do tego PR, czy możemy zrobić merge dzisiaj?"
+ },
+ {
+  "lang": "mix",
+  "input": "Zrobiłem refactor tego modułu, teraz testy przechodzą bez problemu.",
+  "expected": "Zrobiłem refactor tego modułu, teraz testy przechodzą bez problemu."
+ },
+ {
+  "lang": "pl",
+  "input": "Niewiem czy napewno dam rade przyjść.",
+  "expected": "Nie wiem, czy na pewno dam radę przyjść."
+ },
+ {
+  "lang": "pl",
+  "input": "Wogóle nie rozumiem o co chodzi w tym tickecie.",
+  "expected": "W ogóle nie rozumiem, o co chodzi w tym tickecie."
+ },
+ {
+  "lang": "pl",
+  "input": "Zrobie tą prezentacje na jutro.",
+  "expected": "Zrobię tę prezentację na jutro."
+ },
+ {
+  "lang": "pl",
+  "input": "Przyjdę na call jeżeli zdąże wrócić z klientem.",
+  "expected": "Przyjdę na call, jeżeli zdążę wrócić z klientem."
+ },
+ {
+  "lang": "pl",
+  "input": "Na prawdę dobra robota, dzięki!",
+  "expected": "Naprawdę dobra robota, dzięki!"
+ },
+ {
+  "lang": "pl",
+  "input": "Dzięki, wszystko jasne.",
+  "expected": "Dzięki, wszystko jasne."
+ },
+ {
+  "lang": "pl",
+  "input": "Przesyłam poprawioną wersję dokumentu do akceptacji.",
+  "expected": "Przesyłam poprawioną wersję dokumentu do akceptacji."
+ },
+ {
+  "lang": "pl",
+  "input": "Czy moglibyśmy przesunąć spotkanie na czwartek o 10?",
+  "expected": "Czy moglibyśmy przesunąć spotkanie na czwartek o 10?"
+ },
+ {
+  "lang": "en",
+  "input": "Your welcome, let me know if theres anything else.",
+  "expected": "You're welcome, let me know if there's anything else."
+ },
+ {
+  "lang": "en",
+  "input": "I have went through the document and it look fine.",
+  "expected": "I have gone through the document and it looks fine."
+ },
+ {
+  "lang": "en",
+  "input": "We definately need to recieve the files before monday.",
+  "expected": "We definitely need to receive the files before Monday."
+ },
+ {
+  "lang": "en",
+  "input": "Sounds good, thanks!",
+  "expected": "Sounds good, thanks!"
+ },
+ {
+  "lang": "en",
+  "input": "Let me know if you need anything else from my side.",
+  "expected": "Let me know if you need anything else from my side."
+ },
+ {
+  "lang": "en",
+  "input": "There was alot of people on the meeting.",
+  "expected": "There were a lot of people at the meeting."
+ },
+ {
+  "lang": "mix",
+  "input": "@Bartosz mozesz zrobic review tego PR? Link: https://gitlab.com/x/y/-/merge_requests/12",
+  "expected": "@Bartosz możesz zrobić review tego PR? Link: https://gitlab.com/x/y/-/merge_requests/12"
+ },
+ {
+  "lang": "mix",
+  "input": "Deploy na produkcje poszedł, monitoruje logi.",
+  "expected": "Deploy na produkcję poszedł, monitoruję logi."
+ },
+ {
+  "lang": "pl",
+  "input": "Dziekuje za szybka odpowiedz.",
+  "expected": "Dziękuję za szybką odpowiedź."
+ },
+ {
+  "lang": "pl",
+  "input": "Przepraszam, ze sie spoznie o kilka minut.",
+  "expected": "Przepraszam, że się spóźnię o kilka minut."
+ },
+ {
+  "lang": "pl",
+  "input": "Mozemy przelozyc to na przyszly tydzien?",
+  "expected": "Możemy przełożyć to na przyszły tydzień?"
+ },
+ {
+  "lang": "pl",
+  "input": "Wyslalem juz poprawiona wersje umowy.",
+  "expected": "Wysłałem już poprawioną wersję umowy."
+ },
+ {
+  "lang": "pl",
+  "input": "Nie moge znalezc tego pliku na dysku.",
+  "expected": "Nie mogę znaleźć tego pliku na dysku."
+ },
+ {
+  "lang": "pl",
+  "input": "Jezeli zdaze, wysle to jeszcze dzis.",
+  "expected": "Jeżeli zdążę, wyślę to jeszcze dziś."
+ },
+ {
+  "lang": "pl",
+  "input": "Ciesze sie, ze projekt idzie zgodnie z planem.",
+  "expected": "Cieszę się, że projekt idzie zgodnie z planem."
+ },
+ {
+  "lang": "pl",
+  "input": "Zaraz wysle ci link do spotkania.",
+  "expected": "Zaraz wyślę ci link do spotkania."
+ },
+ {
+  "lang": "pl",
+  "input": "Niestety nie dam rady dzisiaj, moze jutro?",
+  "expected": "Niestety nie dam rady dzisiaj, może jutro?"
+ },
+ {
+  "lang": "pl",
+  "input": "Na prawde nie wiem, kiedy to skonczymy.",
+  "expected": "Naprawdę nie wiem, kiedy to skończymy."
+ },
+ {
+  "lang": "mix",
+  "input": "Zrobilem merge do develop, mozesz sprawdzic build?",
+  "expected": "Zrobiłem merge do develop, możesz sprawdzić build?"
+ },
+ {
+  "lang": "en",
+  "input": "Its been a long week, lets catch up on Monday.",
+  "expected": "It's been a long week, let's catch up on Monday."
+ },
+ {
+  "lang": "en",
+  "input": "I didnt get the email, could you resend it?",
+  "expected": "I didn't get the email, could you resend it?"
+ },
+ {
+  "lang": "pl",
+  "input": "Jeżeli zdążę, wyślę to jeszcze dziś.",
+  "expected": "Jeżeli zdążę, wyślę to jeszcze dziś."
+ },
+ {
+  "lang": "pl",
+  "input": "Naprawdę świetna robota, dziękuję!",
+  "expected": "Naprawdę świetna robota, dziękuję!"
+ },
+ {
+  "lang": "pl",
+  "input": "Daj znać, jeśli coś będzie niejasne.",
+  "expected": "Daj znać, jeśli coś będzie niejasne."
+ },
+ {
+  "lang": "en",
+  "input": "Let me know if you have any questions.",
+  "expected": "Let me know if you have any questions."
+ },
+ {
+  "lang": "en",
+  "input": "I'll be at the office until five.",
+  "expected": "I'll be at the office until five."
+ }
+]

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IBus component of the GramaDrama engine. The installer fills in exec with an absolute
+     command line: ibus-daemon does no PATH lookup and discards the engine's stdout/stderr. -->
+<component>
+  <name>org.freedesktop.IBus.GramaDrama</name>
+  <description>GramaDrama: korekta, tłumaczenie i dyktowanie</description>
+  <exec>@EXEC@</exec>
+  <version>0.1</version>
+  <author>GramaDrama</author>
+  <textdomain>gramadrama</textdomain>
+  <engines>
+    <engine>
+      <name>gramadrama</name>
+      <language>@LANGUAGE@</language>
+      <author>GramaDrama</author>
+      <layout>@LAYOUT@</layout>
+      <longname>@LONGNAME@</longname>
+      <description>GramaDrama — korekta, tłumaczenie i dyktowanie; skróty w ustawieniach aplikacji</description>
+      <rank>0</rank>
+      <symbol>GD</symbol>
+    </engine>
+  </engines>
+</component>

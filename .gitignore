@@ -1,0 +1,22 @@
+.build/
+build/
+branding/AppIcon.iconset/
+.DS_Store
+__pycache__/
+linux/gnome-extension/schemas/gschemas.compiled
+build.noindex/
+
+# Local configuration and investigation output must never enter the repository.
+local-private/
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.toml
+*.local.yaml
+*.local.yml
+*.pem
+*.key
+*.p12
+*.pfx
+bench/lab/

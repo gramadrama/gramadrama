@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GramaDrama</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" width="32" height="32" alt="">
+    <div>
+      <h1>GramaDrama</h1>
+      <p id="status" class="status">Checking…</p>
+    </div>
+  </header>
+  <section id="site-row" hidden>
+    <label class="toggle">
+      <span>
+        <strong id="check-site">Check text on this site</strong>
+        <small id="site"></small>
+      </span>
+      <input id="enabled" type="checkbox" role="switch">
+    </label>
+    <p id="site-note" class="note"></p>
+  </section>
+  <p id="no-site" class="note" hidden></p>
+  <script src="i18n.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

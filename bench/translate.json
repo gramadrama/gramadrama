@@ -1,0 +1,14 @@
+[
+ {"lang": "pl", "input": "Hej, mozesz rzucic okiem na ten PR do jutra? Dzięki 🙂", "keep": ["PR", "🙂"]},
+ {"lang": "pl", "input": "@Bartosz deploy na staging poszedł, sprawdź proszę logi :rocket:", "keep": ["@Bartosz", ":rocket:"]},
+ {"lang": "pl", "input": "Dzień dobry,\nw nawiązaniu do naszej rozmowy przesyłam zaktualizowaną ofertę. Proszę o informację zwrotną do piątku.\nPozdrawiam,\nTomasz", "keep": ["Tomasz"]},
+ {"lang": "pl", "input": "Szczegóły są tutaj: https://docs.example.com/projekt_x/specyfikacja", "keep": ["https://docs.example.com/projekt_x/specyfikacja"]},
+ {"lang": "pl", "input": "Odpal `npm run build` i daj znać, czy przechodzi.", "keep": ["`npm run build`"]},
+ {"lang": "pl", "input": "Wyślij mi proszę oryginalny tekst umowy.", "keep": []},
+ {"lang": "pl", "input": "Spotkanie przesuwamy na czwartek o 10:00, sala B.", "keep": ["10:00"]},
+ {"lang": "en", "input": "Thanks for the quick fix! 🎉 Let's ship it today.", "keep": ["🎉"]},
+ {"lang": "en", "input": "Could you please send me the invoice by Friday? cc @Anna", "keep": ["@Anna"]},
+ {"lang": "en", "input": "The build is failing on main, see https://ci.example.com/job/42 for details.", "keep": ["https://ci.example.com/job/42"]},
+ {"lang": "en", "input": "Hi Anna,\nI've attached the updated report. Let me know if anything is unclear.\nBest regards,\nAlex", "keep": ["Ann", "Alex"]},
+ {"lang": "mix", "input": "Zrobiłem merge do main, teraz trzeba zrobić release notes.", "keep": ["main"]}
+]

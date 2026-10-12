@@ -1,0 +1,129 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GramaDrama — test content.js</title>
+<!-- Test content.js bez przeglądarki z wtyczką: atrapa `chrome`, prawdziwe pola, wynik w #result (JSON). -->
+<body>
+<textarea id="plain">Ala ma kota.
+Drugi akapit z bledem tutaj.</textarea>
+<input id="password" type="password" value="tajne">
+<div id="rich" contenteditable="true"><div>Pierwszy akapit.</div><div>Drugi <b>akapit</b> z bledem i kropką.<br></div><div><br></div><div>Trzeci: witaj <span contenteditable="false" class="mention">@Jan Kowalski</span> co u ciebie</div></div>
+<pre id="result">…</pre>
+<script>
+  let listener;
+  window.chrome = { runtime: { id: 'test', onMessage: { addListener: (f) => { listener = f; } } } };
+</script>
+<script src="../extension/content.js"></script>
+<script>
+  const ask = (request) => new Promise((resolve) => listener({ gramadrama: request, tabId: 1, frameId: 0 }, { id: 'test' }, resolve));
+  const results = [];
+  const expect = (name, ok, detail) => results.push({ name, ok: Boolean(ok), detail });
+
+  (async () => {
+    // Pole zwykłe: odczyt z kursorem w drugiej linii, podmiana słowa, kursor przesunięty o różnicę.
+    const plain = document.getElementById('plain');
+    plain.focus();
+    const caret = plain.value.indexOf('tutaj') + 5;
+    plain.setSelectionRange(caret, caret);
+    let reply = await ask({ id: '1', op: 'context' });
+    expect('plain context', reply.ok && reply.before + reply.after === plain.value && reply.windowStart === 0
+      && reply.selectionLocation === caret && reply.shortAfter === true, reply);
+    const word = plain.value.indexOf('bledem');
+    const line = plain.value.indexOf('Drugi');
+    const lineText = 'Drugi akapit z bledem tutaj.';
+    reply = await ask({ id: '2', op: 'replace', client: reply.client,
+      check: { location: line, length: lineText.length, text: lineText },
+      edits: [{ location: word, length: 6, text: 'błędem' }], expected: 'Drugi akapit z błędem tutaj.' });
+    expect('plain replace', reply.ok && plain.value.endsWith('z błędem tutaj.') && plain.selectionStart === caret, { reply, value: plain.value, caret: plain.selectionStart });
+
+    // Zmieniony tekst: odmowa bez zapisu.
+    reply = await ask({ id: '3', op: 'replace', client: '1:0:1',
+      check: { location: 0, length: 3, text: 'Ola' }, edits: [{ location: 0, length: 3, text: 'Ela' }], expected: 'Ela' });
+    expect('plain changed refused', !reply.ok && reply.reason === 'changed' && reply.attempted === false, reply);
+
+    // Dyktowanie przy kursorze.
+    plain.setSelectionRange(plain.value.length, plain.value.length);
+    reply = await ask({ id: '4', op: 'insert', text: ' Dopisane.' });
+    expect('plain insert', reply.ok && plain.value.endsWith('tutaj. Dopisane.'), { reply, value: plain.value });
+
+    // Hasło: nie czytamy.
+    document.getElementById('password').focus();
+    reply = await ask({ id: '5', op: 'context' });
+    expect('password refused', !reply.ok && reply.reason === 'secure_input' && reply.before === undefined, reply);
+
+    // contenteditable: bloki, <br>, pusta linia, wyspa wzmianki.
+    const rich = document.getElementById('rich');
+    rich.focus();
+    const second = rich.children[1];
+    const textNode = second.childNodes[2]; // " z bledem i kropką."
+    getSelection().collapse(textNode, 3);
+    reply = await ask({ id: '6', op: 'context' });
+    const expectedText = 'Pierwszy akapit.\nDrugi akapit z bledem i kropką.\n\nTrzeci: witaj @Jan Kowalski co u ciebie';
+    const full = reply.before + reply.after;
+    expect('rich context text', full === expectedText, JSON.stringify(full));
+    const caretPos = expectedText.indexOf(' z bledem') + 3;
+    expect('rich caret', reply.selectionLocation === caretPos, { got: reply.selectionLocation, want: caretPos });
+    const richClient = reply.client;
+
+    const paragraph = 'Drugi akapit z bledem i kropką.';
+    const start = expectedText.indexOf(paragraph);
+    reply = await ask({ id: '7', op: 'replace', client: richClient,
+      check: { location: start, length: paragraph.length, text: paragraph },
+      edits: [{ location: start + paragraph.indexOf('bledem'), length: 6, text: 'błędem' }],
+      expected: 'Drugi akapit z błędem i kropką.' });
+    expect('rich replace', reply.ok && second.textContent === 'Drugi akapit z błędem i kropką.' && second.querySelector('b'),
+      { reply, html: second.innerHTML });
+
+    // Poprawka dotykająca wzmianki: odmowa, wzmianka nietknięta.
+    const third = 'Trzeci: witaj @Jan Kowalski co u ciebie';
+    const thirdStart = (await ask({ id: '8', op: 'context' }));
+    const now = thirdStart.before + thirdStart.after;
+    const at = now.indexOf(third);
+    reply = await ask({ id: '9', op: 'replace', client: richClient,
+      check: { location: at, length: third.length, text: third },
+      edits: [{ location: at + third.indexOf('Kowalski'), length: 8, text: 'Kowalskim' }],
+      expected: third.replace('Kowalski', 'Kowalskim') });
+    expect('island refused', !reply.ok && reply.reason === 'not_text' && reply.attempted === false
+      && rich.querySelector('.mention').textContent === '@Jan Kowalski', reply);
+
+    // Zaznaczenie w contenteditable.
+    const range = document.createRange();
+    range.setStart(rich.children[0].firstChild, 0);
+    range.setEnd(rich.children[0].firstChild, 8);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    reply = await ask({ id: '10', op: 'context' });
+    expect('rich selection', reply.selected === 'Pierwszy' && reply.selectionLocation === 0 && reply.selectionLength === 8, reply);
+
+    // Sprawdzanie na żywo: tekst, widoczna część pola, prostokąty słów (contenteditable i textarea).
+    reply = await ask({ id: '12', op: 'live' });
+    const liveText = reply.before + (reply.selected || '') + reply.after;
+    expect('live', reply.ok && liveText.startsWith('Pierwszy') && reply.field && reply.field.length === 4
+      && reply.geometry && reply.geometry.top === true && reply.caretTopLeft === undefined, reply);
+    const at2 = liveText.indexOf('kropką');
+    reply = await ask({ id: '13', op: 'rects', client: richClient, ranges: [[at2, 6], [0, 8]] });
+    const richBox = rich.getBoundingClientRect();
+    const firstRect = reply.words && reply.words[0] && reply.words[0][0];
+    expect('rich rects', reply.ok && reply.words.length === 2 && firstRect && firstRect[2] > 10
+      && firstRect[1] >= richBox.top && firstRect[1] < richBox.bottom, reply);
+    plain.focus();
+    const plainClient = (await ask({ id: '14', op: 'context' })).client;
+    const plainWord = plain.value.indexOf('akapit');
+    reply = await ask({ id: '15', op: 'rects', client: plainClient, ranges: [[plainWord, 6]] });
+    const plainBox = plain.getBoundingClientRect();
+    const plainRect = reply.words && reply.words[0] && reply.words[0][0];
+    expect('plain rects', reply.ok && plainRect && plainRect[2] > 10 && plainRect[0] > plainBox.left
+      && plainRect[1] >= plainBox.top && plainRect[1] < plainBox.bottom, { reply, plainBox });
+    rich.focus();
+
+    // Inne pole niż to z tokenu.
+    plain.focus();
+    reply = await ask({ id: '11', op: 'replace', client: richClient, check: { location: 0, length: 1, text: 'P' },
+      edits: [], expected: 'P' });
+    expect('client changed', !reply.ok && reply.reason === 'client_changed', reply);
+
+    const failed = results.filter((r) => !r.ok);
+    document.getElementById('result').textContent = JSON.stringify({ passed: results.length - failed.length, total: results.length, failed }, null, 1);
+    document.title = failed.length ? 'FAIL' : 'PASS';
+  })();
+</script>
+</body>

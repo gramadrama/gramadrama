@@ -1,0 +1,11 @@
+{
+  "checking": "Sprawdzam…",
+  "connected": "Połączona z aplikacją",
+  "disconnected": "Aplikacja GramaDrama nie działa",
+  "check_site": "Sprawdzaj na tej stronie",
+  "site_note": "Wyłączona strona: bez podkreśleń i plakietki. {shortcut} i dyktowanie działają dalej.",
+  "no_site": "Na tej stronie wtyczka nie działa (strona przeglądarki albo plik).",
+  "title_disconnected": "GramaDrama — aplikacja nie działa",
+  "title_disabled": "GramaDrama — wyłączona na {site}",
+  "title_enabled": "GramaDrama — działa na {site}"
+}

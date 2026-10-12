@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GramaDrama — test ProseMirror</title>
+<!-- Edytor jak w Jirze i Confluence: podmiana przez content.js musi trafić do stanu edytora, nie tylko do DOM. -->
+<body>
+<div id="editor"></div>
+<pre id="result">…</pre>
+<script>
+  let listener;
+  window.chrome = { runtime: { id: 'test', onMessage: { addListener: (f) => { listener = f; } } } };
+</script>
+<script src="../extension/content.js"></script>
+<script type="module">
+  import { EditorState, TextSelection } from 'https://esm.sh/prosemirror-state@1.4.3?deps=prosemirror-model@1.25.12';
+  import { EditorView } from 'https://esm.sh/prosemirror-view@1.33.8?deps=prosemirror-model@1.25.12';
+  import { schema } from 'https://esm.sh/prosemirror-schema-basic@1.2.3?deps=prosemirror-model@1.25.12';
+  import { DOMParser } from 'https://esm.sh/prosemirror-model@1.25.12';
+
+  const source = document.createElement('div');
+  source.innerHTML = '<p>Pierwszy akapit.</p><p>Drugi <strong>akapit</strong> z bledem i kropką.</p>';
+  const view = new EditorView(document.getElementById('editor'), {
+    state: EditorState.create({ doc: DOMParser.fromSchema(schema).parse(source) }),
+  });
+  const ask = (request) => new Promise((resolve) => listener({ gramadrama: request, tabId: 1, frameId: 0 }, { id: 'test' }, resolve));
+  const results = [];
+  const expect = (name, ok, detail) => results.push({ name, ok: Boolean(ok), detail });
+
+  view.focus();
+  // Kursor za „bledem” w drugim akapicie (pozycje ProseMirrora).
+  let caretPos = null;
+  view.state.doc.descendants((node, pos) => {
+    if (node.isText && node.text.includes('bledem')) caretPos = pos + node.text.indexOf('bledem') + 6;
+  });
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, caretPos)));
+  await new Promise((r) => setTimeout(r, 50));
+
+  let reply = await ask({ id: '1', op: 'context' });
+  const full = reply.before + reply.after;
+  expect('pm context', full === 'Pierwszy akapit.\nDrugi akapit z bledem i kropką.', JSON.stringify(full));
+  expect('pm caret', reply.selectionLocation === full.indexOf('bledem') + 6, reply.selectionLocation);
+
+  const paragraph = 'Drugi akapit z bledem i kropką.';
+  const start = full.indexOf(paragraph);
+  reply = await ask({ id: '2', op: 'replace', client: reply.client,
+    check: { location: start, length: paragraph.length, text: paragraph },
+    edits: [{ location: start + paragraph.indexOf('bledem'), length: 6, text: 'błędem' }],
+    expected: 'Drugi akapit z błędem i kropką.' });
+  await new Promise((r) => setTimeout(r, 50));
+  const state = view.state.doc.textBetween(0, view.state.doc.content.size, '\n');
+  expect('pm replace in state', reply.ok && state === 'Pierwszy akapit.\nDrugi akapit z błędem i kropką.', { reply, state });
+  let bold = false;
+  view.state.doc.descendants((node) => { if (node.isText && node.text === 'akapit' && node.marks.length) bold = true; });
+  expect('pm formatting kept', bold, null);
+  const undoable = view.state.selection.from;
+  expect('pm caret after', undoable === caretPos, { got: undoable, want: caretPos });
+
+  const failed = results.filter((r) => !r.ok);
+  document.getElementById('result').textContent = JSON.stringify({ passed: results.length - failed.length, total: results.length, failed }, null, 1);
+  document.title = failed.length ? 'FAIL' : 'PASS';
+</script>
+</body>

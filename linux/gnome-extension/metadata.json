@@ -1,0 +1,10 @@
+{
+  "uuid": "gramadrama@gramadrama.local",
+  "name": "GramaDrama",
+  "description": "Panel korekty GramaDramy przy kursorze tekstu, pastylka dyktowania, plakietka i podkreślenia błędów podczas pisania. Steruje nimi silnik IBus GramaDrama; nigdy nie zabierają fokusu klawiatury aplikacji.",
+  "shell-version": [
+    "50"
+  ],
+  "version": 16,
+  "url": "https://gramadrama.app"
+}

@@ -1,0 +1,9 @@
+#!/usr/bin/python3
+"""GramaDrama's native messaging host for the browser extension (gramadrama/browserhost.py): started by the browser."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from gramadrama.browserhost import main  # noqa: E402
+
+sys.exit(main())

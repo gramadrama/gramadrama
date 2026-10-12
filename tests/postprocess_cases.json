@@ -1,0 +1,474 @@
+{
+  "cases" : [
+    {
+      "expected" : "symbol : daje error : cos tam z :",
+      "name" : "sam komentarz → bez zmian",
+      "original" : "symbol : daje error : cos tam z :",
+      "output" : "(The original text does not contain any errors that need to be fixed.)",
+      "strict" : false
+    },
+    {
+      "expected" : "ok dzięki",
+      "name" : "komentarz po polsku → bez zmian",
+      "original" : "ok dzięki",
+      "output" : "Tekst nie zawiera błędów.",
+      "strict" : false
+    },
+    {
+      "expected" : "symbol: daje error: coś tam z:",
+      "name" : "tekst + komentarz w nawiasie w nowej linii",
+      "original" : "symbol : daje error : cos tam z :",
+      "output" : "symbol: daje error: coś tam z:\n\n(The original text does not contain any errors.)",
+      "strict" : false
+    },
+    {
+      "expected" : "Myślę, że jutro.",
+      "name" : "wstęp „Oto poprawiony tekst:”",
+      "original" : "Mysle ze jutro.",
+      "output" : "Oto poprawiony tekst:\nMyślę, że jutro.",
+      "strict" : false
+    },
+    {
+      "expected" : "I think so.",
+      "name" : "wstęp „Here is the corrected text:”",
+      "original" : "i thnk so.",
+      "output" : "Here is the corrected text:\n\nI think so.",
+      "strict" : false
+    },
+    {
+      "expected" : "Dzięki, jasne.",
+      "name" : "komentarz doklejony na końcu",
+      "original" : "Dzięki, jasne.",
+      "output" : "Dzięki, jasne. (No changes were needed in this text.)",
+      "strict" : false
+    },
+    {
+      "expected" : "Spotkanie jutro (w sali B).",
+      "name" : "prawdziwy nawias autora zostaje",
+      "original" : "Spotkanie jutro (w sali b).",
+      "output" : "Spotkanie jutro (w sali B).",
+      "strict" : false
+    },
+    {
+      "expected" : "Ten tekst jest poprawny, ale długi.",
+      "name" : "zdanie autora o tekście zostaje",
+      "original" : "Ten tekst jest poprawny ale długi.",
+      "output" : "Ten tekst jest poprawny, ale długi.",
+      "strict" : false
+    },
+    {
+      "expected" : "Uwaga: jutro nie ma daily.",
+      "name" : "„Uwaga:” autora zostaje",
+      "original" : "Uwaga : jutro nie ma daily.",
+      "output" : "Uwaga: jutro nie ma daily.",
+      "strict" : false
+    },
+    {
+      "expected" : "There is an error in the deployment script, can you check?",
+      "name" : "„There is” to nie komentarz",
+      "original" : "there is an eror in teh deploiment script, can u chek?",
+      "output" : "There is an error in the deployment script, can you check?",
+      "strict" : false
+    },
+    {
+      "expected" : "Where are the release notes?",
+      "name" : "„Where are” to nie komentarz",
+      "original" : "wher are teh release notes?",
+      "output" : "Where are the release notes?",
+      "strict" : false
+    },
+    {
+      "expected" : "@Kasia poniżej lista rzeczy na jutro:\n- deploy\n- testy",
+      "name" : "pierwsza linia z dwukropkiem autora zostaje",
+      "original" : "@Kasia ponizej lista rzeczy na jutro:\n- deploy\n- testy",
+      "output" : "@Kasia poniżej lista rzeczy na jutro:\n- deploy\n- testy",
+      "strict" : false
+    },
+    {
+      "expected" : "There are two options:\n1. revert\n2. hotfix",
+      "name" : "„there are two options:” zostaje",
+      "original" : "there are two options:\n1. revert\n2. hotfix",
+      "output" : "There are two options:\n1. revert\n2. hotfix",
+      "strict" : false
+    },
+    {
+      "expected" : "Wysłałem poprawki (tekst jest w załączniku)",
+      "name" : "nawias autora z poprawką zostaje",
+      "original" : "wyslalem poprawki (tekst jest w zalaczniku)",
+      "output" : "Wysłałem poprawki (tekst jest w załączniku)",
+      "strict" : false
+    },
+    {
+      "expected" : "Wysłałem oryginalną wersję umowy.",
+      "name" : "jednolinijkowiec z „oryginalną” zostaje",
+      "original" : "wyslalem oryginalna wersje umowy.",
+      "output" : "Wysłałem oryginalną wersję umowy.",
+      "strict" : false
+    },
+    {
+      "expected" : "Hi John,\n\nThe report will be ready on Friday. Please let me know if you need any changes.",
+      "name" : "Formalnie: treść pod powitaniem zostaje",
+      "original" : "hi john report on friday, tell me if u need smth changed",
+      "output" : "Hi John,\n\nThe report will be ready on Friday. Please let me know if you need any changes.",
+      "strict" : false
+    },
+    {
+      "expected" : "Hej, mam pytanie:\nczy ktoś wie, jak odpalić testy?",
+      "name" : "Popraw: nagłówek z dwukropkiem w nowej linii zostaje",
+      "original" : "Hej, mam pytnie: czy ktos wie jak odpalic testy?",
+      "output" : "Hej, mam pytanie:\nczy ktoś wie, jak odpalić testy?",
+      "strict" : false
+    },
+    {
+      "expected" : "Jutro planujemy:\n- deploy,\n- testy,\n- review.",
+      "name" : "Ulepsz: lista z nagłówkiem zostaje",
+      "original" : "jutro robimy deploy, testy i review",
+      "output" : "Jutro planujemy:\n- deploy,\n- testy,\n- review.",
+      "strict" : false
+    },
+    {
+      "expected" : "Dear John,\nThe report is attached.\nNote: the office will be closed on Monday.",
+      "name" : "Formalnie: „Note:” modelu jako treść zostaje",
+      "original" : "john report attached, office closed monday",
+      "output" : "Dear John,\nThe report is attached.\nNote: the office will be closed on Monday.",
+      "strict" : false
+    },
+    {
+      "expected" : "Your message looks good — go ahead and send it! 🚀",
+      "name" : "Luźniej: „message looks good” to nie komentarz",
+      "original" : "msg looks ok, send it",
+      "output" : "Your message looks good — go ahead and send it! 🚀",
+      "strict" : false
+    },
+    {
+      "expected" : "ok, thanks!\nI'll check it tomorrow\nand let you know",
+      "name" : "wielolinijkowy komentarz → bez zmian",
+      "original" : "ok, thanks!\nI'll check it tomorrow\nand let you know",
+      "output" : "The original text does not contain any errors.\n\nNo corrections were necessary.",
+      "strict" : false
+    },
+    {
+      "expected" : "symbol: daje error: coś tam z:",
+      "name" : "komentarz w tej samej linii → poprawka zostaje",
+      "original" : "symbol : daje error : cos tam z :",
+      "output" : "symbol: daje error: coś tam z: (The original text does not contain any errors.)",
+      "strict" : false
+    },
+    {
+      "expected" : "Release moves to Friday.",
+      "name" : "„Here's a shorter version:” zdjęte",
+      "original" : "the release is moving to friday because qa needs a day",
+      "output" : "Here's the shorter version:\n\nRelease moves to Friday.",
+      "strict" : false
+    },
+    {
+      "expected" : "Myślę, że tak.",
+      "name" : "wstęp w tej samej linii zdjęty",
+      "original" : "mysle ze tak.",
+      "output" : "Oto poprawiony tekst: Myślę, że tak.",
+      "strict" : false
+    },
+    {
+      "expected" : "Lista zmian w release:\n- fix logowania",
+      "name" : "nagłówek przy U+2028 zostaje",
+      "original" : "Lista zmian w relase: - fix logowania",
+      "output" : "Lista zmian w release:\n- fix logowania",
+      "strict" : false
+    },
+    {
+      "expected" : "Please send me the original text of the contract.",
+      "name" : "„the original text” w tłumaczeniu zostaje",
+      "original" : "Wyślij mi proszę oryginalny tekst umowy.",
+      "output" : "Please send me the original text of the contract.",
+      "strict" : true
+    },
+    {
+      "expected" : "Can you check this PR today?",
+      "name" : "„Translation:” w tej samej linii zdjęte",
+      "original" : "Sprawdzisz dziś ten PR?",
+      "output" : "Translation: Can you check this PR today?",
+      "strict" : true
+    },
+    {
+      "expected" : "Thanks, I'll check it tomorrow.",
+      "name" : "„Here is the translation:” zdjęte",
+      "original" : "Dzięki, sprawdzę jutro.",
+      "output" : "Here is the translation:\nThanks, I'll check it tomorrow.",
+      "strict" : true
+    },
+    {
+      "expected" : "See you tomorrow!",
+      "name" : "„(Translated from Polish)” zdjęte",
+      "original" : "Do jutra!",
+      "output" : "See you tomorrow!\n(Translated from Polish)",
+      "strict" : true
+    },
+    {
+      "expected" : "Dzięki za szybką poprawkę!",
+      "name" : "„Tłumaczenie:” zdjęte",
+      "original" : "Thanks for the quick fix!",
+      "output" : "Tłumaczenie:\nDzięki za szybką poprawkę!",
+      "strict" : true
+    },
+    {
+      "expected" : "Odpal to:\n```npm run build```",
+      "name" : "blok kodu na końcu zostaje",
+      "original" : "Odpal to:\n```npm run build```",
+      "output" : "Odpal to:\n```npm run build```",
+      "strict" : false
+    },
+    {
+      "expected" : "```git pull``` i potem deploy",
+      "name" : "kod na początku zostaje",
+      "original" : "```git pull``` i potem deploy",
+      "output" : "```git pull``` i potem deploy",
+      "strict" : false
+    },
+    {
+      "expected" : "Popraw to",
+      "name" : "dodane ```markdown zdjęte",
+      "original" : "popraw to",
+      "output" : "```markdown\nPopraw to\n```",
+      "strict" : false
+    },
+    {
+      "expected" : "Dzięki!",
+      "name" : "zagnieżdżone ``` + <text> zdjęte",
+      "original" : "dzieki!",
+      "output" : "```\n<text>\nDzięki!\n<\/text>\n```",
+      "strict" : false
+    },
+    {
+      "expected" : "Myślę, że tak.",
+      "name" : "dodane cudzysłowy zdjęte",
+      "original" : "mysle ze tak.",
+      "output" : "\"Myślę, że tak.\"",
+      "strict" : false
+    },
+    {
+      "expected" : "Popraw to",
+      "name" : "```inline``` bez znacznika języka",
+      "original" : "popraw to",
+      "output" : "```Popraw to```",
+      "strict" : false
+    },
+    {
+      "expected" : "Dzięki, jasne.",
+      "name" : "```Dzięki``` z polską literą",
+      "original" : "dzieki, jasne.",
+      "output" : "```Dzięki, jasne.```",
+      "strict" : false
+    },
+    {
+      "expected" : "Odpal to:\n```npm run build```",
+      "name" : "blok kodu autora + opakowanie modelu",
+      "original" : "Odpal to:\n```npm run build```",
+      "output" : "```\nOdpal to:\n```npm run build```\n```",
+      "strict" : false
+    },
+    {
+      "expected" : "\"Zrobię to jutro\"",
+      "name" : "cudzysłów autora w innym stylu zostaje",
+      "original" : "\"zrobie to jutro\"",
+      "output" : "„Zrobię to jutro”",
+      "strict" : false
+    },
+    {
+      "expected" : "\"a\" i \"b\"",
+      "name" : "cytaty w środku zostają",
+      "original" : "\"a\" i \"b\"",
+      "output" : "\"a\" i \"b\"",
+      "strict" : false
+    },
+    {
+      "expected" : "Brawo zespół :fire::fire::fire:",
+      "name" : "powtórzone emoji bez spacji",
+      "original" : "Brawo zespół :fire::fire::fire:",
+      "output" : "Brawo zespół :fire::fire::fire:",
+      "strict" : false
+    },
+    {
+      "expected" : "deploy na staging :rocket:",
+      "name" : "sklejone emoji rozklejone",
+      "original" : "deploy na staging :rocket:",
+      "output" : "deploy na staging:rocket:",
+      "strict" : false
+    },
+    {
+      "expected" : "deploy na staging :rocket:",
+      "name" : "dopisany dwukropek przed emoji usunięty",
+      "original" : "deploy na staging :rocket:",
+      "output" : "deploy na staging: :rocket:",
+      "strict" : false
+    },
+    {
+      "expected" : "Wynik: :tada:",
+      "name" : "dwukropek autora przed emoji zostaje",
+      "original" : "Wynik: :tada:",
+      "output" : "Wynik: :tada:",
+      "strict" : false
+    },
+    {
+      "expected" : "Brawo :fire: :tada:",
+      "name" : "zamykający dwukropek emoji zostaje (sklejone)",
+      "original" : "brawo :fire: :tada:",
+      "output" : "Brawo :fire::tada:",
+      "strict" : false
+    },
+    {
+      "expected" : "Brawo :fire: :tada:",
+      "name" : "zamykający dwukropek emoji zostaje (spacja)",
+      "original" : "Brawo :fire:  :tada:",
+      "output" : "Brawo :fire: :tada:",
+      "strict" : false
+    },
+    {
+      "expected" : "Brawo :fire: :fire: :fire:",
+      "name" : "trzy emoji sklejone przez model",
+      "original" : "brawo :fire: :fire: :fire:",
+      "output" : "Brawo :fire::fire::fire:",
+      "strict" : false
+    },
+    {
+      "expected" : "Standup o 9:30 :coffee:",
+      "name" : "dwukropek po godzinie przed emoji",
+      "original" : "standup o 9:30 :coffee:",
+      "output" : "Standup o 9:30: :coffee:",
+      "strict" : false
+    },
+    {
+      "expected" : "Działa to całkiem sprawnie 🙂",
+      "name" : "emoji Unicode zostają",
+      "original" : "dziala to calkiem sprawnie 🙂",
+      "output" : "Działa to całkiem sprawnie 🙂",
+      "strict" : false
+    },
+    {
+      "expected" : "Przepraszam za opóźnienie, wysyłam ofertę 🙂",
+      "name" : "podmienione emoji wraca",
+      "original" : "sorki za opoznienie, wysylam oferte 🙂",
+      "output" : "Przepraszam za opóźnienie, wysyłam ofertę 😊",
+      "strict" : false
+    },
+    {
+      "expected" : "Sorki za opóźnienie 🙂",
+      "name" : "emotikon zamiast emoji wraca",
+      "original" : "sorki za opoznienie 🙂",
+      "output" : "Sorki za opóźnienie ;)",
+      "strict" : false
+    },
+    {
+      "expected" : "Brawo! 🎉",
+      "name" : "emoji dodane przez model zostaje, gdy oryginał nie miał",
+      "original" : "brawo!",
+      "output" : "Brawo! 🎉",
+      "strict" : false
+    },
+    {
+      "expected" : "Hello John,\n\nThe report is ready.\n\nBest regards,",
+      "name" : "symbol zastępczy podpisu zdjęty",
+      "original" : "hi john report ready",
+      "output" : "Hello John,\n\nThe report is ready.\n\nBest regards,\n[Your name]",
+      "strict" : false
+    },
+    {
+      "expected" : "[WIP] Poprawka logowania",
+      "name" : "nawias kwadratowy autora zostaje",
+      "original" : "[WIP] poprawka logowania",
+      "output" : "[WIP] Poprawka logowania",
+      "strict" : false
+    },
+    {
+      "expected" : "@dev sprawdźcie logi, pisz na admin@dev.example.com",
+      "name" : "e-mail nietknięty",
+      "original" : "@dev sprawdźcie logi, pisz na admin@dev.example.com",
+      "output" : "@dev sprawdźcie logi, pisz na admin@dev.example.com",
+      "strict" : false
+    },
+    {
+      "expected" : "@jan zobacz https:\/\/youtube.com\/@jan\/videos",
+      "name" : "URL z @ nietknięty",
+      "original" : "@jan zobacz https:\/\/youtube.com\/@jan\/videos",
+      "output" : "@jan zobacz https:\/\/youtube.com\/@jan\/videos",
+      "strict" : false
+    },
+    {
+      "expected" : "Pytanie do @jan (@jan wie)",
+      "name" : "(@jan) nietknięte",
+      "original" : "Pytanie do @jan (@jan wie)",
+      "output" : "Pytanie do @jan (@jan wie)",
+      "strict" : false
+    },
+    {
+      "expected" : "@jan, napisz do jan@example.com",
+      "name" : "zgubione @ wraca",
+      "original" : "@jan napisz do jan@example.com",
+      "output" : "jan, napisz do jan@example.com",
+      "strict" : false
+    },
+    {
+      "expected" : "@devops, sprawdźcie https:\/\/devops.example.com\/status",
+      "name" : "zgubione @ nie trafia do URL-a",
+      "original" : "@devops sprawdźcie https:\/\/devops.example.com\/status",
+      "output" : "devops, sprawdźcie https:\/\/devops.example.com\/status",
+      "strict" : false
+    },
+    {
+      "expected" : "@ola, sprawdź #ola-team",
+      "name" : "zgubione @ nie trafia do #kanału",
+      "original" : "@ola sprawdź #ola-team",
+      "output" : "ola, sprawdź #ola-team",
+      "strict" : false
+    },
+    {
+      "expected" : "https:\/\/example.com\/profil?user=jan — @jan, zobacz",
+      "name" : "@ nie trafia do URL-a z imieniem",
+      "original" : "https:\/\/example.com\/profil?user=jan — @jan zobacz",
+      "output" : "https:\/\/example.com\/profil?user=jan — jan, zobacz",
+      "strict" : false
+    },
+    {
+      "expected" : "Jak pisał jan, @jan to sprawdzi.",
+      "name" : "@ wraca we właściwe miejsce",
+      "original" : "jak pisal jan @jan to sprawdzi",
+      "output" : "Jak pisał jan, jan to sprawdzi.",
+      "strict" : false
+    },
+    {
+      "expected" : "Dzięki, @Łukasz.",
+      "name" : "@Łukasz. na końcu zdania",
+      "original" : "Dzięki @Łukasz.",
+      "output" : "Dzięki, Łukasz.",
+      "strict" : false
+    },
+    {
+      "expected" : "Link: https:\/\/gitlab.com\/x\/-\/merge_requests\/12",
+      "name" : "URL w < > rozpakowany",
+      "original" : "Link: https:\/\/gitlab.com\/x\/-\/merge_requests\/12",
+      "output" : "Link: < https:\/\/gitlab.com\/x\/-\/merge_requests\/12>",
+      "strict" : false
+    },
+    {
+      "expected" : "Link: https:\/\/gitlab.com\/x\/-\/merge_requests\/12",
+      "name" : "escapowany URL naprawiony",
+      "original" : "Link: https:\/\/gitlab.com\/x\/-\/merge_requests\/12",
+      "output" : "Link: https:\/\/gitlab.com\/x\/-\/merge\\_requests\/12",
+      "strict" : false
+    },
+    {
+      "expected" : "It's fine, let's go.",
+      "name" : "typograficzne apostrofy → proste",
+      "original" : "Its fine, lets go.",
+      "output" : "It’s fine, let’s go.",
+      "strict" : false
+    },
+    {
+      "expected" : "  Dzięki!\n",
+      "name" : "białe znaki z brzegów zachowane",
+      "original" : "  dzieki!\n",
+      "output" : "Dzięki!",
+      "strict" : false
+    }
+  ],
+  "description" : "Przypadki PostProcess.clean(output, original, strict) z macOS SelfTest.swift. Generowane: GramaDrama --selftest --dump-cases. Nie edytować ręcznie."
+}

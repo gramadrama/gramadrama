@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>pl.gramadrama.inputmethod.GramaDrama</string>
+    <key>CFBundleName</key>
+    <string>Polski (GramaDrama)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Polski (GramaDrama)</string>
+    <key>CFBundleExecutable</key>
+    <string>GramaIME</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <!-- Wersja = skrót źródeł IME (scripts/install-ime.sh), nie wersja aplikacji: IME podmieniamy
+         tylko przy zmianie jej kodu, bo każde wyjście procesu macOS liczy jako awarię. -->
+    <key>CFBundleVersion</key>
+    <string>__IME_VERSION__</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSBackgroundOnly</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>InputMethodConnectionName</key>
+    <string>pl.gramadrama.inputmethod.GramaDrama_Connection</string>
+    <key>InputMethodServerControllerClass</key>
+    <string>GramaIMEController</string>
+    <key>TISInputSourceID</key>
+    <string>pl.gramadrama.inputmethod.GramaDrama</string>
+    <key>TISIntendedLanguage</key>
+    <string>pl</string>
+    <key>tsInputMethodCharacterRepertoireKey</key>
+    <array>
+        <string>Latn</string>
+    </array>
+    <key>tsInputMethodIconFileKey</key>
+    <string>icon.tiff</string>
+    <key>TISIconIsTemplate</key>
+    <true/>
+</dict>
+</plist>

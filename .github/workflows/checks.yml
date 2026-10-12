@@ -1,0 +1,52 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  privacy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the privacy guard
+        run: python3 -m unittest discover -s scripts/tests -v
+      - name: Check repository contents
+        run: python3 scripts/check_repo_privacy.py --tracked-only
+      - name: Check links between documents
+        run: python3 scripts/check_doc_links.py
+
+  linux-unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GSETTINGS_BACKEND: memory
+      NO_AT_BRIDGE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system Python bindings and dictionaries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-ibus-1.0 libenchant-2-2 hunspell-pl hunspell-en-us hunspell-de-de adwaita-icon-theme
+      - name: Run Linux unit tests with local stub services
+        run: bash scripts/test-linux.sh -v
+      - name: Test browser interface languages and preferences
+        run: node --test browser/tests/ui.test.cjs
+      - name: Test the live badge's lava geometry
+        run: node --test linux/tests/lava.test.mjs
+      - name: Test places in the correction panel's text
+        run: node --test linux/tests/textmap.test.mjs
+
+  macos-build-and-unit:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the macOS application and helpers
+        run: swift build
+      - name: Run Swift unit tests
+        run: ./scripts/test.sh

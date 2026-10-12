@@ -1,0 +1,11 @@
+{
+  "checking": "Checking…",
+  "connected": "Connected to the app",
+  "disconnected": "The GramaDrama app is not running",
+  "check_site": "Check text on this site",
+  "site_note": "Disabled sites have no underlines or badge. {shortcut} and dictation still work.",
+  "no_site": "The extension does not work on this page (a browser page or local file).",
+  "title_disconnected": "GramaDrama — app is not running",
+  "title_disabled": "GramaDrama — disabled on {site}",
+  "title_enabled": "GramaDrama — enabled on {site}"
+}

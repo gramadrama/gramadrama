@@ -1,0 +1,19 @@
+{
+  "Adres logowania spoza sieci domowej musi zaczynać się od https://": "A sign-in address outside the local network must start with https://",
+  "Logowanie jest zajęte. Spróbuj za chwilę.": "Sign-in is busy. Try again shortly.",
+  "Podaj adres logowania": "Enter the sign-in address",
+  "Nie można połączyć się z serwerem logowania. Sprawdź adres i sieć.": "Cannot connect to the sign-in server. Check the address and network.",
+  "Pod tym adresem nie ma serwera logowania (OpenID Connect). Sprawdź adres.": "No OpenID Connect sign-in server was found at this address. Check the address.",
+  "Serwer logowania podaje adres, którego nie użyję (%s): %s.": "The sign-in server returned an address that cannot be used (%s): %s.",
+  "Podaj adres logowania i identyfikator klienta.": "Enter the sign-in address and client ID.",
+  "Odpowiedź przeglądarki nie pasuje do rozpoczętego logowania. Zacznij je jeszcze raz.": "The browser response does not match the pending sign-in. Start again.",
+  "Logowanie przerwane: %s.": "Sign-in cancelled: %s.",
+  "W odpowiedzi przeglądarki nie ma kodu logowania.": "The browser response contains no sign-in code.",
+  "Nie można połączyć się z serwerem logowania.": "Cannot connect to the sign-in server.",
+  "Serwer logowania odmówił: %s.": "The sign-in server refused: %s.",
+  "Nie zalogowano. ": "Not signed in. ",
+  "Logowanie wygasło. ": "Your sign-in has expired. ",
+  "Nie można odświeżyć logowania: serwer logowania nie odpowiada.": "Cannot refresh sign-in: the sign-in server is not responding.",
+  "Nie można odświeżyć logowania: %s.": "Cannot refresh sign-in: %s.",
+  "tylko https": "HTTPS only"
+}

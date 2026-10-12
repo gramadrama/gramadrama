@@ -1,0 +1,419 @@
+{
+ "description": "Dictation cases from macOS SelfTest.swift (dictation section, 2026-09-28, with the Shift and prompt cases of 2026-09-30), copied by hand for the Linux port: macOS has no --dump for them yet. Keep in step with SelfTest.swift.",
+ "hold_key": [
+  {
+   "arm_delay": 0,
+   "events": [
+    "keyDown",
+    "keyUp"
+   ],
+   "actions": [
+    "start",
+    "stop"
+   ]
+  },
+  {
+   "arm_delay": 0,
+   "events": [
+    "keyDown",
+    "otherKey",
+    "keyUp"
+   ],
+   "actions": [
+    "start",
+    "cancel",
+    "none"
+   ]
+  },
+  {
+   "arm_delay": 0.3,
+   "events": [
+    "keyDown",
+    "otherKey",
+    "armElapsed",
+    "keyUp"
+   ],
+   "actions": [
+    "scheduleArm",
+    "none",
+    "none",
+    "none"
+   ]
+  },
+  {
+   "arm_delay": 0.3,
+   "events": [
+    "keyDown",
+    "armElapsed",
+    "keyUp"
+   ],
+   "actions": [
+    "scheduleArm",
+    "start",
+    "stop"
+   ]
+  },
+  {
+   "arm_delay": 0.3,
+   "events": [
+    "keyDown",
+    "keyUp",
+    "armElapsed"
+   ],
+   "actions": [
+    "scheduleArm",
+    "none",
+    "none"
+   ]
+  },
+  {
+   "arm_delay": 0,
+   "events": [
+    "keyDown",
+    "keyDown",
+    "keyUp"
+   ],
+   "actions": [
+    "start",
+    "none",
+    "stop"
+   ]
+  },
+  {
+   "arm_delay": 0,
+   "events": [
+    "keyDown",
+    "shift",
+    "shift",
+    "keyUp"
+   ],
+   "actions": [
+    "start",
+    "alternate",
+    "none",
+    "stop"
+   ],
+   "alternate": true
+  },
+  {
+   "arm_delay": 0.3,
+   "events": [
+    "keyDown",
+    "shift",
+    "armElapsed",
+    "keyUp"
+   ],
+   "actions": [
+    "scheduleArm",
+    "none",
+    "start",
+    "stop"
+   ],
+   "alternate": true
+  },
+  {
+   "arm_delay": 0.3,
+   "events": [
+    "keyDown",
+    "shift",
+    "otherKey",
+    "armElapsed"
+   ],
+   "actions": [
+    "scheduleArm",
+    "none",
+    "none",
+    "none"
+   ]
+  },
+  {
+   "arm_delay": 0,
+   "events": [
+    "keyDown",
+    "shift",
+    "keyUp",
+    "keyDown"
+   ],
+   "actions": [
+    "start",
+    "alternate",
+    "stop",
+    "start"
+   ],
+   "alternate": false
+  },
+  {
+   "arm_delay": 0,
+   "events": [
+    "shift",
+    "keyDown",
+    "keyUp"
+   ],
+   "actions": [
+    "none",
+    "start",
+    "stop"
+   ],
+   "alternate": false
+  }
+ ],
+ "leading_space": [
+  {
+   "previous": ".",
+   "text": "Kolejne zdanie.",
+   "expected": " Kolejne zdanie."
+  },
+  {
+   "previous": "o",
+   "text": "jutro",
+   "expected": " jutro"
+  },
+  {
+   "previous": null,
+   "text": "Hej",
+   "expected": "Hej"
+  },
+  {
+   "previous": " ",
+   "text": "Hej",
+   "expected": "Hej"
+  },
+  {
+   "previous": "\n",
+   "text": "Hej",
+   "expected": "Hej"
+  },
+  {
+   "previous": "@",
+   "text": "Kasia",
+   "expected": "Kasia"
+  },
+  {
+   "previous": "a",
+   "text": ", dzięki",
+   "expected": ", dzięki"
+  }
+ ],
+ "parse_vocabulary": [
+  {
+   "input": "GramaDrama, Bielik\nOrion,, bielik ; staging ",
+   "expected": [
+    "GramaDrama",
+    "Bielik",
+    "Orion",
+    "staging"
+   ]
+  }
+ ],
+ "whisper_prompt": [
+  {
+   "vocabulary": [
+    "Bielik",
+    "PR"
+   ],
+   "language": "pl",
+   "expected": "Mówię po polsku, czasem wtrącam słowa: Bielik, PR, deploy, staging, merge, code review, feedback, release, Jira, Slack."
+  },
+  {
+   "vocabulary": [
+    "Bielik"
+   ],
+   "language": "en",
+   "expected": "Bielik"
+  },
+  {
+   "vocabulary": [
+    "Bielik"
+   ],
+   "language": "auto",
+   "expected": "Bielik, deploy, staging, PR, merge, code review, feedback, release, Jira, Slack"
+  },
+  {
+   "vocabulary": [],
+   "language": "en",
+   "expected": ""
+  }
+ ],
+ "transcript_filter": [
+  {
+   "text": "Napisy stworzone przez społeczność Amara.org",
+   "prompt": "",
+   "expected": ""
+  },
+  {
+   "text": " Dzięki za obejrzenie! ",
+   "prompt": "",
+   "expected": ""
+  },
+  {
+   "text": "Dziękuję.",
+   "prompt": "",
+   "expected": "Dziękuję."
+  },
+  {
+   "text": "[MUZYKA] Hej, co słychać? (śmiech)",
+   "prompt": "",
+   "expected": "Hej, co słychać?"
+  },
+  {
+   "text": "Bielik, PR, deploy.",
+   "prompt": "Bielik, PR, deploy",
+   "expected": ""
+  }
+ ],
+ "tidy": [
+  {
+   "input": "No więc, eee, myślę, że tak.",
+   "expected": "No więc, myślę, że tak."
+  },
+  {
+   "input": "Dobra. Eee, zrobię to jutro.",
+   "expected": "Dobra. Zrobię to jutro."
+  },
+  {
+   "input": "Zrobię to hmm.",
+   "expected": "Zrobię to."
+  },
+  {
+   "input": "Yyy, hmm.",
+   "expected": ""
+  },
+  {
+   "input": "Umowa jest w termie.",
+   "expected": "Umowa jest w termie."
+  },
+  {
+   "input": "Spotkanie o 10.00, potem od 14.30 do 15.00.",
+   "expected": "Spotkanie o 10:00, potem od 14:30 do 15:00."
+  },
+  {
+   "input": "Kosztuje po 2.50 zł, wersja 1.10 działa.",
+   "expected": "Kosztuje po 2.50 zł, wersja 1.10 działa."
+  }
+ ],
+ "needs_cleanup": [
+  {
+   "input": "Hej, zrobiłem deploy na staging, możesz sprawdzić ten PR do jutra?",
+   "expected": false
+  },
+  {
+   "input": "Thanks for the update. I will review the pull request tomorrow.",
+   "expected": false
+  },
+  {
+   "input": "No i yyy zrobiłem to",
+   "expected": true
+  },
+  {
+   "input": "Myślę, eee, że tak.",
+   "expected": true
+  },
+  {
+   "input": "Na środę, znaczy nie, na czwartek.",
+   "expected": true
+  },
+  {
+   "input": "At five, sorry, at six.",
+   "expected": true
+  },
+  {
+   "input": "Myślę, że że to działa.",
+   "expected": true
+  },
+  {
+   "input": "To totalnie działa.",
+   "expected": false
+  },
+  {
+   "input": "Myślałem, że zrobi to Andrzej, albo nie, cofnijmy to, myślałem, że zrobi to Tomek.",
+   "expected": true
+  },
+  {
+   "input": "Myślałem, że zrobi to Andrzej. Myślałem, że zrobi to Tomek.",
+   "expected": true
+  },
+  {
+   "input": "Będę o piątej, a właściwie o szóstej.",
+   "expected": true
+  },
+  {
+   "input": "Wyślę jutro, cofam, wyślę dziś.",
+   "expected": true
+  },
+  {
+   "input": "Let's meet on Monday, actually Tuesday.",
+   "expected": true
+  },
+  {
+   "input": "W tym momencie nie mogę rozmawiać.",
+   "expected": false
+  },
+  {
+   "input": "Dzięki za przemyślenie tematu.",
+   "expected": false
+  }
+ ],
+ "cleanup_looks_safe": [
+  {
+   "cleaned": "Zrobiłem deploy, możesz sprawdzić?",
+   "transcript": "yyy zrobiłem eee deploy możesz sprawdzić",
+   "expected": true
+  },
+  {
+   "cleaned": "Spotkanie przesuwamy na czwartek o 10:00.",
+   "transcript": "Spotkanie przesuwamy na środę, znaczy nie, na czwartek o dziesiątej.",
+   "expected": true
+  },
+  {
+   "cleaned": "Paryż.",
+   "transcript": "jaka jest stolica francji",
+   "expected": false
+  },
+  {
+   "cleaned": "Myślałem, że zrobi to Tomek.",
+   "transcript": "Myślałem że zrobi to Andrzej albo nie cofnijmy to myślałem że zrobi to Tomek",
+   "expected": true
+  },
+  {
+   "cleaned": "Cześć Janku, w nawiązaniu do rozmowy przesyłam ofertę, którą przygotowaliśmy dla Waszej firmy w tym tygodniu.",
+   "transcript": "napisz maila do janka",
+   "expected": false
+  }
+ ],
+ "alternate_language": [
+  {
+   "language": "pl",
+   "expected": "en"
+  },
+  {
+   "language": "en",
+   "expected": "pl"
+  },
+  {
+   "language": "auto",
+   "expected": "en"
+  }
+ ],
+ "looks_translated": [
+  {
+   "text": "I noticed a mistake in the dictation.",
+   "expected": true
+  },
+  {
+   "text": "Zrobiłem deploy na staging, sprawdź PR.",
+   "expected": false
+  },
+  {
+   "text": "OK, thanks!",
+   "expected": false
+  },
+  {
+   "text": "Please send me the report by Friday.",
+   "expected": true
+  },
+  {
+   "text": "Zobacz tutaj ten pull request z deploy.",
+   "expected": false
+  }
+ ]
+}
