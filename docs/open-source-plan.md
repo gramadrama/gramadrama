@@ -1,14 +1,14 @@
 # Preparing the open-source release
 
-As of **2026-10-08**. The first release covers Linux (Ubuntu 26.04, GNOME 50, Wayland).
+As of **2026-10-12**. The first release covers Linux (Ubuntu 26.04, GNOME 50, Wayland).
 The project lets you choose your own services and change the prompts; a ready-made hosted service is a possible later stage.
 
 ## Gate status
 
 | Gate | Status | What remains |
 |---|---|---|
-| G1. Rights and licence | GPL-3.0-or-later in `LICENSE`, dependencies in `THIRD_PARTY.md` | review the list in the export for publication |
-| G2. Repository privacy | current files cleaned up, the set of public files decided, automatic checking | manual review of the export, including images and archives; publish from a clean history |
+| G1. Rights and licence | GPL-3.0-or-later in `LICENSE`, dependencies in `THIRD_PARTY.md` | keep the list current when dependencies change |
+| G2. Repository privacy | clean history since 2026-10-12 (a reviewed export, images checked by eye); checks in CI and in local hooks | make the repository public |
 | G3. Independent backends | **deliberately postponed** | separate validation of at least three backends; does not block the current clean-up work |
 | G4. Self-service installation | installer and guide available | clean Ubuntu, test by someone outside the project, installation/update/removal |
 | G5. Editable prompts | **implemented on Linux and macOS** (the same files; variant benchmark on Linux only) | maintain the tests and documentation |
@@ -26,10 +26,10 @@ loopback addresses and example domains. Application and extension identifiers st
 checks the version prepared for the commit. Scope and limits are described in
 [repository protection](repository-privacy.md).
 
-**The history of the current repository is not rewritten.** Removing text from the current files does not remove
-it from older commits. Before the first publication the approved set of files must be exported
-to a new repository with a clean history. Text scans are complemented by a manual review of images, archives,
-attachments and all files intended for the release.
+This repository started on 2026-10-12 from a reviewed export of the earlier development repository, with
+a new history; the exported images were checked by eye. Removing text from the current files does not remove it
+from older commits, so the hooks check every commit and its message before it leaves the computer. Text scans
+are complemented by a manual review of images, archives, attachments and every new file.
 
 ## G3. Backends — postponed
 
