@@ -194,7 +194,43 @@ enum ServerSelfTest {
                                       cache: false).correct("Kot ma ale.", mode: .fix) { _ in }
                 check("OpenAI: błąd w strumieniu", "bez błędu", "błąd")
             } catch {
-                check("OpenAI: błąd w strumieniu", error.localizedDescription, "Model przerwał odpowiedź: out of memory")
+                check("OpenAI: błąd w strumieniu", "\(error.localizedDescription) · \(errorKind(error))",
+                      "Model przerwał odpowiedź: out of memory · model_error")
+            }
+
+            // Kod przyczyny nieudanej korekty (`errorKind`, panel: `Problems`) — te same kody co na Linuksie.
+            func kind(_ response: @escaping @Sendable (HTTPStub.Request, Int) -> HTTPStub.Response,
+                      api: ModelServerAPI = .openAI) async -> String {
+                do {
+                    let stub = try HTTPStub(response)
+                    defer { stub.stop() }
+                    let endpoint = ModelServerEndpoint(address: (await stub.baseURL()).absoluteString, api: api)!
+                    _ = try await Backend(model: "m", server: endpoint, cache: false).correct("Kot ma ale.", mode: .fix) { _ in }
+                    return "bez błędu"
+                } catch {
+                    return errorKind(error)
+                }
+            }
+            check("przyczyna: nieczytelny strumień", await kind { _, _ in
+                HTTPStub.Response(headers: ["Content-Type": "text/event-stream"], body: "data: {nie json\n\n")
+            }, "bad_reply")
+            check("przyczyna: brak modelu na serwerze", await kind { _, _ in
+                HTTPStub.Response(status: 404, body: #"{"error":"model 'm' not found"}"#)
+            }, "http_404")
+            check("przyczyna: strumień Ollamy bez końca", await kind({ _, _ in
+                HTTPStub.Response(headers: ["Content-Type": "application/x-ndjson"], body: #"{"message":{"content":"Kot"},"done":false}"# + "\n")
+            }, api: .ollama), "interrupted")
+            check("przyczyna: pusta odpowiedź", await kind({ _, _ in .ollama("") }, api: .ollama), "empty_reply")
+            check("przyczyna: ucięta odpowiedź", await kind { _, _ in .openAI(["Kot"], finishReason: "length") }, "truncated_reply")
+            let closed = try HTTPStub { _, _ in HTTPStub.Response() }
+            let closedURL = await closed.baseURL()
+            closed.stop()
+            do {
+                _ = try await Backend(model: "m", server: ModelServerEndpoint(address: closedURL.absoluteString, api: .openAI)!, cache: false)
+                    .correct("Kot ma ale.", mode: .fix) { _ in }
+                check("przyczyna: serwer nie przyjmuje połączeń", "bez błędu", "refused")
+            } catch {
+                check("przyczyna: serwer nie przyjmuje połączeń", errorKind(error), "refused")
             }
 
             // Podpowiedź protokołu: Ollama wybrana jako OpenAI (odpowiada na oba sposoby) i odwrotnie.
@@ -398,8 +434,9 @@ enum ServerSelfTest {
                     .correct("Jutro pisze raport.", mode: .fix) { _ in }
                 check("Popraw: obce pismo dwa razy", "bez błędu", "błąd")
             } catch {
-                check("Popraw: obce pismo dwa razy", "\(error.localizedDescription) · \(regular.requests.count) zapytania",
-                      "Model wstawił znaki z obcego pisma (いつ). Wynik odrzucono — spróbuj ponownie. · 2 zapytania")
+                check("Popraw: obce pismo dwa razy",
+                      "\(error.localizedDescription) · \(regular.requests.count) zapytania · \(errorKind(error))",
+                      "Model wstawił znaki z obcego pisma (いつ). Wynik odrzucono — spróbuj ponownie. · 2 zapytania · script_drift")
             }
         } catch {
             check("atrapa Ollamy", "\(error)", "działa")

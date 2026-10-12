@@ -8,6 +8,8 @@ package enum BackendError: LocalizedError {
     /// Brak adresu usługi (komunikat mówi, gdzie go ustawić).
     case notConfigured(String)
     case stream(String)
+    /// Odpowiedź, której nie da się odczytać (np. linia strumienia, która nie jest JSON-em).
+    case badReply
     case incomplete
     case truncated
     /// Poza domem bez zalogowania (dostęp zdalny, RemoteAccess.swift).
@@ -27,6 +29,7 @@ package enum BackendError: LocalizedError {
             }
         case .notConfigured(let message): message
         case .stream(let message): tr("Model przerwał odpowiedź: {message}", ["message": message])
+        case .badReply: tr("Model przerwał odpowiedź: {message}", ["message": tr("nieczytelna odpowiedź serwera")])
         case .incomplete: tr("Połączenie z modelem zerwało się przed końcem odpowiedzi.")
         case .truncated: tr("Tekst jest za długi dla modelu — zaznacz krótszy fragment.")
         case .signInRequired: tr("Zaloguj się do wybranego serwera: okno aplikacji → Usługi → Dostęp zdalny.")
@@ -448,8 +451,14 @@ package final class Backend {
                 }
                 throw BackendError.http(http.statusCode, errorBody)
             }
-            return routed.target.api == .ollama ? try await ollamaStream(bytes, onPartial: onPartial)
-                                                : try await openAIStream(bytes, onPartial: onPartial)
+            do {
+                return routed.target.api == .ollama ? try await ollamaStream(bytes, onPartial: onPartial)
+                                                    : try await openAIStream(bytes, onPartial: onPartial)
+            } catch let error as URLError where error.code != .cancelled {
+                // Połączenie zerwane w trakcie odpowiedzi: urwana odpowiedź (panel ponawia ją sam), a nie serwer,
+                // który nie odpowiada — jak `_lines` na Linuksie.
+                throw BackendError.incomplete
+            }
         }
     }
 
@@ -508,7 +517,7 @@ package final class Backend {
                 finished = true
                 break lines
             case .malformed:
-                throw BackendError.stream(tr("nieczytelna odpowiedź serwera"))
+                throw BackendError.badReply
             case .error(let message):
                 throw BackendError.stream(message)
             case .chunk(let content, let finishReason, let speed):

@@ -5,7 +5,14 @@ import GramaBackend
 @MainActor
 final class CorrectionSession: ObservableObject {
     enum Phase: Equatable {
-        case checking, streaming, done, failed(String)
+        case checking, streaming, done, failed(Failure)
+    }
+
+    /// Nieudana korekta (PANEL.md, „Błąd”): kod przyczyny (`errorKind`), problem z tabeli i jego zdanie.
+    struct Failure: Equatable {
+        let why: String
+        let problem: Problem
+        let text: String
     }
 
     @Published private(set) var phase: Phase = .checking
@@ -26,6 +33,8 @@ final class CorrectionSession: ObservableObject {
     var usesModelOnly: Bool { mode == .fix && Settings.shared.modelOnlyActive }
     /// ↩ wciśnięty w trakcie pracy — zastosujemy wynik, gdy będzie gotowy (PANEL.md: „Zastosuję po zakończeniu”).
     @Published var applyPending = false
+    /// Ten przebieg to ciche drugie podejście po potknięciu modelu (`Problems.retried`): „Ponawiam…” w nagłówku.
+    @Published private(set) var retrying = false
     var onReadyToApply: ((String) -> Void)?
     /// Edycja wyniku w jego polu (klik, pisanie albo ⌘E); `draft` trafia do `corrected` przy ⌘E, ⎋ albo Zastąp.
     @Published private(set) var editing = false
@@ -39,15 +48,17 @@ final class CorrectionSession: ObservableObject {
     var original: String { captured.text }
     var hasChanges: Bool { corrected != original && !corrected.isBlank }
 
-    private let backend = Backend()
+    private let backend: Backend
     private var task: Task<Void, Never>?
     private var ltTask: Task<LTResult?, Never>?
     /// Każde run() dostaje nowy numer; wyniki starszych przebiegów są ignorowane
     /// (np. po szybkim przełączeniu trybu stary strumień nie nadpisze nowego).
     private var generation = 0
 
-    init(captured: CapturedText, mode: Mode) {
+    /// `backend`: serwer z ustawień albo — w testach — atrapa.
+    init(captured: CapturedText, mode: Mode, backend: Backend = Backend()) {
         self.captured = captured
+        self.backend = backend
         self.mode = mode
         self.translationTarget = .automatic(for: captured.text, in: languages)
     }
@@ -58,7 +69,9 @@ final class CorrectionSession: ObservableObject {
     var directionLabel: String { translationTarget.label(in: languages) }
     func reverseDirection() { translationTarget = translationTarget.opposite(in: languages) }
 
-    func run() {
+    /// `retry`: ciche drugie podejście po potknięciu modelu — ↩ wciśnięty w trakcie dalej zastosuje jego wynik.
+    func run(retry: Bool = false) {
+        let pending = retry && applyPending
         cancel()
         generation += 1
         let current = generation
@@ -66,7 +79,8 @@ final class CorrectionSession: ObservableObject {
         corrected = ""
         segments = []
         changes = []
-        applyPending = false
+        applyPending = pending
+        retrying = retry
         ruleHits = 0
         language = ""
         note = nil
@@ -75,7 +89,7 @@ final class CorrectionSession: ObservableObject {
         changesOpen = false
         hints = []
         guard mode != .translate || languages.translates else {
-            phase = .failed(tr("Tłumaczenie wymaga drugiego języka. Dodaj go w aplikacji GramaDrama (Pisanie → Języki tekstu)."))
+            fail("second_language", message: "")
             return
         }
 
@@ -126,14 +140,43 @@ final class CorrectionSession: ObservableObject {
                 self.changes = Diff.changes(self.segments, original: text, hints: ltResult.matches)
             } catch {
                 guard self.isCurrent(current), !(error is CancellationError) else { return }
-                // Błąd modelu pozostawia oryginalny tekst; użytkownik może ponowić korektę.
-                let unreachable = (error as? URLError).map { Self.connectionErrors.contains($0.code) } ?? false
-                EventLog.write("session_failed", ["mode": mode.rawValue, "unreachable": unreachable,
+                var why = errorKind(error)
+                guard why != "cancelled" else { return }
+                // Ollama na tym Macu nie odpowiada: nowa instalacja dowiaduje się, czy Ollamy brak, czy tylko nie działa.
+                if Problems.networkDetail(why) != nil, Settings.shared.modelLocation == .local {
+                    why = await Self.localOllamaKind() ?? why
+                    guard self.isCurrent(current) else { return }
+                }
+                // Potknięcie modelu: jeszcze raz, po cichu („Ponawiam…”); w dzienniku tylko „retry” — okno nie pokazuje
+                // wtedy porażki w Wypróbuj.
+                if Problems.retried.contains(why), !self.retrying {
+                    EventLog.write("retry", ["mode": mode.rawValue, "why": why])
+                    self.run(retry: true)
+                    return
+                }
+                // Błąd pozostawia oryginalny tekst; kod przyczyny do dziennika, nigdy komunikat (może cytować tekst).
+                EventLog.write("session_failed", ["mode": mode.rawValue, "why": why,
                                                   "app": self.captured.app?.bundleIdentifier ?? ""])
-                self.phase = .failed(!unreachable ? error.localizedDescription
-                    : Settings.shared.modelLocation == .local ? tr("Ollama na tym Macu nie odpowiada — uruchom ją (okno aplikacji → Usługi).")
-                    : tr("Serwer nie odpowiada — sprawdź połączenie."))
+                self.fail(why, message: error.localizedDescription)
             }
+        }
+    }
+
+    /// Błąd w panelu: tytuł, zdanie i przyciski z tabeli przyczyn (`Problems`).
+    private func fail(_ why: String, message: String) {
+        let described = Problems.describe(why, message: message)
+        retrying = false
+        applyPending = false
+        phase = .failed(Failure(why: why, problem: described.problem, text: described.text))
+    }
+
+    /// no_ollama albo ollama_down, gdy Ollama na tym Macu nie odpowiada; nil — działa (to był inny błąd sieci).
+    private static func localOllamaKind() async -> String? {
+        await LocalOllama.shared.refresh()
+        switch LocalOllama.shared.state {
+        case .missing: return "no_ollama"
+        case .stopped: return "ollama_down"
+        case .running, .unknown: return nil
         }
     }
 
@@ -143,11 +186,6 @@ final class CorrectionSession: ObservableObject {
         task = nil
         ltTask = nil
     }
-
-    private static let connectionErrors: Set<URLError.Code> = [
-        .cannotConnectToHost, .cannotFindHost, .timedOut, .networkConnectionLost, .notConnectedToInternet,
-        .dnsLookupFailed, .cannotLoadFromNetwork,
-    ]
 
     private func isCurrent(_ run: Int) -> Bool {
         run == generation && !Task.isCancelled
@@ -163,6 +201,18 @@ final class CorrectionSession: ObservableObject {
         self.elapsed = elapsed
         self.changesOpen = changesOpen
         phase = .done
+    }
+
+    /// Podgląd `--preview-panel`: nieudana korekta (`why`) albo, z `retrying`, ciche drugie podejście w toku.
+    func showFailureForScreenshot(_ why: String, message: String = "", retrying: Bool = false) {
+        cancel()
+        generation += 1
+        if retrying {
+            self.retrying = true
+            phase = .streaming
+        } else {
+            fail(why, message: message)
+        }
     }
 
     // MARK: Edycja wyniku (PANEL.md, „Edycja”)

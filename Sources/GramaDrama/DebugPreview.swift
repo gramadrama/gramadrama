@@ -84,7 +84,7 @@ enum DebugPreview {
         app.run()
     }
 
-    /// `GramaDrama --preview-panel <plik.png>` — panel korekty (także z listą zmian i w edycji), plakietka bieżącego sprawdzania
+    /// `GramaDrama --preview-panel <plik.png>` — panel korekty (także z listą zmian, w edycji i po błędzie), plakietka bieżącego sprawdzania
     /// z listą i karta podkreślenia, w jasnym i ciemnym motywie, bez serwera: `<plik>-panel-light.png`, `<plik>-badge-dark.png`…
     static func panel(to path: String) {
         let app = NSApplication.shared
@@ -120,8 +120,18 @@ enum DebugPreview {
         editing.showForScreenshot(fixed, elapsed: 2.9)
         editing.startEditing()
         editing.draft = fixed.replacingOccurrences(of: "krótkie", with: "krótkie pisemne")
+        // Nieudana korekta (PANEL.md, „Błąd”): serwer nie odpowiada, nowa instalacja bez Ollamy, ciche ponowienie.
+        let unreachable = CorrectionSession(captured: captured, mode: .fix)
+        unreachable.showFailureForScreenshot("refused")
+        let setup = CorrectionSession(captured: captured, mode: .fix)
+        setup.showFailureForScreenshot("no_ollama")
+        let retrying = CorrectionSession(captured: captured, mode: .fix)
+        retrying.showFailureForScreenshot("interrupted", retrying: true)
         let shots: [(String, AnyView)] = [
             ("panel", AnyView(PanelView(session: session, onApply: { _ in }, onCopy: { _ in }, onClose: {}))),
+            ("panel-error", AnyView(PanelView(session: unreachable, onApply: { _ in }, onCopy: { _ in }, onClose: {}))),
+            ("panel-error-setup", AnyView(PanelView(session: setup, onApply: { _ in }, onCopy: { _ in }, onClose: {}))),
+            ("panel-retrying", AnyView(PanelView(session: retrying, onApply: { _ in }, onCopy: { _ in }, onClose: {}))),
             ("panel-changes", AnyView(PanelView(session: changes, onApply: { _ in }, onCopy: { _ in }, onClose: {}))),
             ("panel-edit", AnyView(PanelView(session: editing, onApply: { _ in }, onCopy: { _ in }, onClose: {}))),
             ("badge", AnyView(HStack(alignment: .top, spacing: 16) {

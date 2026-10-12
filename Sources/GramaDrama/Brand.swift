@@ -29,6 +29,8 @@ enum Brand {
 
     /// Błąd aplikacji (np. serwer nie odpowiada).
     static let rose = adaptive(0x9E3446, dark: 0xF2A7AE)
+    /// Tło zdania nieudanej korekty (`error-tint`, to samo w obu motywach).
+    static let roseTint = Color(nsColor: nsColor(0xC4566A).withAlphaComponent(0.16))
 
     static let ink = adaptive(0x343337, dark: 0xF1EEE8)
     static let secondaryInk = adaptive(0x6B6870, dark: 0xB9BDB8)

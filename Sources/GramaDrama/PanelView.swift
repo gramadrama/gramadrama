@@ -8,6 +8,8 @@ struct PanelView: View {
     let onApply: (String) -> Void
     let onCopy: (String) -> Void
     let onClose: () -> Void
+    /// Przycisk nieudanej korekty, który prowadzi poza panel (zakładka okna aplikacji, logowanie); ponowienie robi sesja.
+    var onProblem: (ProblemAction) -> Void = { _ in }
     @State private var editorProxy = PanelEditorProxy()
     @State private var editorSelection = NSRange(location: 0, length: 0)
     @StateObject private var editorChecker = EditorChecker()
@@ -66,6 +68,10 @@ struct PanelView: View {
         switch session.phase {
         case .checking where session.applyPending, .streaming where session.applyPending:
             HStack(spacing: 6) { ProgressView().controlSize(.small); Text(tr("Zastosuję po zakończeniu")) }
+                .font(.caption).foregroundStyle(Brand.secondaryInk)
+        case .checking where session.retrying, .streaming where session.retrying:
+            // Ciche drugie podejście po potknięciu modelu (PANEL.md, „Błąd”).
+            HStack(spacing: 6) { ProgressView().controlSize(.small); Text(tr("Ponawiam…")) }
                 .font(.caption).foregroundStyle(Brand.secondaryInk)
         case .checking:
             Label(tr("Czytam scenariusz…"), systemImage: "text.magnifyingglass").labelStyle(.titleAndIcon)
@@ -129,8 +135,8 @@ struct PanelView: View {
 
     @ViewBuilder private var content: some View {
         switch session.phase {
-        case .failed(let message):
-            Text(message).foregroundStyle(Brand.secondaryInk).frame(maxWidth: .infinity, alignment: .leading)
+        case .failed(let failure):
+            problemView(failure)
         case .done:
             if session.mode == .translate {
                 // Oryginał mały i przygaszony, tłumaczenie jako główna treść (także w trakcie edycji).
@@ -201,7 +207,9 @@ struct PanelView: View {
             if session.canShowChanges { changesToggle }
             // W trakcie edycji ↩ obsługuje pole tekstowe (wstawia; ⇧↩ — nowa linia), więc przyciski nie mają ↩.
             let returnKey: KeyboardShortcut? = session.editing ? nil : .defaultAction
-            if nothingToApply {
+            if case .failed(let failure) = session.phase {
+                problemButtons(failure.problem.actions)
+            } else if nothingToApply {
                 // „Zero dramatu” albo błąd — ↩ po prostu zamyka panel (także dla tekstu tylko do odczytu).
                 copyButton(primary: false)
                 if session.captured.canApply { Button(tr("Zastąp")) {}.buttonStyle(BrandButtonStyle(primary: true)).disabled(true) }
@@ -249,6 +257,48 @@ struct PanelView: View {
         .keyboardShortcut("e", modifiers: .command)
         .opacity(0)
         .accessibilityHidden(true)
+    }
+
+    // MARK: Nieudana korekta (PANEL.md, „Błąd”)
+
+    /// Co się stało, w kolorze błędu, i jedno zdanie o tym, co zrobić, na różowym tle.
+    private func problemView(_ failure: CorrectionSession.Failure) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(failure.problem.title).font(.body.bold()).foregroundStyle(Brand.rose)
+            if !failure.text.isEmpty {
+                Text(failure.text).font(.callout).foregroundStyle(Brand.ink).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .background(Brand.roseTint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    /// Przyciski błędu w miejscu Kopiuj i Zastąp: pierwszy (↩) w lawendzie, ostatni, z klawiszem; bez przycisków ↩ zamyka.
+    @ViewBuilder private func problemButtons(_ actions: [ProblemAction]) -> some View {
+        if let first = actions.first {
+            ForEach(Array(actions.dropFirst()), id: \.self) { action in
+                Button(action.label) { perform(action) }.buttonStyle(BrandButtonStyle()).fixedSize()
+            }
+            Button { perform(first) } label: {
+                HStack(spacing: 6) {
+                    Text(first.label)
+                    Text("↩").font(.caption2.bold()).padding(.horizontal, 4)
+                        .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Brand.onLavender))
+                }
+            }
+            .buttonStyle(BrandButtonStyle(primary: true))
+            .fixedSize()
+            .keyboardShortcut(.defaultAction)
+        } else {
+            Button("", action: onClose).keyboardShortcut(.defaultAction).opacity(0).frame(width: 0)
+        }
+    }
+
+    /// Spróbuj ponownie — ten sam tekst w tym samym trybie; reszta prowadzi poza panel.
+    private func perform(_ action: ProblemAction) {
+        EventLog.write("problem_action", ["action": action.rawValue, "mode": session.mode.rawValue])
+        if action == .retry { session.run() } else { onProblem(action) }
     }
 
     /// Wynik do wstawienia: w trakcie edycji — tekst z pola.
@@ -389,6 +439,7 @@ struct PanelView: View {
             parts.append(UI.seconds(session.elapsed))
         }
         parts.append(session.captured.scope.title)
+        if case .failed = session.phase { return (parts + [tr("tekst bez zmian")]).joined(separator: " · ") }
         if !session.captured.canApply { parts.append(tr("tylko do odczytu — ↩ kopiuje")) }
         return parts.joined(separator: " · ")
     }

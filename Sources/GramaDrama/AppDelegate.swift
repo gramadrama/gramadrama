@@ -133,6 +133,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
     }
 
+    /// Przycisk nieudanej korekty, który prowadzi poza panel: zakładka okna aplikacji z tym, co trzeba ustawić,
+    /// albo logowanie w dostępie zdalnym (PANEL.md, „Błąd”).
+    static func perform(_ action: ProblemAction) {
+        switch action {
+        case .openServices: openMainWindow(at: .connection)
+        case .openWriting: openMainWindow(at: .writing)
+        case .login: signIn()
+        case .retry: break
+        }
+    }
+
+    static func openMainWindow(at tab: MainWindowTab) {
+        MainWindowTab.select(tab)
+        (NSApp.delegate as? AppDelegate)?.openMainWindow()
+    }
+
     /// Strona logowania w domyślnej przeglądarce — tam działa menedżer haseł z passkey (np. Bitwarden).
     static func signIn() {
         do {

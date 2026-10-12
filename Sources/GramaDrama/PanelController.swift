@@ -37,7 +37,11 @@ final class PanelController {
                                  self?.close()
                                  Toast.shared.show(tr("Skopiowano do schowka."), near: captured.anchor)
                              },
-                             onClose: { [weak self] in self?.close() })
+                             onClose: { [weak self] in self?.close() },
+                             onProblem: { [weak self] action in
+                                 self?.close()
+                                 AppDelegate.perform(action)
+                             })
         let hosting = NSHostingView(rootView: view)
         hosting.layoutSubtreeIfNeeded()
 
