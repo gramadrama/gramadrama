@@ -15,7 +15,13 @@ in parentheses where they first appear. The macOS permission prompts stay in Pol
 
 ## Get started on Linux
 
-1. Get the repository and change into its directory.
+1. Get the repository and change into its directory:
+
+   ```bash
+   git clone https://github.com/gramadrama/gramadrama.git
+   cd gramadrama
+   ```
+
 2. Read the requirements and run the [installer](linux/README.md#installation).
 3. In **GramaDrama → Services** (*Usługi*) choose the model: Ollama on this computer, or a server
    with an address, a protocol and a model name (the same choice as on macOS).
@@ -173,9 +179,11 @@ The Linux version is in `linux/gramadrama`; shared test cases are in `tests/` an
 ### Building for macOS (developers)
 
 You need macOS 14 or later and Apple's developer tools with Swift package support.
-This script installs a local build of the app and the input method:
+These commands get the repository and install a local build of the app and the input method:
 
 ```bash
+git clone https://github.com/gramadrama/gramadrama.git
+cd gramadrama
 ./scripts/create-signing-cert.sh
 ./scripts/build-app.sh
 open ~/Applications/GramaDrama.app
