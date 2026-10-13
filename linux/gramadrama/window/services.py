@@ -127,6 +127,7 @@ class ServicesTab:
     # ---- speech recognition ----
     def build_speech(self, settings):
         group = Adw.PreferencesGroup(title=tr('Rozpoznawanie mowy'), description=tr('Do dyktowania.'))
+        self.speech_group = group
         self.speech_where = LocationRow(self.speech_location_selected)
         self.whisper_local_row = StatusRow('Whisper large-v3-turbo', self)
         self.whisper_url_entry = AddressRow(tr('Adres serwera'), settings.whisper_url, lambda row: self.apply_address(row, 'whisper_url'))

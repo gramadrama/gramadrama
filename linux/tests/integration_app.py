@@ -133,7 +133,7 @@ PANEL_RECT_JS = """(p => p && p.visible ? [...p.get_transformed_position(), ...p
 TAB_OF = {'try_view': 'start', 'summary': 'start', 'change_shortcuts': 'start', 'add_app': 'apps', 'site_button': 'apps',
           'primary_language_row': 'writing', 'secondary_language_row': 'writing', 'checking': 'writing',
           'vocabulary_row': 'writing', 'learned_row': 'writing', 'rules_row': 'writing', 'forget': 'writing',
-          'rule_on': 'writing', 'dictation_words': 'dictation'}
+          'rule_on': 'writing', 'dictation_words': 'dictation', 'dictation_services': 'dictation'}
 TAB_OF.update({name: 'connection' for name in (
     'llm_where', 'llm_entry', 'llm_local_entry', 'llm_api_row', 'llm_model_row', 'model_row', 'llm_key_row', 'clear_key',
     'think_row', 'llm_advanced', 'lt_where', 'lt_entry', 'lt_local_entry', 'speech_where', 'whisper_entry', 'whisper_api_row',
@@ -739,6 +739,7 @@ def t_dictionary(rig):
         rig.show_tab('dictation')
         rig.click_widget('dictation_words')
         wait_until(lambda: rig.state().get('tab') == 'writing', 5, what='Dyktowanie leads to the dictionary')
+        check(rig.state().get('highlight') == 'dictionary', 'and rings it', rig.state().get('highlight'))
     finally:
         for path in (words_file, rules_file):
             if os.path.exists(path):
@@ -1376,6 +1377,14 @@ def t_whisper_server(rig):
         wait_until(lambda: rig.saved_settings().get('whisper_url') == '', 5, what='the address removed')
         rig.wait_row('whisper', 'error', 'Podaj adres serwera mowy')
         rig.wait_row('dictation', 'error', 'Ustaw serwer mowy')
+        # The pill and Dyktowanie's Usługi… ring the speech group, not the language model's (the Mac's .speechServer).
+        wait_until(lambda: rig.state()['problems'][:1] == [['serwer mowy', 'speech']], 5, what='the speech server in the pill')
+        rig.click_widget('summary')
+        wait_until(lambda: rig.state().get('highlight') == 'speech', 5, what='the pill rings the speech group')
+        check(rig.state().get('tab') == 'connection', 'on Usługi', rig.state().get('tab'))
+        rig.click_widget('dictation_services')
+        wait_until(lambda: rig.state().get('tab') == 'connection', 5, what='Usługi… opens Usługi')
+        check(rig.state().get('highlight') == 'speech', 'Usługi… rings the speech group', rig.state().get('highlight'))
         choose_backend(0)
     finally:
         stub.models = [BIELIK]
@@ -1887,20 +1896,25 @@ def t_services_local(rig):
 
 
 def t_show_args(rig):
-    """gramadrama-app --show=<tab> and --login, as a failed correction's button starts it (engine/problems.py): the
-    running window opens that tab and rings the group the cause is in for a few seconds; another tab just opens."""
+    """gramadrama-app --show=<tab> and --login, as a failed correction's button starts it (engine/problems.py), and
+    --show=speech, as the dictation key without a speech model does (engine/dictate.py): the running window opens that
+    tab and rings the group the cause is in for a few seconds; another tab just opens."""
     launcher = shlex.quote(os.path.join(rig.target, 'gramadrama-app'))
-    for args, tab, highlight in (('--show=connection', 'connection', 'connection'),
-                                 ('--show=writing', 'writing', 'writing'), ('--show=privacy', 'privacy', None)):
+    for args, tab, highlight in (('--show=connection', 'connection', 'connection'), ('--show=speech', 'connection', 'speech'),
+                                 ('--show=writing', 'writing', 'writing'), ('--show=dictionary', 'writing', 'dictionary'),
+                                 ('--show=privacy', 'privacy', None)):
+        shot = {'connection': 'point-to-model', 'speech': 'point-to-speech', 'dictionary': 'point-to-dictionary'}.get(highlight)
+        if shot and rig.args.shots:  # the window of the shot before the pointing: a group below the fold scrolls up
+            rig.s.place_window('GramaDrama', 40, 30, WIDTH, SHOT_HEIGHT)
+            time.sleep(0.5)
         r = rig.s.sh('/usr/bin/python3 %s %s' % (launcher, args))
         check(r['rc'] == 0, '%s: the second start hands over and ends' % args, r)
         wait_until(lambda: rig.state().get('tab') == tab, 5, what='%s: the %s tab' % (args, tab))
         check(rig.state().get('highlight') == highlight, '%s: the group pointed to' % args, rig.state().get('highlight'))
-        if highlight == 'connection' and rig.args.shots:
-            rig.s.place_window('GramaDrama', 40, 30, WIDTH, SHOT_HEIGHT)
+        if shot and rig.args.shots:
             rig.action('unfocus')
             time.sleep(0.8)
-            rig.shot_window(os.path.join(rig.args.shots, 'point-to-model.png'))
+            rig.shot_window(os.path.join(rig.args.shots, shot + '.png'))
             rig.s.place_window('GramaDrama', 40, 30, WIDTH, HEIGHT)
     rig.s.sh('/usr/bin/python3 %s --show=connection' % launcher)
     wait_until(lambda: rig.state().get('highlight') == 'connection', 5, what='the ring again')

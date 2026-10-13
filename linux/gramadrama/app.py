@@ -17,7 +17,7 @@ from . import oidc  # noqa: E402
 from .window.apps_tab import (APP_ICONS, FLATPAK_HELP, GENERIC_APP_ICON, AppRow, app_icon, arranged,  # noqa: E402,F401
                               icon_name)
 from .window.common import APP_ID, CSS, WEBSITE, LogWatcher  # noqa: E402,F401
-from .window.main import TABS, Window  # noqa: E402
+from .window.main import POINTS, TABS, Window  # noqa: E402
 
 
 class Application(Adw.Application):
@@ -53,7 +53,7 @@ class Application(Adw.Application):
         for argument in command_line.get_arguments()[1:]:
             if oidc.is_callback(argument):
                 self.window.login_callback(argument)
-            elif argument.startswith('--show='):  # a failed correction's button (engine/problems.py)
+            elif argument.startswith('--show='):  # a failed correction's button, the dictation key (engine/)
                 self.window.show_for(argument[len('--show='):])
             elif argument == '--login':
                 self.window.point_to('login')
@@ -62,9 +62,10 @@ class Application(Adw.Application):
 
 
 def wanted(argument):
-    """The arguments this app takes: the login's way back from the browser, and the tab or the login a failed
-    correction's button asks for (engine/problems.py)."""
-    return oidc.is_callback(argument) or argument == '--login' or argument in {'--show=' + name for name, _, _ in TABS}
+    """The arguments this app takes: the login's way back from the browser, the tab or the login a failed
+    correction's button asks for (engine/problems.py), and the group the dictation key points to (engine/dictate.py)."""
+    names = [name for name, _, _ in TABS] + list(POINTS)
+    return oidc.is_callback(argument) or argument == '--login' or argument in {'--show=' + name for name in names}
 
 
 def main(argv=None):

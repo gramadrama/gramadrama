@@ -21,7 +21,8 @@ def line(**event):
 
 class ArgumentTests(unittest.TestCase):
     def test_a_failed_corrections_button_and_the_logins_way_back_are_taken(self):
-        for argument in ('--show=connection', '--show=writing', '--login', 'gramadrama://auth?code=x&state=y'):
+        for argument in ('--show=connection', '--show=writing', '--show=speech', '--show=dictionary', '--login',
+                         'gramadrama://auth?code=x&state=y'):
             self.assertTrue(wanted(argument), argument)
         for argument in ('--show=nowhere', '--show=', '--selection', '--background', 'https://example.com/'):
             self.assertFalse(wanted(argument), argument)  # an old launcher's options just open the window

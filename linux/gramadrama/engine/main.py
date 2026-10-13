@@ -973,6 +973,8 @@ class Engine(IBus.EngineSimple):
                 self.app.log(e.event, **e.data)
             elif kind is S.OpenApp:
                 self._open_app(e.args)
+            elif kind is dictate.PointTo:
+                self._open_app(('--show=' + e.target,))
             elif kind is dictate.ScheduleOpen:
                 self._timer(0, self._open, e.gen)
             elif kind is dictate.ScheduleArm:
@@ -1008,7 +1010,8 @@ class Engine(IBus.EngineSimple):
 
     def _open_app(self, args):
         """The GramaDrama app beside this engine (gramadrama-app, as its .desktop file starts it), on the tab a failed
-        correction's button names; a running app gets the arguments as its command line."""
+        correction's button names or the group the dictation key points to; a running app gets the arguments as its
+        command line."""
         launcher = os.path.join(LINUX_DIR, 'gramadrama-app')
         try:
             Gio.Subprocess.new(['/usr/bin/python3', launcher] + list(args), Gio.SubprocessFlags.STDOUT_SILENCE

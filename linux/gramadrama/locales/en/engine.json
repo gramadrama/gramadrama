@@ -34,7 +34,7 @@
   "W polu jest zaznaczenie. Usuń je i kliknij poprawkę ponownie.": "The field has a selection. Clear it and click the suggestion again.",
   "Dodano do słownika.": "Added to dictionary.",
   "Poprzednie dyktowanie jeszcze trwa.": "The previous dictation is still running.",
-  "Dyktowanie potrzebuje modelu mowy: uruchom „install_engine.py tools”.": "Dictation requires a speech model: run “install_engine.py tools”.",
+  "Brak modelu mowy.": "No speech model.",
   "Nic nie usłyszałem — sprawdź, czy mikrofon działa.": "No audio was heard — check the microphone.",
   "Nic nie rozpoznałem.": "No speech was recognized.",
   "Aktywne pole się zmieniło — podyktowany tekst jest w schowku (Ctrl+V).": "The active field changed — dictated text is in the clipboard (Ctrl+V).",

@@ -27,11 +27,13 @@ and recording stops by itself after 180 s. The indicator shows recording and the
 ## Speech recognition
 
 In **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*) choose where the recording is processed
-(the **Dictation** (*Dyktowanie*) tab has a **Services…** (*Usługi…*) button):
+(the **Services…** (*Usługi…*) button of the **Dictation** (*Dyktowanie*) tab opens that group, ringed):
 
 - **This computer** (*Ten komputer*) runs a local faster-whisper. The `linux/install_engine.py tools` command
   downloads a separate Python environment, the CUDA libraries and the Whisper large-v3-turbo model.
-  This path needs a compatible NVIDIA graphics card and driver.
+  This path needs a compatible NVIDIA graphics card and driver. Nothing is downloaded on its own: without the
+  tools, holding the key shows „Brak modelu mowy” (*No speech model*) on the pill and, as on macOS, opens the app on
+  **Services → Speech recognition** with the group ringed; its Whisper row copies the command.
 - **Server** (*Serwer*) sends the recording to the chosen service. Choosing it shows the server's rows: its base
   address, the **Protocol** (*Protokół*), the model for the OpenAI API and an optional key.
   This needs no local model and no local NVIDIA card; the server must already provide a compatible API.
@@ -54,8 +56,9 @@ an empty one selects the local model. An explicit choice in the app replaces thi
 The words of the [dictionary](live-check.md#dictionary-and-rules) help Whisper recognise names and terms:
 the own words typed in **Writing → Dictionary and rules** (*Pisanie → Słownik i reguły*), then the latest words added
 with **Add to dictionary** (*Dodaj do słownika*) while the list stays under 300 characters, because Whisper reads only
-the end of a long prompt. The **Dictation** tab links to them with **Writing…** (*Pisanie…*). The words can also affect
-the detected language, so check a change with a short recording in the target language.
+the end of a long prompt. The **Dictation** tab links to them with **Writing…** (*Pisanie…*), which rings that
+section. The words can also affect the detected language, so check a change with a short recording in the target
+language.
 
 ## Cleanup and insertion
 

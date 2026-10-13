@@ -48,7 +48,7 @@ class StartTab:
         self.install = None
         self.try_state, self.try_text = INFO, ''
         self.try_session = None  # engine session started in the Wypróbuj field
-        self.problems = []  # (label, check, tab) of what needs attention, first one first
+        self.problems = []  # (label, check, tab or group: show_for) of what needs attention, first one first
         self.first_run = False  # no model chosen yet: a new install (Pierwsze kroki, the neutral pill)
 
     def build_start(self, settings):
@@ -67,7 +67,7 @@ class StartTab:
         self.summary_label = Gtk.Label(label=tr('Sprawdzam…'), wrap=True, justify=Gtk.Justification.CENTER)
         line.append(self.summary_status)
         line.append(self.summary_label)
-        # A click opens the tab where the first problem is fixed (the Mac's status pill).
+        # A click opens the tab where the first problem is fixed, with its group ringed (the Mac's status pill).
         self.summary = Gtk.Button(child=line, halign=Gtk.Align.CENTER, css_classes=['gd-summary', 'flat'])
         self.summary.connect('clicked', lambda *_: self.problems and self.show_for(self.problems[0][2]))
         self.summary_status.set_state(BUSY)
@@ -393,7 +393,8 @@ class StartTab:
     # ---- the summary ----
     def update_summary(self):
         """The pill under the name: everything fine, or what needs attention; a click opens the tab of the first problem
-        (MainWindowModel.problems on the Mac). LanguageTool is optional and never in it; "Ostatnie użycie" is history."""
+        and rings its group: the language model, the speech server (MainWindowModel.problems on the Mac). LanguageTool is
+        optional and never in it; "Ostatnie użycie" is history."""
         broken = self.settings_problems
         settings = self.load_settings()
         local = self.llm_where.location() == 'local'
@@ -403,7 +404,7 @@ class StartTab:
                   else 'Ollama' if local else tr('serwer modelu'), self.llm_status_row.check, 'connection'),
                  (tr('ustawienia') if 'model' in broken else 'model', self.model_state, 'connection')]
         if settings.dictation_enabled is not False and settings.whisper_uses_server:
-            named.append((tr('serwer mowy'), self.whisper_status_row.check, 'connection'))
+            named.append((tr('serwer mowy'), self.whisper_status_row.check, 'speech'))
         # A refused address of any service stops every correction (core.Settings.validate), LanguageTool's too.
         if broken.keys() & {'languagetool_location', 'languagetool_local_url', 'languagetool_url', 'whisper_backend',
                             'whisper_url', 'whisper_api', 'auth_issuer'}:
@@ -414,8 +415,9 @@ class StartTab:
             named.append((tr('skróty'), Check(ERROR, ''), 'start'))
         state, text = checks.summary([(label, check) for label, check, _ in named])
         self.problems = [item for item in named if item[1].state in checks.PROBLEMS]
-        self.first_run = not settings.model.strip()
-        if self.first_run and self.problems and all(tab == 'connection' for _, _, tab in self.problems):
+        # No model chosen yet; a settings file that cannot be used is a fault to fix ("ustawienia"), not a first step.
+        self.first_run = not settings.model.strip() and not broken.keys() & {checks.FILE, 'model'}
+        if self.first_run and self.problems and all(self.tab_of(name) == 'connection' for _, _, name in self.problems):
             state, text = INFO, tr('Jeszcze jeden krok: model językowy')  # a step to take, not a fault (Pierwsze kroki)
         self.update_first_steps()
         for name in list(ICONS) + [BUSY]:

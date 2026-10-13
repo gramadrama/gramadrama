@@ -138,10 +138,6 @@ class Rules(unittest.TestCase):
         self.assertEqual(path.with_name('rules.json.bak').read_text(), '{')
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class SharedCasesTests(unittest.TestCase):
     """tests/dictionary_cases.json: the same cases check Sources/GramaCore/UserDictionary.swift on macOS."""
 
@@ -163,3 +159,7 @@ class SharedCasesTests(unittest.TestCase):
             self.assertEqual(prompt_words(c['own'], c['learned']), c['expected'])
         for c in self.cases['parse']:
             self.assertEqual(parse_vocabulary(c['text']), c['expected'], repr(c['text']))
+
+
+if __name__ == '__main__':
+    unittest.main()

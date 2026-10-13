@@ -1,7 +1,7 @@
 """Dyktowanie (DictationTab.swift on the Mac): only how you dictate (docs/dictation.md). The right Ctrl held, the language
-and the model's cleanup; where speech is recognized (this computer or a server) is set in Usługi, which the first row
-links to. The own words, which help it recognize names, are in the dictionary of Pisanie (Linux; on the Mac still here),
-which the last row links to."""
+and the model's cleanup; where speech is recognized (this computer or a server) is set in Usługi, whose group the first
+row's button rings. The own words, which help it recognize names, are in the dictionary of Pisanie, as on the Mac, whose
+section the last row's button rings."""
 from gi.repository import Adw, Gtk
 
 from .. import checks, core, paths
@@ -30,7 +30,8 @@ class DictationTab:
         self.dictation_switch.connect('notify::active', self.dictation_switched)
         services = Gtk.Button(label=tr('Usługi…'), valign=Gtk.Align.CENTER,
                               tooltip_text=tr('Rozpoznawanie mowy ustawisz w zakładce Usługi'))
-        services.connect('clicked', lambda *_: self.show_tab('connection'))
+        services.connect('clicked', lambda *_: self.point_to('speech'))
+        self.dictation_services_button = services
         suffix = Gtk.Box(spacing=8, valign=Gtk.Align.CENTER)
         suffix.append(services)
         suffix.append(self.dictation_switch)
@@ -50,7 +51,7 @@ class DictationTab:
         self.cleanup_row.connect('notify::selected', lambda row, _p: self.dictation_choice(row, keys, 'dictation_cleanup'))
         writing = Gtk.Button(label=tr('Pisanie…'), valign=Gtk.Align.CENTER,
                              tooltip_text=tr('Własne słowa i słowa dodane do słownika ustawisz w zakładce Pisanie'))
-        writing.connect('clicked', lambda *_: self.show_tab('writing'))
+        writing.connect('clicked', lambda *_: self.point_to('dictionary'))
         self.dictation_words_button = writing
         self.dictation_words_row = Adw.ActionRow(title=tr('Słownik'), use_markup=False, subtitle=(
             tr('Własne słowa i dodane do słownika pomagają rozpoznać imiona, nazwy i żargon.')))

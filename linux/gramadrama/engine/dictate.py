@@ -30,7 +30,7 @@ WATCH_MS = 120_000  # a result must come this long after the key-up (the service
 IDS = itertools.count(1)
 MESSAGES = {
     'busy_dictation': 'Poprzednie dyktowanie jeszcze trwa.',
-    'no_model': 'Dyktowanie potrzebuje modelu mowy: uruchom „install_engine.py tools”.',
+    'no_model': 'Brak modelu mowy.',  # what to do is in the window that opens with it (PointTo)
     'silence': 'Nic nie usłyszałem — sprawdź, czy mikrofon działa.',
     'empty': 'Nic nie rozpoznałem.',
     'appChanged': 'Aktywne pole się zmieniło — podyktowany tekst jest w schowku (Ctrl+V).',
@@ -60,6 +60,11 @@ class ScheduleOpen:
 class ScheduleWatch:
     id: int
     ms: int  # then EngineLogic.dictation_watch(id)
+
+
+@dataclasses.dataclass(frozen=True)
+class PointTo:
+    target: str  # the GramaDrama app opens on this group, ringed (gramadrama-app --show=<target>; window.main.POINTS)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -250,8 +255,8 @@ class Dictation:
             return self.drop()
         if (self.phase != IDLE and not opened) or elsewhere:
             return self.drop() + [message('busy_dictation')]
-        if not ready:
-            return self.drop() + [message('no_model', seconds=5)]
+        if not ready:  # as on macOS: the window says to install the speech model or choose a speech server
+            return self.drop() + [message('no_model', seconds=5), PointTo('speech')]
         if self.failure is not None:  # the microphone or the configuration failed while the key was held
             failure, self.failure, self.phase = self.failure, None, IDLE
             self.hold.reset()

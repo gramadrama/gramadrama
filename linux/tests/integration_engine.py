@@ -15,9 +15,11 @@ import functools
 import http.server
 import json
 import os
+import shutil
 import signal
 import statistics
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -1928,6 +1930,50 @@ def panel_dictation_pill(r):
     check(not (r.popup() or {}).get('visible'), 'the IBus popup came up although the pill was there', r.popup())
 
 
+
+def dictation_no_speech_model(r, state_path):
+    """Without the speech tools and without a speech server (a session without GRAMADRAMA_DEBUG_SPEECH, whose
+    XDG_DATA_HOME has no gramadrama-tools): holding the right Ctrl records nothing, the pill says „Brak modelu mowy.”
+    whole, and the app opens on Usługi with the speech recognition group ringed, as on macOS (engine/dictate.py
+    PointTo); the text of the field stays as it was."""
+    write_settings(r.s, {'llm_local_url': 'http://127.0.0.1:%d' % closed_port(),
+                         'languagetool_local_url': 'http://127.0.0.1:%d' % closed_port()})  # never the computer's own
+    time.sleep(2.2)  # the engine reads settings.json at most every 2 s
+    win = r.gtk(4)
+    r.gtk_field(win, 'tv', TV, KOT)
+    n = r.e.mark()
+    r.s.keys([['code', RCTRL, 1]])
+    try:
+        st = wait_panel(r, lambda st: st['hud']['visible'] and st['hud']['state'] == 'message', 'the pill')
+        check(st['hud']['text'] == 'Brak modelu mowy.', 'the pill says why', st['hud'])
+        time.sleep(0.3)  # laid out on the next frame
+        check(not panel_state(r)['hud']['cut'], 'the message fits the pill', panel_state(r)['hud'])
+    finally:
+        r.s.keys([['code', RCTRL, 0]])
+
+    def app():
+        try:
+            with open(state_path, encoding='utf-8') as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return None
+    state = wait_until(lambda: (lambda st: st if st and st.get('highlight') == 'speech' else None)(app()), 20,
+                       what='the app on the speech recognition group')
+    check(state['tab'] == 'connection', 'the app on Usługi', state['tab'])
+    wait_until(lambda: r.s.window('GramaDrama'), 10, what='the app window on screen')
+    # The group is below the fold of the window that has just opened: it scrolls up with its ring in view. The state is
+    # written on request (the window action write-state), after the layout of the scroll.
+
+    def in_view():
+        r.s.call('pl.gramadrama.Linux', '/pl/gramadrama/Linux/window/1', 'org.gtk.Actions', 'Activate', '(sava{sv})',
+                 ['write-state', [], {}])
+        time.sleep(0.1)
+        return (app() or {}).get('ring_in_view')
+    wait_until(in_view, 5, what='the group and its ring scrolled into view')
+    check(not [e for e in r.e.events(n) if e['ev'] == 'dictation'], 'something was recorded', r.e.events(n))
+    check(win.text('tv') == TV, 'the field changed', win.text('tv'))
+
+
 def panel_live_badge(r):
     """Live checking (docs/live-check.md): a text with mistakes brings the badge with their number, at the
     window's right edge; in its list the first suggestion fixes that word in place, and the count follows.
@@ -2687,6 +2733,7 @@ ORDER = ['typing_passthrough', 'hotkey_consumed', 'gtk4_selection', 'gtk4_paragr
          'translate_hotkey',
          # docs/dictation.md
          'dictation_hold', 'dictation_shift', 'dictation_shortcuts_and_cancel', 'panel_dictation_pill',
+         'dictation_no_speech_model',
          # docs/live-check.md
          'panel_live_badge', 'panel_live_underlines', 'panel_live_long_words', 'panel_card_after_a_narrow_one', 'panel_live_browser', 'panel_change_revert', 'panel_edit_result', 'panel_edit_clipboard', 'panel_click_into_result', 'panel_edit_check',
          # docs/browser.md
@@ -2847,6 +2894,25 @@ def run_crash(args):
         report('crash_typing_continues', 'FAIL', '%s: %s' % (type(exc).__name__, exc))
 
 
+
+def run_no_speech_model(args):
+    """dictation_no_speech_model in a session of its own: there the engine looks for the real speech tools, and the app
+    it starts writes its state where the scenario reads it."""
+    state_dir = tempfile.mkdtemp(prefix='gramadrama-app-state-')
+    env = dict({k: v for k, v in ENV.items() if k != 'GRAMADRAMA_DEBUG_SPEECH'},
+               GRAMADRAMA_APP_STATE=os.path.join(state_dir, 'state.json'))
+    s = Session(sources=ENGINE, env=env, name='nospeech', extensions=[PANEL_EXTENSION], verbose=args.verbose,
+                copy_logs_to=args.logs and os.path.join(args.logs, 'nospeech'))
+    try:
+        with s:
+            r = Run(s)
+            wait_until(lambda: r.s.eval('typeof gdGramaDramaPanel') == 'object', 10, what='panel extension enabled')
+            scenarios(args, s, r, [dictation_no_speech_model], env['GRAMADRAMA_APP_STATE'])
+            privacy(s, 'nospeech')
+    finally:
+        clean(s, 'nospeech')
+        shutil.rmtree(state_dir, ignore_errors=True)
+
 def run_latency(args, wanted, rounds=3):
     """Engine and stock sessions side by side, measured in alternating rounds of LATENCY_KEYS keys,
     so drift of the machine affects both alike; then keys during a long diff in the engine session."""
@@ -2947,6 +3013,8 @@ def main():
             run_two_sources(args)
         if 'crash_typing_continues' in wanted:
             run_crash(args)
+        if 'dictation_no_speech_model' in wanted:
+            run_no_speech_model(args)
         if wanted & {'latency', 'latency_during_diff'}:
             run_latency(args, wanted)
         if 'electron_chatgpt' in wanted:

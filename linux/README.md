@@ -178,11 +178,14 @@ dictation to the other language of the pair, relative to the language set for di
 The right Ctrl combined with another key is still a shortcut,
 not a recording command.
 
-The **Dictation** (*Dyktowanie*) tab only sets how you dictate (language, cleanup, own words).
+The **Dictation** (*Dyktowanie*) tab only sets how you dictate (language and cleanup); the own words that help it
+recognize names are in **Writing → Dictionary and rules**.
 The recognition engine is chosen in **Services → Speech recognition**: **This computer** or **Server**.
 The local path uses Whisper on an NVIDIA card; the tools are downloaded by
 `/usr/bin/python3 linux/install_engine.py tools`. It also downloads CUDA libraries under NVIDIA's proprietary
-licence ([licence list](../THIRD_PARTY.md)). For a server, choose the **OpenAI compatible** (*Zgodny z OpenAI*)
+licence ([licence list](../THIRD_PARTY.md)). Without the tools and without a server, the key says
+„Brak modelu mowy” (*No speech model*) and opens that group in the app, ringed.
+For a server, choose the **OpenAI compatible** (*Zgodny z OpenAI*)
 or **whisper.cpp** protocol and enter the address of a service you have set up. **Check** suggests the other protocol
 when a different kind of server answers at the address; redirects are not followed. Switching
 keeps the address, the model and the key. A server with no address (and no remote access) reports a configuration error.

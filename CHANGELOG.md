@@ -22,7 +22,8 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
   underlines in supported fields and a user dictionary. Model-only checking is experimental.
 - Dictation while holding the right Ctrl: local Whisper, or a server with the OpenAI or whisper.cpp
   transcription API. The microphone opens at the key-down, and the indicator says when it is actually
-  hearing, so the first words are not lost while a suspended USB microphone wakes.
+  hearing, so the first words are not lost while a suspended USB microphone wakes. Without a speech model the key
+  says so and opens Services → Speech recognition with the group ringed, as on macOS.
 - Services: Ollama on this computer, or a server with the Ollama protocol or the OpenAI-style chat API and an
   optional API key. LanguageTool is optional. There is no default project server.
 - A failed correction says what happened and what to do: a title and one sentence, and buttons by the cause (open

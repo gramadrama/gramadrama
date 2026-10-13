@@ -32,10 +32,14 @@ TABS = (('start', 'Start', 'go-home-symbolic'),
         ('privacy', 'Prywatność', 'channel-secure-symbolic'))
 
 
-# Where a failed correction's button points (engine/problems.py, Window.point_to): the tab and the group the cause is in.
-POINTS = {'connection': ('connection', 'llm_group'), 'writing': ('writing', 'languages_group'),
+# Where a failed correction's button, the dictation key without a speech model or a button of the window points
+# (engine/problems.py, engine/dictate.py, Window.point_to): the tab and the group the cause is in (WindowHighlight.Target
+# on the Mac).
+POINTS = {'connection': ('connection', 'llm_group'), 'speech': ('connection', 'speech_group'),
+          'writing': ('writing', 'languages_group'), 'dictionary': ('writing', 'dictionary_group'),
           'login': ('connection', 'remote_group')}
 HIGHLIGHT_MS = 6000  # how long the ring stays round that group
+RING_MARGIN = 12  # px kept in view round the group: its ring is 2 px wide, 4 px out (common.CSS)
 
 
 class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTab, Adw.ApplicationWindow):
@@ -53,6 +57,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         self.closed = False
         self.built = False  # write_state waits for the whole window
         self.highlighted, self.highlight_timer = None, 0  # point_to's target and the timer that clears its ring
+        self.ring_watch = None  # (adjustment, handler): the ringed group kept in view while the view changes size
         self.system_gen = getattr(self, 'system_gen', 0) + 1
         self.system_timer = 0
         self.last_refresh = 0.0
@@ -216,28 +221,68 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         self.write_state()
 
     def show_for(self, name):
-        """The tab a failed correction's button names (gramadrama-app --show=<tab>, engine/problems.py): for the tabs it
-        can name, the group the cause is in is pointed to as well."""
+        """The tab or the group a failed correction's button or the dictation key names (gramadrama-app --show=<name>,
+        engine/problems.py, engine/dictate.py): a group of POINTS is pointed to on its tab, another tab just opens."""
         if name in POINTS:
             self.point_to(name)
         else:
             self.clear_highlight()
             self.show_tab(name)
 
+    @staticmethod
+    def tab_of(name):
+        """The tab of a tab's or a group's name (show_for)."""
+        return POINTS[name][0] if name in POINTS else name
+
     def point_to(self, target):
         """Open the tab of target and ring the group the cause is in, scrolled into view, for HIGHLIGHT_MS
-        ('connection': the language model, 'writing': the text languages, 'login': remote access)."""
+        ('connection': the language model, 'speech': speech recognition, 'writing': the text languages, 'dictionary':
+        the dictionary and the rules, 'login': remote access)."""
         tab, attribute = POINTS[target]
         group = getattr(self, attribute)
         self.show_tab(tab)
         self.clear_highlight()
         group.add_css_class('gd-highlight')
         self.highlighted = target
-        viewport = group.get_ancestor(Gtk.Viewport)
-        if viewport is not None:
-            GLib.idle_add(lambda: viewport.scroll_to(group, None) and False)
+        GLib.idle_add(self.scroll_into_view, group)
         self.highlight_timer = GLib.timeout_add(HIGHLIGHT_MS, self.highlight_done)
         self.write_state()
+
+    def scroll_into_view(self, group, tries=40):
+        """Scroll the group's tab so that the whole group and its ring are in view, with the least scrolling (its top
+        first when it is taller than the view). A window that has only just opened is laid out first: then this tries
+        again, for up to 2 s."""
+        if self.highlighted is None or getattr(self, POINTS[self.highlighted][1]) is not group:
+            return False  # the ring has gone or moved to another group meanwhile
+        viewport = group.get_ancestor(Gtk.Viewport)
+        adjustment = viewport.get_vadjustment() if viewport is not None else None
+        ok, bounds = (group.compute_bounds(viewport) if adjustment is not None and group.get_mapped()
+                      and group.get_height() > 0 and adjustment.get_page_size() > 0 else (False, None))
+        if not ok:
+            if tries > 0 and not self.closed:
+                GLib.timeout_add(50, self.scroll_into_view, group, tries - 1)
+            return False
+        top, bottom = bounds.get_y() - RING_MARGIN, bounds.get_y() + bounds.get_height() + RING_MARGIN
+        page = adjustment.get_page_size()
+        if top < 0 or bottom - top > page:
+            adjustment.set_value(adjustment.get_value() + top)
+        elif bottom > page:
+            adjustment.set_value(adjustment.get_value() + bottom - page)
+        if self.ring_watch is None:
+            # A window that has just opened may still be made smaller to fit the screen: the group is scrolled again.
+            self.ring_watch = (adjustment, adjustment.connect('changed', lambda *_: GLib.idle_add(self.scroll_into_view,
+                                                                                                group, 0)))
+        return False
+
+    def ring_in_view(self):
+        """Tests (write_state): the ringed group and its ring wholly in the view of its tab; None when nothing is ringed."""
+        if self.highlighted is None:
+            return None
+        group = getattr(self, POINTS[self.highlighted][1])
+        viewport = group.get_ancestor(Gtk.Viewport)
+        ok, bounds = group.compute_bounds(viewport) if viewport is not None else (False, None)
+        return bool(ok) and bounds.get_y() - RING_MARGIN >= -0.5 and (
+            bounds.get_y() + bounds.get_height() + RING_MARGIN <= viewport.get_vadjustment().get_page_size() + 0.5)
 
     def highlight_done(self):
         self.highlight_timer = 0
@@ -250,6 +295,10 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         if self.highlight_timer:
             GLib.source_remove(self.highlight_timer)
             self.highlight_timer = 0
+        if self.ring_watch is not None:
+            adjustment, handler = self.ring_watch
+            adjustment.disconnect(handler)
+            self.ring_watch = None
         for _, attribute in POINTS.values():
             getattr(self, attribute).remove_css_class('gd-highlight')
         self.highlighted = None
@@ -289,7 +338,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         state = {'rows': {name: {'state': row.check.state, 'text': row.check.text} for name, row in rows.items()},
                  'model': {'state': self.model_state.state, 'text': self.model_state.text, 'names': self.model_names,
                            'selected': self.model_row.get_selected()},
-                 'summary': self.summary_label.get_label(), 'problems': [[label, tab] for label, _, tab in self.problems],
+                 'summary': self.summary_label.get_label(), 'problems': [[label, name] for label, _, name in self.problems],
                  'settings_problems': self.settings_problems, 'ui_language': self.ui_language,
                  'tab_titles': {name: self.stack.get_page(page).get_title() for name, page in self.tab_pages.items()},
                  'languages': list(self.load_settings().languages),
@@ -297,6 +346,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
                  'translation_enabled': self.translation_row.get_sensitive(),
                  'dictation_languages': self.dictation_choices,
                  'tab': self.stack.get_visible_child_name(), 'sites': list(self.sites_shown), 'highlight': self.highlighted,
+                 'ring_in_view': self.ring_in_view(),
                  'first_steps': {name: {'state': row.check.state, 'text': row.check.text} for name, row in (
                      ('gnome', self.first_gnome_row), ('model', self.first_model_row), ('try', self.first_try_row))}
                  if self.first_steps.get_visible() else None,
@@ -341,7 +391,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
                      ('remote_off', self.remote_off_row), ('checking', self.checking), ('change_shortcuts', self.change_shortcuts),
                      ('pull_entry', self.pull_entry), ('vocabulary_row', self.vocabulary_row),
                      ('learned_row', self.learned_row), ('rules_row', self.rules_row),
-                     ('dictation_words', self.dictation_words_button),
+                     ('dictation_words', self.dictation_words_button), ('dictation_services', self.dictation_services_button),
                      ('add_app', self.add_app_row))},
                  'apps': self.apps_state(), 'toast': self.last_toast, 'toasts': self.toasts_shown,
                  'active': self.is_active(), 'suspended': self.is_suspended(), 'dark': self.has_css_class('gd-dark'),

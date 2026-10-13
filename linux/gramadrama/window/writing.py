@@ -177,6 +177,7 @@ class WritingTab:
     def build_dictionary(self, settings):
         group = Adw.PreferencesGroup(title=tr('Słownik i reguły'), description=tr(
             'Twoich słów sprawdzanie nie podkreśla, korekta zostawia ich pisownię, a dyktowanie lepiej je rozpoznaje.'))
+        self.dictionary_group = group
         self.vocabulary_row = Adw.EntryRow(title=tr('Własne słowa: imiona, nazwy i żargon, po przecinku'), use_markup=False,
                                            text=settings.dictation_vocabulary if isinstance(settings.dictation_vocabulary, str) else '',
                                            show_apply_button=True)

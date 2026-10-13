@@ -171,7 +171,7 @@ class DictationFlow(FreshIds):
 
     def test_refusals_at_the_start(self):
         for armed, expected in ((dict(enabled=False), []), (dict(app_off=True), []),
-                                (dict(ready=False), [dictate.message('no_model', seconds=5)])):
+                                (dict(ready=False), [dictate.message('no_model', seconds=5), dictate.PointTo('speech')])):
             with self.subTest(armed=armed):
                 d, effects = self.start(**armed)
                 self.assertEqual(effects, expected)
