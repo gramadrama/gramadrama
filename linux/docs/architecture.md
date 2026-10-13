@@ -268,7 +268,7 @@ the engine falls back to the IBus popup.
 | `Marks(s view)` | `→ b shown` | yes | draw or remove underlines ([Underline view](#underline-view)) |
 | signal `Action` | `(u session, s action)` | | a click on the panel, the badge or the underline card ([Actions](#actions)); broadcast from gnome-shell's connection |
 | signal `Focus` | `(s app, s kind)` | | the focused app ([Focus](#focus)); unicast to the subscriber only |
-| signal `Edit` | `(u session, s kind, s data)` | | about the result being edited ([Edit](#edit)); broadcast from gnome-shell's connection |
+| signal `Edit` | `(u session, s kind, s data)` | | about the result being edited ([Edit](#edit)); only to the bus name that showed the view (unicast) |
 
 Errors:
 
@@ -298,6 +298,7 @@ members only when they exist:
 | 14 | `waiting` in the dictation pill view: the microphone is open but has given no audio yet |
 | 16 | a failed correction's title, sentence and buttons (`problem`, the `problem:<action>` actions); Enter does its first button; `retrying` |
 | 18 | `note` in the live badge view: the „!” of Model only checking |
+| 19 | `Edit` goes only to the engine that showed the session, and names the session of the view being drawn (it was broadcast, and a report made while a new view was drawn named the previous session) |
 
 A change to the contract bumps `version` in `metadata.json`, and the engine gates the new calls on
 it.
@@ -392,7 +393,9 @@ the ID is logged and stored in `apps.json`. What the app IDs are used for: [apps
 ### Edit
 
 `Edit(session, kind, data)` reports about the result being edited. It is emitted only while the
-session panel is on screen and is never logged.
+session panel is on screen, only to the bus name that showed that view (unicast: a paste carries the user's text,
+so no other process on the bus may receive it), and is never logged. `session` is the view's own, also for a report
+made while a new view is drawn.
 
 | `kind` | `data` | When |
 |---|---|---|

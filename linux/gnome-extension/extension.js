@@ -12,6 +12,8 @@
 // Only GNOME Shell knows which app has focus (every Wayland app reaches IBus as `gnome-shell`), and
 // the engine decides about Ctrl+Alt+G synchronously, so the focused app is pushed to it: the Focus
 // signal goes to the single subscriber only (unicast), never to the rest of the bus (docs/apps.md).
+// Edit, which carries the user's text (a paste into the result being edited), goes only to the engine that
+// showed the session.
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
@@ -169,6 +171,7 @@ export default class GramaDramaExtension extends Extension {
         this._callers = new Map(); // unique bus name -> Promise<boolean> (caller check)
         this._current = null; // {session, sender, kind} of the last Show that reached the screen
         this._view = null; // the session view on screen (Kopiuj copies its text)
+        this._viewSender = null; // the unique bus name that showed it: the only receiver of Edit
         this._placed = null;
         this._caret = null;
         this._ibusFocus = {in: 0, out: 0};
@@ -187,6 +190,7 @@ export default class GramaDramaExtension extends Extension {
         this._subscriber = null; // unique bus name of the engine that receives Focus
         this._subscriberWatchId = 0;
         this._focusSent = []; // test mode: the last Focus signals and where they went
+        this._editSent = []; // test mode: the last Edit signals (kind and session only) and where they went
 
         const icon = name => new Gio.FileIcon({file: this.dir.resolve_relative_path(`icons/${name}`)});
         // The neutral two-mask logo per variant: filled once a result is there, an outline while working.
@@ -290,7 +294,7 @@ export default class GramaDramaExtension extends Extension {
         this._underlines?.destroy();
         this._panel = this._toast = this._hud = this._live = this._underlines = null;
         this._callers = null;
-        this._current = this._view = this._placed = this._caret = null;
+        this._current = this._view = this._viewSender = this._placed = this._caret = null;
     }
 
     _actorsGone() {
@@ -569,12 +573,25 @@ export default class GramaDramaExtension extends Extension {
         this._emit(current.session, action);
     }
 
-    /** The panel's report about the result being edited ('lines': JSON of its visual lines' start offsets). */
+    /**
+     * The panel's report about the result being edited ('lines': JSON of its visual lines' start offsets; 'paste': the
+     * clipboard's text). Unicast: the text is the user's, so only the engine that showed the view gets it. The session
+     * is the view's own: the panel may report while it draws a new view, before that Show is done.
+     */
     _onEdit(kind, data) {
-        const current = this._current;
-        if (!this._alive || !this._dbus || !current || current.kind !== 'session' || !this._panel.actor.visible)
+        const view = this._view, to = this._viewSender;
+        if (!this._alive || !view || !to || !this._panel.actor.visible)
             return;
-        this._dbus.emit_signal('Edit', new GLib.Variant('(uss)', [current.session, kind, data]));
+        try {
+            Gio.DBus.session.emit_signal(to, OBJECT_PATH, IFACE, 'Edit', new GLib.Variant('(uss)', [view.session, kind, data]));
+        } catch (e) {
+            console.debug(`GramaDrama: Edit to ${to} not sent: ${e.message}`);
+            return;
+        }
+        if (TEST_MODE) {
+            this._editSent.push({kind, session: view.session, to});
+            this._editSent.splice(0, this._editSent.length - 50);
+        }
     }
 
     _emit(session, action) {
@@ -612,13 +629,14 @@ export default class GramaDramaExtension extends Extension {
         if (view.kind === 'message') {
             // A toast (refusal, "Zastosowano") replaces the panel, also for the same session.
             this._panel.hide();
-            this._view = null;
+            this._view = this._viewSender = null;
             this._toast.render(view);
             actor = this._toast.actor;
         } else {
             this._stopToastTimer();
             this._toast.hide();
             this._view = view;
+            this._viewSender = sender;
             this._panel.render(view);
             actor = this._panel.actor;
         }
@@ -653,7 +671,7 @@ export default class GramaDramaExtension extends Extension {
         this._stopToastTimer();
         this._panel.hide();
         this._toast.hide();
-        this._view = null;
+        this._view = this._viewSender = null;
         this._unwatch();
         if (hidSession)
             this._emit(current.session, 'hidden');
@@ -1004,6 +1022,7 @@ export default class GramaDramaExtension extends Extension {
             following: this._focusIds.length > 0,
             subscriber: this._subscriber,
             focusSent: this._focusSent.slice(-20),
+            editSent: this._editSent.slice(-20),
         };
         if (!this._alive) { // the actors are gone: report without touching them
             return {alive: false, version: this.version, testMode: TEST_MODE, watching: this._watched,

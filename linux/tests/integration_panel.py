@@ -168,7 +168,7 @@ FAKE_ENGINE = r'''#!/usr/bin/python3
 The test starts it with the command line it wants (GD_FAKE_NAME and GD_FAKE_LOG set; its parent is
 then the harness's ctl.py), or ibus-daemon starts it from the session's IBus component exactly like
 the real engine: then it is named 'ibus', logs next to itself and registers a do-nothing engine
-factory, so the engine switch completes. It logs every Action and Focus signal of pl.gramadrama.Panel1
+factory, so the engine switch completes. It logs every Action, Focus and Edit signal of pl.gramadrama.Panel1
 (subscribed like the engine's PanelClient: sender org.gnome.Shell) as JSONL, and forwards
 Ping/Show/Hide/Subscribe from its own bus connection on request (UniqueName returns its own name):
 pl.gramadrama.TestEngine.<NAME> /pl/gramadrama/TestEngine Call(method, json args) -> json."""
@@ -183,6 +183,7 @@ BY_IBUS = 'GD_FAKE_NAME' not in os.environ
 NAME = os.environ.get('GD_FAKE_NAME', 'ibus')
 LOG = os.environ.get('GD_FAKE_LOG') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'actions-ibus.jsonl')
 FOCUS_LOG = os.path.splitext(LOG)[0] + '-focus.jsonl'
+EDIT_LOG = os.path.splitext(LOG)[0] + '-edit.jsonl'
 DEST, PATH, IFACE = 'org.gnome.Shell', '/pl/gramadrama/Panel', 'pl.gramadrama.Panel1'
 XML = """<node><interface name="pl.gramadrama.TestEngine">
 <method name="Call"><arg type="s" direction="in"/><arg type="s" direction="in"/><arg type="s" direction="out"/></method>
@@ -192,6 +193,7 @@ SIGNATURES = {'Ping': (None, '(s)'), 'Show': ('(s)', '(b)'), 'Hide': ('(u)', Non
 conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 log = open(LOG, 'a', buffering=1, encoding='utf-8')
 focus_log = open(FOCUS_LOG, 'a', buffering=1, encoding='utf-8')
+edit_log = open(EDIT_LOG, 'a', buffering=1, encoding='utf-8')
 
 
 def on_action(_conn, sender, path, iface, signal, params):
@@ -206,6 +208,14 @@ def on_focus(_conn, sender, path, iface, signal, params):
 
 conn.signal_subscribe(DEST, IFACE, 'Action', PATH, None, Gio.DBusSignalFlags.NONE, on_action)
 conn.signal_subscribe(DEST, IFACE, 'Focus', PATH, None, Gio.DBusSignalFlags.NONE, on_focus)
+
+
+def on_edit(_conn, sender, path, iface, signal, params):
+    session, kind, data = params.unpack()
+    edit_log.write(json.dumps({'t': time.time(), 'session': session, 'kind': kind, 'data': data, 'sender': sender}) + '\n')
+
+
+conn.signal_subscribe(DEST, IFACE, 'Edit', PATH, None, Gio.DBusSignalFlags.NONE, on_edit)
 
 
 def on_call(_conn, sender, path, iface, method, params, invocation):
@@ -256,6 +266,7 @@ class FakeEngine:
         folder = os.path.join(s.work, 'fake')
         self.log = log or os.path.join(folder, 'actions-%s.jsonl' % name)
         self.focus_log = os.path.splitext(self.log)[0] + '-focus.jsonl'
+        self.edit_log = os.path.splitext(self.log)[0] + '-edit.jsonl'
         self.bus_name = 'pl.gramadrama.TestEngine.' + name
         self.proc = None
         if spawn:
@@ -292,6 +303,10 @@ class FakeEngine:
     def focus(self):
         """Focus signals received: [{'app', 'kind', 'sender', 't'}]."""
         return self._read(self.focus_log)
+
+    def edit(self):
+        """Edit signals received: [{'session', 'kind', 'data', 'sender', 't'}]."""
+        return self._read(self.edit_log)
 
     def unique_name(self):
         return self.call('UniqueName', [])['value'][0]
@@ -1563,6 +1578,47 @@ def t_focus(rig):
     check(rig.listener.focus() == [], 'the listener never got Focus', rig.listener.focus()[:3])
 
 
+def t_edit_unicast(rig):
+    """Edit (docs/architecture.md, Edit) carries the user's text: a paste into the result being edited sends the
+    clipboard's text. It goes only to the engine that showed the view, never to the rest of the bus, and names the
+    session of the view being drawn, also when a new view replaces one on screen (its lines are reported while it is
+    drawn, before that Show is done)."""
+    s = rig.s
+    secret = 'Tajne zdanie ze schowka, 42.'
+    rig.caret_to(20)
+    rig.set_clipboard(secret)
+    eng = FakeEngine(s, 'edit')
+    name = eng.unique_name()
+    sent = len(rig.state()['editSent'])
+
+    def show(v):
+        check(eng.call('Show', [json.dumps(v)]) == {'ok': True, 'value': [True]}, 'Show from the stand-in', v['session'])
+
+    def got(kind, sid):
+        return wait_until(lambda: [e for e in eng.edit() if e['kind'] == kind and e['session'] == sid], 5,
+                          what='Edit %s of session %d at the engine that showed it' % (kind, sid))
+    try:
+        first = rig.next_id()
+        show(view(first, editable=True, text=SRC, segments=[['same', SRC]], changes=[], count=0,
+                  editing={'cursor': 0, 'anchor': 0, 'paste': 1}))
+        paste = got('paste', first)[-1]
+        check(json.loads(paste['data']) == {'id': 1, 'text': secret}, 'the clipboard text reached the engine',
+              paste['data'])
+        got('lines', first)
+        # a new view while the panel is up: its lines name its own session
+        second = rig.next_id()
+        show(view(second, editable=True, editing={'cursor': 0, 'anchor': 0, 'paste': 2}))
+        got('lines', second)
+        got('paste', second)
+        # Unicast: the listener subscribes to the signal like any process could, and gets nothing.
+        check(rig.listener.edit() == [], 'Edit reached a process that did not show the view', rig.listener.edit()[:3])
+        check({e['to'] for e in rig.state()['editSent'][sent:]} == {name}, 'every Edit went to the engine that showed it',
+              rig.state()['editSent'][sent:])
+    finally:
+        rig.hide(0)
+        eng.kill()
+
+
 # A Subscribe handled while disable() and enable() run, as GNOME Shell calls them directly when it
 # re-orders extensions: the caller check (asynchronous, even in test mode) ends after both.
 SUBSCRIBE_ACROSS_ENABLE_JS = """(uuid => { const ext = gdMain.extensionManager.lookup(uuid).stateObj;
@@ -2162,7 +2218,7 @@ PANEL_TESTS = [('ping', t_ping), ('testmode', t_testmode), ('states', t_states),
                ('stale', t_stale), ('toast', t_toast), ('hud', t_hud), ('live', t_live), ('live_checking', t_live_checking), ('live_lava', t_live_lava), ('live_note', t_live_note),
                ('marks', t_marks),
                ('invalid', t_invalid), ('oversized', t_oversized),
-               ('vanish', t_vanish), ('focus', t_focus), ('osk', t_osk), ('no_monitor', t_no_monitor),
+               ('vanish', t_vanish), ('focus', t_focus), ('edit_unicast', t_edit_unicast), ('osk', t_osk), ('no_monitor', t_no_monitor),
                ('enable_failure', t_enable_failure), ('shutdown', t_shutdown), ('cycle', t_cycle),
                ('screenshots', t_screenshots), ('site_anim', t_site_anim)]
 
