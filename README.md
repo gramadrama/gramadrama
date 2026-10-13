@@ -209,3 +209,6 @@ GramaDrama is licensed under **GPL-3.0-or-later**: the GNU General Public Licens
 or, at your option, any later version. The full license text is in [LICENSE](LICENSE).
 Dependencies, services and models have their own terms ([list](THIRD_PARTY.md)). Model weights are not
 part of the repository; you download them and check their license yourself.
+
+The license covers the code, not the name and the logo. You may use them to refer to this project; a modified
+version that you distribute needs another name and logo, so that people can tell it from the original.

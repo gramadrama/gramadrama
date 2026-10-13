@@ -1,6 +1,6 @@
 # Preparing the open-source release
 
-As of **2026-10-12**. The first release covers Linux (Ubuntu 26.04, GNOME 50, Wayland).
+As of **2026-10-14**. The first release covers Linux (Ubuntu 26.04, GNOME 50, Wayland).
 The project lets you choose your own services and change the prompts; a ready-made hosted service is a possible later stage.
 
 ## Gate status
@@ -8,7 +8,7 @@ The project lets you choose your own services and change the prompts; a ready-ma
 | Gate | Status | What remains |
 |---|---|---|
 | G1. Rights and licence | GPL-3.0-or-later in `LICENSE`, dependencies in `THIRD_PARTY.md` | keep the list current when dependencies change |
-| G2. Repository privacy | clean history since 2026-10-12 (a reviewed export, images checked by eye); checks in CI and in local hooks | make the repository public |
+| G2. Repository privacy | public since 2026-10-14; clean history since 2026-10-12 (a reviewed export, images checked by eye); checks in CI and in local hooks | keep reviewing every new image, archive and attachment by eye |
 | G3. Independent backends | **deliberately postponed** | separate validation of at least three backends; does not block the current clean-up work |
 | G4. Self-service installation | installer and guide available | clean Ubuntu, test by someone outside the project, installation/update/removal |
 | G5. Editable prompts | **implemented on Linux and macOS** (the same files; variant benchmark on Linux only) | maintain the tests and documentation |
@@ -27,7 +27,8 @@ checks the version prepared for the commit. Scope and limits are described in
 [repository protection](repository-privacy.md).
 
 This repository started on 2026-10-12 from a reviewed export of the earlier development repository, with
-a new history; the exported images were checked by eye. Removing text from the current files does not remove it
+a new history; the exported images were checked by eye. Before it was made public on 2026-10-14, every commit
+of every branch and every commit message was checked again with the current scanner. Removing text from the current files does not remove it
 from older commits, so the hooks check every commit and its message before it leaves the computer. Text scans
 are complemented by a manual review of images, archives, attachments and every new file.
 

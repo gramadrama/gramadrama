@@ -61,6 +61,7 @@ Changes to the formats and to the extension protocol need to be checked on both 
 Do not write user content or credentials to logs. Use synthetic data in tests;
 do not copy working sessions or dumps of a real configuration.
 
-The project is licensed under GPL-3.0-or-later ([LICENSE](LICENSE)).
+The project is licensed under GPL-3.0-or-later ([LICENSE](LICENSE)); contributions are accepted under the same
+licence. The name and the logo are not covered by it ([License](README.md#license)).
 Dependency licences are listed in [THIRD_PARTY.md](THIRD_PARTY.md). Propose new dependencies together with
 their licence and how they are distributed, and update the list in the same change.
