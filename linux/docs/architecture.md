@@ -399,7 +399,7 @@ made while a new view is drawn.
 
 | `kind` | `data` | When |
 |---|---|---|
-| `lines` | JSON array of the code-point offsets where the visual lines of the edited text start; the first is `0` | whenever the edited text or its wrapping changes; the engine uses it for Up, Down, Home and End |
+| `lines` | JSON array of the code-point offsets where the visual lines of the edited text start; the first is `0` | whenever the edited text or its wrapping changes, and when an edited view comes on screen (a new session after `Hide`); the engine uses it for Up, Down, Home and End |
 | `paste` | JSON `{"id": <int>, "text": <string>}`, the clipboard's text (`""` when empty) | once per `editing.paste` id, in answer to Ctrl+V |
 
 The engine ignores other kinds, another session id, `lines` data over 120 000 characters or over

@@ -1619,6 +1619,34 @@ def t_edit_unicast(rig):
         eng.kill()
 
 
+def t_edit_lines_reshow(rig):
+    """Edit 'lines' of a view drawn while the panel is hidden (a new session after Hide): the panel reports them once
+    it is on screen, also when the text takes the same space as the one before, so nothing is laid out anew."""
+    s = rig.s
+    rig.caret_to(20)
+    eng = FakeEngine(s, 'lines')
+
+    def show(sid):
+        check(eng.call('Show', [json.dumps(view(sid, editable=True, editing={'cursor': 0, 'anchor': 0}))]) ==
+              {'ok': True, 'value': [True]}, 'Show from the stand-in', sid)
+
+    def lines(sid):
+        return [e for e in eng.edit() if e['kind'] == 'lines' and e['session'] == sid]
+    try:
+        first = rig.next_id()
+        show(first)
+        wait_until(lambda: lines(first), 5, what='the lines of the first view')
+        rig.hide(0)
+        second = rig.next_id()
+        show(second)  # the same text, so the same space
+        wait_until(lambda: lines(second), 5, what='the lines of a view shown again after Hide')
+        time.sleep(0.5)
+        check(len(lines(second)) == 1 and lines(second)[0]['data'] == lines(first)[0]['data'], 'once, the same lines',
+              lines(second), lines(first))
+    finally:
+        rig.hide(0)
+        eng.kill()
+
 # A Subscribe handled while disable() and enable() run, as GNOME Shell calls them directly when it
 # re-orders extensions: the caller check (asynchronous, even in test mode) ends after both.
 SUBSCRIBE_ACROSS_ENABLE_JS = """(uuid => { const ext = gdMain.extensionManager.lookup(uuid).stateObj;
@@ -2218,7 +2246,7 @@ PANEL_TESTS = [('ping', t_ping), ('testmode', t_testmode), ('states', t_states),
                ('stale', t_stale), ('toast', t_toast), ('hud', t_hud), ('live', t_live), ('live_checking', t_live_checking), ('live_lava', t_live_lava), ('live_note', t_live_note),
                ('marks', t_marks),
                ('invalid', t_invalid), ('oversized', t_oversized),
-               ('vanish', t_vanish), ('focus', t_focus), ('edit_unicast', t_edit_unicast), ('osk', t_osk), ('no_monitor', t_no_monitor),
+               ('vanish', t_vanish), ('focus', t_focus), ('edit_unicast', t_edit_unicast), ('edit_lines_reshow', t_edit_lines_reshow), ('osk', t_osk), ('no_monitor', t_no_monitor),
                ('enable_failure', t_enable_failure), ('shutdown', t_shutdown), ('cycle', t_cycle),
                ('screenshots', t_screenshots), ('site_anim', t_site_anim)]
 

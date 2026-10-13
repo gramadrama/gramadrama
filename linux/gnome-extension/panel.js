@@ -465,6 +465,9 @@ export class Panel {
         textBox.add_child(stack);
         this._caretIdle = 0;
         this._text.clutter_text.connect('notify::allocation', () => this._queueCaret());
+        // A view drawn while the panel was hidden (a new session after Hide) is placed once the text is on screen: its
+        // allocation may not change at all when the text takes the same space as the one before.
+        this._text.connect('notify::mapped', () => this._queueCaret());
         this._text.reactive = true; // a click in the result edits it there (never key focus: only the pointer)
         this._text.connect('button-press-event', (_actor, event) => this._onTextClick(event));
         this._textScroll = this._scroll('gd-text-scroll', textBox);
@@ -824,7 +827,7 @@ export class Panel {
         }
     }
 
-    /** After a new allocation (the panel shown or laid out again), outside the allocation itself. */
+    /** After a new allocation (the panel laid out again) or once the text is on screen, outside the allocation itself. */
     _queueCaret() {
         if (this._caretIdle || !this._view?.editing)
             return;
