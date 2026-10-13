@@ -57,7 +57,13 @@ A configuration change invalidates earlier results.
 
 For Ollama, the requests of this mode have the model's thinking turned off, without changing the saved setting
 for the other features. A model error does not start a fallback check with LanguageTool
-or the dictionary. The 0.8 s pause sets when checking starts, not when the underlines appear:
+or the dictionary. The badge says why it shows nothing it might, as on macOS: an answer the code cannot use (empty,
+a changed link or code, another script, cut short) leaves only its own fragment unchecked, and the badge's list says
+„Zdania: N bez sprawdzenia — model zwrócił niepewną odpowiedź.” (*N sentences unchecked…*); when the server does not
+answer, the results found so far stay, checking pauses for a minute, and every field says
+„… nie odpowiada — sprawdzanie wstrzymane na minutę.” (*… is not responding — checking paused for a minute*).
+With no issues the badge is then a brick circle with „!”. A correction with the shortcut still fails as a whole on
+such an answer, with the panel's message. The 0.8 s pause sets when checking starts, not when the underlines appear:
 the result depends on the server, the model, the length of the text and whether the cache is hit.
 The model can miss an error or propose an unnecessary change, and splitting into fragments limits the context.
 Suggestions need to be reviewed before they are applied. The mode is an experiment in the Linux client.

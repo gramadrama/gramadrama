@@ -419,6 +419,11 @@
 .gd-live-message, .gd-live-more { font-size: 8.5pt; }
 .gd-dark .gd-live-message, .gd-dark .gd-live-more { color: #b9bdb8; }
 .gd-light .gd-live-message, .gd-light .gd-live-more { color: #6b6870; }
+/* Model only: the note on checking (paused, sentences unchecked), rose as the panel's error title */
+.gd-live-note { spacing: 6px; }
+.gd-live-note-text { font-size: 8.5pt; }
+.gd-dark .gd-live-note-text, .gd-dark .gd-live-note-icon { color: #f2a7ae; }
+.gd-light .gd-live-note-text, .gd-light .gd-live-note-icon { color: #9e3446; }
 
 /* The live check's underline card (underlines.js): under the word, as macOS IssueCard. */
 .gd-mark-card {

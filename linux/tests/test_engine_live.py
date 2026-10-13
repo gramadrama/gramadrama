@@ -227,6 +227,36 @@ class LiveFieldTests(unittest.TestCase):
                                               'checking': False})])
         self.assertEqual(f.result(1, []), [])  # hidden already
 
+    def test_a_note_keeps_the_badge_with_no_issues(self):
+        # Model only (extension version 18): the service's note shows the badge's „!” with no issues; it stays when an
+        # edit stops the checking, goes with the next result without it, and with another field.
+        note = 'Test-model nie odpowiada — sprawdzanie wstrzymane na minutę.'
+        f = LiveField(field())
+        f.update(True, False, False)
+        badge, = f.result(1, [], checking=False, note=note)
+        self.assertEqual((badge.view['count'], badge.view['note']), (0, note))
+        self.assertTrue(f.shown)
+        f.result(1, [], checking=True, note=note)
+        f.ctx.key_passed(ord('a'), 0)
+        badge, = f.update(True, False, False)
+        self.assertEqual((badge.view['checking'], badge.view['note']), (False, note))
+        f.ctx.surrounding(TEXT + 'a', len(TEXT) + 1, len(TEXT) + 1)
+        f.update(True, False, False)
+        badge, = f.result(1, [], checking=False)
+        self.assertNotIn('note', badge.view)
+        self.assertFalse(f.shown)
+        f.result(1, [], note='x' * 400)
+        self.assertEqual(len(f.note), live.MAX_NOTE)
+        self.assertEqual(f.result(1, [], note='  '), [Badge({'v': 1, 'count': 0, 'summary': '', 'issues': [], 'more': 0,
+                                                            'checking': False})])
+        f.result(1, [], note=note)
+        f.ctx.focus_in('gnome-shell')  # another field
+        f.ctx.set_caps(41)
+        f.ctx.key_passed(0xff53, 0)
+        f.ctx.surrounding('Inny.', 5, 5)
+        f.update(True, False, False)
+        self.assertIsNone(f.note)
+
     def test_a_fix_finds_the_word_again(self):
         ctx = field()
         f = LiveField(ctx)

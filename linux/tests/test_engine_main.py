@@ -592,10 +592,10 @@ class SharedCorrectionTests(unittest.TestCase):
         self.app.live_event({'ev': 'marks', 'field': 2, 'view': {}, 'revision': first})
         self.engine._call.assert_not_called()
         self.app.live_event({'ev': 'issues', 'field': 2, 'issues': [], 'checking': True, 'revision': current})
-        self.engine._call.assert_called_once_with('live', self.engine.logic.live_result, 2, [], True)
+        self.engine._call.assert_called_once_with('live', self.engine.logic.live_result, 2, [], True, None)
         self.engine._call.reset_mock()
         self.app.live_event({'ev': 'issues', 'field': 2, 'issues': [], 'checking': False})
-        self.engine._call.assert_called_once_with('live', self.engine.logic.live_result, 2, [], False)
+        self.engine._call.assert_called_once_with('live', self.engine.logic.live_result, 2, [], False, None)
 
 
 if __name__ == '__main__':

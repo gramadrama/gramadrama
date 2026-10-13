@@ -199,9 +199,9 @@ class BrowserLive:
         if self.field.issues:
             self._ask_rects()
 
-    def issues(self, field, issues, checking=False):
-        """The live service's visible issues for the text it was sent."""
-        self._run(self.field.result(field, issues, checking))
+    def issues(self, field, issues, checking=False, note=None):
+        """The live service's visible issues for the text it was sent, and its note (live.LiveField.result)."""
+        self._run(self.field.result(field, issues, checking, note))
         if self.field.issues:
             self._ask_rects()
 

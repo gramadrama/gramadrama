@@ -1210,6 +1210,50 @@ def t_live_lava(rig):
     check(not show(), 'animations off: nothing found')
     check(not live()['visible'], 'animations off: hidden at once', live())
 
+
+def t_live_note(rig):
+    """Model only (version 18, as on macOS): a note on checking with no issues is the brick circle's „!”, and the list
+    says it in rose, with nothing to fix; with issues the count stays and the note stands above them; a blank note is
+    none."""
+    rig.caret_to(20)
+    rig.pointer_away()
+    paused = 'Test-model nie odpowiada — sprawdzanie wstrzymane na minutę.'
+    unchecked = '1 zdanie bez sprawdzenia — model zwrócił niepewną odpowiedź.'
+
+    def show(**fields):
+        return rig.call('Live', '(s)', [json.dumps({'v': 1, 'count': 0, **fields})])[0]
+
+    def hover():
+        badge = wait_until(lambda: (lambda b: b['visible'] and b['width'] > 0 and b)(rig.state()['live']), 3,
+                           what='the badge laid out')
+        rig.s.pointer_to(badge['x'] + badge['width'] // 2, badge['y'] + badge['height'] // 2)
+        return wait_until(lambda: (lambda b: b['list'] and b)(rig.state()['live']), 3, what='the list')
+
+    before = rig.state()['variant']
+    for variant in ('dark', 'light'):
+        rig.scheme(variant)
+        check(show(note=paused), '%s: a note alone shows the badge' % variant)
+        badge = wait_until(lambda: (lambda b: b['visible'] and b['indicator'] == 'count' and b)(rig.state()['live']), 3,
+                           what='the „!”')
+        check(badge['count'] == '!' and badge['accessibleName'] == paused and not badge['spinner'], 'the „!”', badge)
+        badge = hover()
+        check(badge['note'] == paused and not badge['buttons'] and badge['open'] is None and badge['summary'] == '',
+              'the list says the note, nothing to fix', badge)
+        if rig.args.shots:
+            time.sleep(0.3)
+            rig.s.shot(os.path.join(rig.args.shots, 'live-note-%s.png' % variant), cursor=False)
+        rig.pointer_away()
+    rig.scheme(before)
+    issues = [{'id': 'live-note', 'word': 'Mysle', 'suggestions': ['Myślę'], 'message': 'Nieznane słowo',
+               'kind': 'spelling'}]
+    check(show(count=2, summary='2 błędy', issues=issues, note=unchecked), 'issues and a note')
+    badge = hover()
+    check(badge['count'] == '2' and badge['note'] == unchecked and [b['label'] for b in badge['buttons']] == ['Myślę']
+          and badge['open'] is not None, 'the count, the note above the issues', badge)
+    rig.pointer_away()
+    check(not show(note='   ') and not rig.state()['live']['visible'], 'a blank note is none')
+    check(show(note=paused) and not show() and not rig.state()['live']['visible'], 'no note any more: hidden')
+
 def t_marks(rig):
     """Marks (version 6, docs/live-check.md): the live check's wavy lines inside the focused window's actor,
     under the words (GTK4 counted from the frame, a browser's page from the client rect, anything else placed
@@ -1942,7 +1986,7 @@ PANEL_TESTS = [('ping', t_ping), ('testmode', t_testmode), ('states', t_states),
                ('escape', t_escape), ('updates', t_updates), ('caret_follow', t_caret_follow), ('above', t_above),
                ('window_fallback', t_window_fallback), ('buttons', t_buttons), ('problem', t_problem), ('copy', t_copy),
                ('hide', t_hide),
-               ('stale', t_stale), ('toast', t_toast), ('hud', t_hud), ('live', t_live), ('live_checking', t_live_checking), ('live_lava', t_live_lava),
+               ('stale', t_stale), ('toast', t_toast), ('hud', t_hud), ('live', t_live), ('live_checking', t_live_checking), ('live_lava', t_live_lava), ('live_note', t_live_note),
                ('marks', t_marks),
                ('invalid', t_invalid), ('oversized', t_oversized),
                ('vanish', t_vanish), ('focus', t_focus), ('osk', t_osk), ('no_monitor', t_no_monitor),

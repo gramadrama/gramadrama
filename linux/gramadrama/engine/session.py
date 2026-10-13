@@ -1158,10 +1158,10 @@ class EngineLogic:
         busy = self.session.state != IDLE or self.dictation.shown
         return self.live.update(enabled, app_off, busy=busy) + self.session.edit_check(enabled)
 
-    def live_result(self, field, issues, checking=False):
+    def live_result(self, field, issues, checking=False, note=None):
         if self.session.editing is not None and field == self.session.edit_field:
             return self.session.edit_found(issues, checking)
-        return self.live.result(field, issues, checking)
+        return self.live.result(field, issues, checking, note)
 
     def live_marks(self, field, caret, length, view):
         return self.live.marks(field, caret, length, view)

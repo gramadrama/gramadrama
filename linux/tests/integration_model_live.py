@@ -52,6 +52,32 @@ def main():
                 run.e.wait(lambda event: event['ev'] == 'verified' and event.get('outcome') == 'ok',
                            before_apply, 5, 'shared result applied safely')
                 print('PASS model_live_' + ('cached' if ready_first else 'inflight'), flush=True)
+            # As on macOS: an answer the code cannot use leaves only its sentence unchecked, and with nothing else found
+            # the badge is a „!” that says why; a server that fails pauses checking for a minute, which the badge says.
+            def empty_for_pies(request):
+                content = request['messages'][-1]['content']
+                fragment = content.split('<<<TEKST>>>\n', 1)[1].rsplit('\n<<<KONIEC TEKSTU>>>', 1)[0]
+                return stream('' if 'Pies' in fragment else fragment, pieces=1)
+
+            stub.reply = empty_for_pies
+            mark = run.e.mark()
+            run.gtk_field(win, 'tv', 'Pies spi.', 9)
+            run.e.wait(lambda event: event['ev'] == 'live_model' and event.get('rejected') == 1, mark, 10,
+                       'the unusable answer')
+            state = wait_panel(run, lambda state: state['live']['visible'] and state['live']['count'] == '!',
+                               'the „!” of an unchecked sentence', timeout=5)
+            check(state['live']['accessibleName'] == '1 zdanie bez sprawdzenia — model zwrócił niepewną odpowiedź.',
+                  'the note of an unchecked sentence', state['live'])
+            print('PASS model_live_unchecked', flush=True)
+            stub.chat_status = 500
+            mark = run.e.mark()
+            run.gtk_field(win, 'tv', 'Kot ma domm.', 12)
+            run.e.wait(lambda event: event['ev'] == 'live_model_failed', mark, 10, 'the failing server')
+            state = wait_panel(run, lambda state: state['live']['visible'] and state['live']['count'] == '!'
+                               and state['live']['accessibleName'].endswith('nie odpowiada — sprawdzanie wstrzymane na minutę.'),
+                               'the „!” of the pause', timeout=5)
+            stub.chat_status = 200
+            print('PASS model_live_paused', flush=True)
             check(not any(path == '/v2/check' for path, _ in stub.requests),
                   'experimental corrections queried LanguageTool')
             check(not log_leaks(s.env['GRAMADRAMA_ENGINE_LOG'], ['domm', 'testt', '<<<TEKST>>>']),

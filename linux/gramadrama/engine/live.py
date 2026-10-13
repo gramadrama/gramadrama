@@ -16,6 +16,7 @@ from . import plan
 from .context import CONFIRMS, TERMINAL, ConfirmCaret
 
 MAX_SHOWN = 5  # issues in the badge's list (macOS: the first five, then "i N więcej")
+MAX_NOTE = 300  # characters of the service's note on its checking (the extension cuts it there too)
 REACH = 200  # how far a word may have moved since it was checked
 # One numbering for the whole engine process, as dictate.IDS: the one live service answers every engine
 # object (input context), so a late answer about another object's field must never pass for this one's.
@@ -106,6 +107,7 @@ class LiveField:
         self.shown = True  # not known at first: another engine object's badge may be up
         self.marked = False  # underlines are drawn
         self.checking = False  # the service is working, including when there are no issues yet
+        self.note = None  # Model only: the service's note on its checking (paused, sentences unchecked), with the issues
         self.asked = None  # the field's version AT-SPI was last asked about: once per doubted state
         self.confirming = None  # (ConfirmCaret id, field version) of that question
 
@@ -130,7 +132,7 @@ class LiveField:
             return []
         if self.sent is None or self.sent[0] != ctx.focus_gen or self.sent[1] != base:
             self.field = next(self.fields)  # another field, or the paragraph moved: the old issues mean nothing
-            self.issues = []
+            self.issues, self.note = [], None
         effects = self.stop_checking() if self.sent is None or self.sent[:3] != key[:3] else []
         self.sent, self.base = key, base
         return effects + [Check(self.field, text, caret)]
@@ -162,28 +164,32 @@ class LiveField:
         if self.marked:
             effects.append(Marks({'v': 1, 'marks': []}))
         self.sent, self.issues, self.shown, self.marked = None, [], False, False
-        self.checking = False
+        self.checking, self.note = False, None
         return effects
 
     def stop_checking(self):
         """An edit invalidates the old in-flight status before the new service reply arrives."""
         if not self.checking:
             return []
-        return self.result(self.field, self.issues, checking=False)
+        return self.result(self.field, self.issues, checking=False, note=self.note)
 
-    def result(self, field, issues, checking=False):
-        """The service's visible issues for the text it was sent."""
+    def result(self, field, issues, checking=False, note=None):
+        """The service's visible issues for the text it was sent. note: Model only, why checking finds nothing it may
+        (the badge's "!" without issues, extension version 18)."""
         if field != self.field or self.sent is None:
             return []
         self.issues = [i for i in issues if isinstance(i, dict)]
         self.checking = checking is True and (self.ctx is None or (self.ctx.fresh and not self.ctx.awaiting_update))
-        if not self.issues and not self.shown and not self.checking:
+        self.note = note[:MAX_NOTE] if isinstance(note, str) and note.strip() else None
+        if not self.issues and not self.shown and not self.checking and not self.note:
             return []
-        self.shown = bool(self.issues) or self.checking
+        self.shown = bool(self.issues) or self.checking or bool(self.note)
         view = {'v': 1, 'count': len(self.issues), 'summary': summary(len(self.issues)) if self.issues else '',
                 'issues': [{k: i.get(k) for k in ('id', 'word', 'suggestions', 'message', 'kind', 'source')}
                            for i in self.issues[:MAX_SHOWN]], 'more': max(0, len(self.issues) - MAX_SHOWN)}
         view['checking'] = self.checking
+        if self.note:
+            view['note'] = self.note
         return [Badge(view)]
 
     def marks(self, field, caret, length, view):

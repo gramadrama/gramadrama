@@ -605,7 +605,7 @@ class BrowserLiveLink:
         if event.get('ev') == 'died':
             self.logic._run(self.logic.field.clear())  # hide a spinner; the next read starts a new service
         elif event.get('ev') == 'issues' and isinstance(event.get('issues'), list):
-            self.logic.issues(event.get('field'), event['issues'], event.get('checking') is True)
+            self.logic.issues(event.get('field'), event['issues'], event.get('checking') is True, event.get('note'))
 
     def close(self):
         if self.timer:
@@ -843,7 +843,8 @@ class App:
             self.log('live_died')
             engine._run(engine.logic.live.clear())  # stops loading too; the next change restarts checking
         elif kind == 'issues' and isinstance(event.get('issues'), list):
-            engine._call('live', engine.logic.live_result, event.get('field'), event['issues'], event.get('checking') is True)
+            engine._call('live', engine.logic.live_result, event.get('field'), event['issues'], event.get('checking') is True,
+                         event.get('note'))
         elif kind == 'marks':
             engine._call('live', engine.logic.live_marks, event.get('field'), event.get('caret'), event.get('length'),
                          event.get('view'))

@@ -90,6 +90,21 @@ def backend(current, llm=True):
         return None
 
 
+def paused_note(current):
+    """Model only, after a failure of the server (BACKOFF): why nothing is checked for a minute (macOS
+    LiveMonitor.modelOnlyPausedNote)."""
+    return tr('{model} nie odpowiada — sprawdzanie wstrzymane na minutę.', model=core.display_name(current.model))
+
+
+def unchecked_note(rejected):
+    """Model only: how many sentences got an unusable answer (model_live.REJECTED) and stay unchecked; None for none."""
+    if not rejected:
+        return None
+    if rejected == 1:
+        return tr('1 zdanie bez sprawdzenia — model zwrócił niepewną odpowiedź.')
+    return tr('Zdania: {count} bez sprawdzenia — model zwrócił niepewną odpowiedź.', count=rejected)
+
+
 def profile(current):
     """Opaque RAM cache identity; never log endpoints, credentials or text."""
     fields = ('live_check', 'live_model_only', 'live_languagetool', 'live_bielik', 'dictation_vocabulary',
@@ -245,6 +260,7 @@ class Monitor:
         self.cache = {}  # text -> Bielik's issues
         self.fragments = model_live.FragmentChecker()
         self.backoff_until = 0.0
+        self.note = None  # Model only: why the field shows no issues it may have (paused, sentences unchecked; macOS)
         self.bielik_cancel = None
         self.checks_in_progress = set()  # request tokens for the current text version only
         self.model_lock = threading.Lock()  # live and manual calls share one serial model worker
@@ -271,6 +287,7 @@ class Monitor:
         self.quick = self.lt = self.bielik = []
         self.cache.clear()
         self.backoff_until = 0.0
+        self.note = None
         self.pending = self.text is not None
         if self.bielik_cancel is not None:
             self.bielik_cancel.set()
@@ -315,6 +332,7 @@ class Monitor:
             if field != self.field or panel != self.panel:
                 self.panel = panel
                 self.quick = self.lt = self.bielik = []
+                self.note = None  # another field: a pause still in force says so again at its check
                 self.sent = None
             elif text != self.text:
                 self.quick, self.lt, self.bielik = (L.shift(x, self.text, text) for x in (self.quick, self.lt, self.bielik))
@@ -339,6 +357,7 @@ class Monitor:
             self.field = self.text = self.caret = None
             self.revision = None
             self.quick = self.lt = self.bielik = []
+            self.note = None
             self.version += 1
             self.changed_at = time.monotonic()
             self.checks_in_progress.clear()
@@ -522,12 +541,14 @@ class Monitor:
                         'source': tr('słownik') if i.source == 'słownik' else i.source, 'rule': i.rule,
                         'kind': i.kind, 'rule_off': i.can_turn_off} for i in issues]
             checking = bool(self.checks_in_progress) and text is not None and self.enabled and not self.stopped
-            key = (field, self.revision, json.dumps(visible, sort_keys=True), checking)
+            note = self.note if self.model_only and not self.panel and text is not None and self.enabled else None
+            key = (field, self.revision, json.dumps(visible, sort_keys=True), checking, note)
             if key != self.sent:
                 self.sent = key
                 self.visible = visible
                 locale = interface_language(self.languages[0])
                 emit(ev='issues', field=field, issues=visible, checking=checking,
+                     **({'note': note} if note else {}),
                      **({'revision': self.revision} if self.revision is not None else {}),
                      **({'ui_language': locale} if locale != 'pl' else {}))
                 self.lock.notify_all()  # the marker draws them
@@ -739,19 +760,33 @@ class Monitor:
         self._send()
 
     def _model_failed(self, version, current, cancel, event, text, exc):
+        """A model check failed: no model checks for BACKOFF. True when this failure started that pause."""
         identity = profile(current)
         if identity != profile(settings()):
-            return
+            return False
         with self.lock:
             # A failed request from the previous mode must not back off its replacement.
             if cancel.is_set() or version != self.version or self.stopped or self.profile != identity:
-                return
+                return False
             self.backoff_until = time.monotonic() + BACKOFF
             emit(ev='log', event=event, chars=len(text), why=core.error_kind(exc))
+        return True
+
+    def _noted(self, version, note, send=True):
+        """Model only: the field's note (paused_note, unchecked_note), shown with its issues; send=False when the end
+        of a running check sends it anyway."""
+        with self.lock:
+            if version != self.version or self.stopped:
+                return
+            self.note = note
+        if send:
+            self._send()
 
     def _model_only(self, version, field, text, current):
-        if (not core.model_server(current)[0] or not text.strip() or '\ufffc' in text
-                or time.monotonic() < self.backoff_until):
+        if not core.model_server(current)[0] or not text.strip() or '\ufffc' in text:
+            return
+        if time.monotonic() < self.backoff_until:
+            self._noted(version, paused_note(current))  # every field in the pause says why it shows nothing (macOS)
             return
         # This route has no dependency on LT, including validation of its unused address.
         server = backend(dataclasses.replace(current, llm_think='off',
@@ -785,14 +820,16 @@ class Monitor:
                         self.bielik_cancel = cancel
                         self.active_model = (identity, text, cancel, version)
                     try:
-                        result = self.fragments.check(text, correct, identity, cancel)
+                        result = self.fragments.check(text, correct, identity, cancel, tolerate=True)
                     finally:
                         with self.lock:
                             self.active_model = None
             except core.Cancelled:
                 return
             except core.BackendError as exc:
-                self._model_failed(version, current, cancel, 'live_model_failed', text, exc)
+                if self._model_failed(version, current, cancel, 'live_model_failed', text, exc):
+                    # the issues found before stay, as on macOS; the check's end (finally) sends the note
+                    self._noted(version, paused_note(current), send=token is None)
                 return
             if cancel.is_set() or identity != profile(settings()):
                 return
@@ -800,9 +837,10 @@ class Monitor:
                 if version != self.version or self.stopped:
                     return
                 self.bielik = result.issues
+                self.note = unchecked_note(result.rejected)
             emit(ev='log', event='live_model', chars=len(text), issues=len(result.issues),
                  fragments=result.fragments, cache_hits=result.cache_hits, model_calls=result.model_calls,
-                 ms=int((time.monotonic() - started) * 1000))
+                 rejected=result.rejected, ms=int((time.monotonic() - started) * 1000))
         finally:
             self._finish_checking(token)
         self._send()

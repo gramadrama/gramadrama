@@ -8,6 +8,8 @@
 //
 //   hover the badge     the list: the word with the app's wave, its suggestions as buttons, the reason;
 //                       its header's "Popraw…" does what the badge's click does
+//   the view's note     Model only (version 18): why checking finds nothing it may (the model does not answer,
+//                       sentences unchecked); with no issues the circle says „!”, and the list says the note
 //   click a suggestion  Action(0, 'live:fix:<issue id>:<n>'): the engine fixes that word
 //   click the badge     Action(0, 'live:open'): Ctrl+Alt+G
 //
@@ -31,6 +33,11 @@ const LAVENDER = {dark: Lava.rgb('#BCB0EC'), light: Lava.rgb('#66579E')};
 const BRICK = Lava.rgb('#AD4E2C');
 const BRICK_HOVER = Lava.rgb('#9A4426');
 const BREATH_MS = 1400; // a known count breathes this slowly while a new check runs
+// What the circle says: a count, or NOTE, the „!” of a note with no issues (macOS Lava.swift); „!” has the one-digit
+// circle's shape.
+const NOTE = -1;
+const circleText = value => value === NOTE ? '!' : value ? Lava.countText(value) : '';
+const circleSize = value => value === NOTE ? 1 : value;
 
 // Brick #D07A52 (branding/BRAND.md): the wave under a word the check found, here and in the underline card, the same
 // as the underline drawn in the app (underlines.js).
@@ -120,7 +127,7 @@ export function parseLive(json) {
     // field: the field's visible box in the window's client coordinates (from: 'client', a browser's page).
     const field = box(raw.field);
     return {ui_language: uiLanguage(raw.ui_language), count: raw.count, checking: raw.checking === true,
-        summary: text(raw.summary, 40), issues,
+        summary: text(raw.summary, 40), issues, note: text(raw.note, 300).trim(),
         more: Number.isInteger(raw.more) && raw.more > 0 ? raw.more : 0,
         field: field && field[2] > 0 && field[3] > 0 && raw.from === 'client' ? field : null};
 }
@@ -210,7 +217,8 @@ export class LiveBadge {
             return false;
         this._view = view;
         const moving = this._animations();
-        if ((!view.count && !view.checking) || !place) {
+        const value = view.count || (view.note ? NOTE : 0); // what the circle says
+        if ((!value && !view.checking) || !place) {
             if (place && moving && this.badge.visible && (this._mode === 'thinking' || this._mode === 'merging')) {
                 // a check that found nothing: the blobs merge and fade away; nothing is shown any more
                 this._merge(0);
@@ -221,7 +229,7 @@ export class LiveBadge {
             this.hide();
             return false;
         }
-        this.badge.accessible_name = this._summary();
+        this.badge.accessible_name = this._summary() || view.note; // a „!” says its note
         this._checking = view.checking;
         if (view.checking && !view.count) {
             if (this._mode !== 'thinking') {
@@ -231,12 +239,12 @@ export class LiveBadge {
                 this._setCount(0, false);
             }
         } else if (!view.checking && moving && (this._mode === 'thinking' || this._mode === 'merging')) {
-            this._merge(view.count); // the result: the blobs merge into the circle with the count
+            this._merge(value); // the result: the blobs merge into the circle with the count (or „!”)
         } else if (this._mode !== 'merging') {
             // a count to show at once; a new one pops in (a known count stays, breathing, while a check runs)
-            const changed = this._mode !== 'count' || this._count.text !== Lava.countText(view.count);
+            const changed = this._mode !== 'count' || this._count.text !== circleText(value);
             this._mode = 'count';
-            this._setCount(view.count, changed && moving);
+            this._setCount(value, changed && moving);
         }
         this.badge.show();
         this._syncTimeline();
@@ -316,10 +324,24 @@ export class LiveBadge {
         this._summaryLabel = new St.Label({text: this._summary(), style_class: 'gd-live-summary', x_expand: true,
             y_align: Clutter.ActorAlign.CENTER});
         header.add_child(this._summaryLabel);
-        this.list.add_child(header);
-        if (view.checking && !view.count && !view.issues.length) {
-            // A checking-only hover is a short status tooltip, never an empty suggestion list.
-            this._listWidth = Math.ceil(this._summaryLabel.get_preferred_width(-1)[1] + paddingOf(this.list));
+        if (this._summaryLabel.text)
+            this.list.add_child(header);
+        let note = null;
+        if (view.note) {
+            // the note under the header, rose with a warning sign, as macOS puts it
+            note = new St.BoxLayout({style_class: 'gd-live-note'});
+            note.add_child(new St.Icon({icon_name: 'dialog-warning-symbolic', icon_size: 12, style_class: 'gd-live-note-icon',
+                y_align: Clutter.ActorAlign.START}));
+            const label = new St.Label({text: view.note, style_class: 'gd-live-note-text', x_expand: true});
+            label.clutter_text.line_wrap = true;
+            note.add_child(label);
+            this.list.add_child(note);
+        }
+        if (!view.count && !view.issues.length) {
+            // A hover with no issues (checking, a note) is a short status tooltip, never an empty suggestion list.
+            const widest = Math.max(this._summaryLabel.text ? this._summaryLabel.get_preferred_width(-1)[1] : 0,
+                note ? note.get_preferred_width(-1)[1] : 0);
+            this._listWidth = Math.min(Math.ceil(widest + paddingOf(this.list)), LIST_WIDTH);
             this.list.set_width(this._listWidth);
             return;
         }
@@ -398,8 +420,8 @@ export class LiveBadge {
     _setCount(count, pop) {
         this._count.remove_all_transitions();
         this._shown = count;
-        this._count.text = count ? Lava.countText(count) : '';
-        const width = Lava.areaWidth(count || 1);
+        this._count.text = circleText(count);
+        const width = Lava.areaWidth(circleSize(count) || 1);
         if (this._area.width !== width) {
             this._area.set_width(width);
             if (this._place)
@@ -425,12 +447,12 @@ export class LiveBadge {
         this._target = count;
         this._popped = false;
         this._checking = false;
-        const text = count ? Lava.countText(count) : '';
+        const text = circleText(count);
         this._count.remove_all_transitions();
         this._count.set_opacity(0); // it pops in once the blobs are one
         this._count.text = text;
-        if (count && this._area.width !== Lava.areaWidth(count)) {
-            this._area.set_width(Lava.areaWidth(count));
+        if (count && this._area.width !== Lava.areaWidth(circleSize(count))) {
+            this._area.set_width(Lava.areaWidth(circleSize(count)));
             if (this._place)
                 this._position();
         }
@@ -483,7 +505,7 @@ export class LiveBadge {
         } else if (this._mode === 'merging') {
             const elapsed = now - this._mergeAt;
             const from = Lava.drift(this._mergeAt - this._began, w);
-            blobs = Lava.merge(from, elapsed / Lava.MERGE_MS, this._target || 1, w);
+            blobs = Lava.merge(from, elapsed / Lava.MERGE_MS, circleSize(this._target) || 1, w);
             colour = lavender;
             if (elapsed >= Lava.MERGE_MS) {
                 shape = true;
@@ -515,7 +537,7 @@ export class LiveBadge {
             }
         } else if (shape) {
             // the circle, or a pill for two or more digits
-            const sw = Lava.shapeWidth((this._mode === 'merging' ? this._target : this._shown) || 1);
+            const sw = Lava.shapeWidth(circleSize(this._mode === 'merging' ? this._target : this._shown) || 1);
             const r = Lava.RADIUS, x0 = (w - sw) / 2 + r, x1 = (w + sw) / 2 - r, y = Lava.HEIGHT / 2;
             cr.arc(x0, y, r, Math.PI / 2, 3 * Math.PI / 2);
             cr.arc(x1, y, r, -Math.PI / 2, Math.PI / 2);
@@ -575,6 +597,8 @@ export class LiveBadge {
         return {visible: this.badge.visible, count: this._count.text, indicator: this._mode,
             spinner: this.badge.visible && this._checking,
             accessibleName: this.badge.accessible_name, summary: this._summaryLabel?.text ?? '',
+            note: this.list.visible ? this.list.get_children().find(c => c.has_style_class_name('gd-live-note'))
+                ?.get_children()[1].text ?? null : null,
             x: Math.round(this.badge.x), y: Math.round(this.badge.y),
             width: Math.round(this.badge.width), height: Math.round(this.badge.height), reactive: this.badge.reactive,
             focusable: this.badge.can_focus, list: this.list.visible, buttons, open};

@@ -243,6 +243,28 @@ class FailureTests(unittest.TestCase):
         # The successful first fragment can remain cached, but no document was returned.
         self.assertEqual(self.check(mock.Mock()).model_calls, 0)
 
+    def test_the_live_check_leaves_only_an_unusable_answers_fragment_unchecked(self):
+        # macOS ModelLive: an answer the code cannot use leaves its own sentence unchecked and the others go on; it is
+        # not cached, so the next check asks for it again. A correction (no tolerate) still fails as a whole.
+        correct = mock.Mock(side_effect=['', 'Pies śpi.'])
+        result = self.checker.check('Kot ma domm. Pies spi.', correct, 'synthetic-identity', self.cancel, tolerate=True)
+        self.assertEqual((result.rejected, [i.word for i in result.issues]), (1, ['spi']))
+        self.assertEqual(result.corrected, 'Kot ma domm. Pies śpi.')
+        correct = mock.Mock(return_value='Kot ma dom.')
+        again = self.checker.check('Kot ma domm. Pies spi.', correct, 'synthetic-identity', self.cancel, tolerate=True)
+        self.assertEqual((correct.call_count, again.rejected, again.cache_hits), (1, 0, 1))
+        for kind in sorted(M.REJECTED):
+            with self.subTest(kind=kind), self.assertRaises(core.BackendError):
+                M.FragmentChecker().check('Kot ma domm.', mock.Mock(side_effect=core.BackendError('x', kind=kind)),
+                                          'synthetic-identity', self.cancel)
+
+    def test_a_server_error_ends_even_the_live_check(self):
+        for kind in ('timeout', 'refused', 'http_500', 'model_error', 'bad_reply', 'interrupted'):
+            correct = mock.Mock(side_effect=['Kot ma dom.', core.BackendError('x', kind=kind)])
+            with self.subTest(kind=kind), self.assertRaises(core.BackendError):
+                M.FragmentChecker().check('Kot ma domm. Pies spi.', correct, 'synthetic-identity', self.cancel,
+                                          tolerate=True)
+
     def test_bad_diff_ranges_are_not_cached(self):
         bad = L.Issue(0, 999, 'domm', 'synthetic', ('dom',), 'Bielik', 'BIELIK')
         with mock.patch.object(L, 'bielik_issues', return_value=[bad]), self.assertRaises(core.BackendError):

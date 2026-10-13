@@ -297,6 +297,7 @@ members only when they exist:
 | 13 | the result as an editable field: no diff, no Edit button; the change list on demand (`changes_open`, the `changes` action) and the marks of an edited text (`editing.marks`) |
 | 14 | `waiting` in the dictation pill view: the microphone is open but has given no audio yet |
 | 16 | a failed correction's title, sentence and buttons (`problem`, the `problem:<action>` actions); Enter does its first button; `retrying` |
+| 18 | `note` in the live badge view: the „!” of Model only checking |
 
 A change to the contract bumps `version` in `metadata.json`, and the engine gates the new calls on
 it.
@@ -590,11 +591,12 @@ listening and after 200 s while recognising or cleaning up.
 | Field | Meaning | Bounds |
 |---|---|---|
 | `v` | `1` | required |
-| `count` | the number of issues; `0` and not `checking` hides the badge | required, integer ≥ 0 |
+| `count` | the number of issues; `0`, not `checking` and no `note` hides the badge | required, integer ≥ 0 |
 | `checking` | a server check is running (the lava animation while the count is unknown) | boolean |
 | `summary` | the count as words, for the list header and the accessible name | at most 40 |
 | `issues` | up to five issues: `id`, `word`, `message`, `kind` (`spelling`, `grammar` or `style`; others become `grammar`), `source`, `suggestions` | at most 5; `id`, `word` and suggestions cut at 200, `message` at 300, `source` at 40, at most 3 suggestions |
 | `more` | issues beyond those listed | integer ≥ 0 |
+| `note` | Model only: why checking finds nothing it may (the model does not answer: paused for a minute; sentences left unchecked); with `count` 0 the circle says „!”, and the list shows the note (version 18) | at most 300 |
 | `field` | `[x, y, width, height]`, the page field's visible box in the window's client coordinates; used only with `from: "client"` | positive size |
 | `from` | `client` for a browser page | |
 | `ui_language` | as for `Show` | |

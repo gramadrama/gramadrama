@@ -64,6 +64,14 @@ class CheckResult:
     model_calls: int
     fragments: int
     corrected: str
+    rejected: int = 0  # fragments left unchecked: the model's answer was unusable (check's tolerate)
+
+
+# The answers that leave only their own fragment unchecked when check() tolerates them, as macOS
+# ModelLive.verdict's rejected: the model's text is unusable, the server answered. Anything else (the server, the
+# connection, a cancellation) ends the check.
+REJECTED = frozenset(('empty_reply', 'protected_changed', 'script_drift', 'truncated_reply', 'bad_text', 'bad_range',
+                      'empty', 'too_long', 'embedded'))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -79,11 +87,11 @@ def _integer(value, name, minimum=0):
 
 def _check_text(text):
     if not isinstance(text, str):
-        raise core.BackendError(tr('Model zwrócił nieprawidłowy tekst.'))
+        raise core.BackendError(tr('Model zwrócił nieprawidłowy tekst.'), kind='bad_text')
     try:
         text.encode('utf-8')
     except UnicodeError:
-        raise core.BackendError(tr('Tekst zawiera nieprawidłowe znaki Unicode.')) from None
+        raise core.BackendError(tr('Tekst zawiera nieprawidłowe znaki Unicode.'), kind='bad_text') from None
 
 
 def _cancelled(cancel):
@@ -99,7 +107,7 @@ def _validated_correction(output, original):
     candidate = core.strip_commentary(candidate, original.strip())
     candidate = core.strip_placeholders(candidate, original.strip())
     if not candidate.strip():
-        raise core.BackendError(tr('Model nie zwrócił poprawionego tekstu.'))
+        raise core.BackendError(tr('Model nie zwrócił poprawionego tekstu.'), kind='empty_reply')
     core.validate_text(candidate)
     return core.clean(output, original)
 
@@ -253,7 +261,10 @@ class FragmentChecker:
         self._cache[key] = (issues, size)
         self._bytes += size
 
-    def check(self, text, correct, identity, cancel):
+    def check(self, text, correct, identity, cancel, tolerate=False):
+        """The issues of text, fragment by fragment, from the cache or from correct(fragment, cancel). tolerate (the live
+        check): an answer of REJECTED leaves its fragment unchecked (CheckResult.rejected; never cached) and the others
+        go on, as on macOS; otherwise (a correction) it ends the check, as every other error does."""
         _cancelled(cancel)
         hash(identity)  # A mutable configuration must be converted by the caller.
         identity = (PROMPT_VERSION, self.max_chars, identity)
@@ -264,7 +275,7 @@ class FragmentChecker:
             epoch = self._epoch
         fragments = split_fragments(text, self.max_chars)
         non_language = L.LiveText(text).non_language
-        issues, hits, calls = [], 0, 0
+        issues, hits, calls, rejected = [], 0, 0, 0
         corrected_parts, previous_end = [], 0
         for fragment in fragments:
             key = (identity, fragment.text)
@@ -279,18 +290,27 @@ class FragmentChecker:
                 corrected, relative = saved.corrected, saved.issues
             else:
                 calls += 1
-                output = correct(fragment.text, cancel)
-                with self._lock:
-                    self._current_locked(epoch, cancel)
-                corrected = _validated_correction(output, fragment.text)
-                relative = tuple(dataclasses.replace(issue, source='Model', rule='MODEL_LIVE')
-                                 for issue in L.bielik_issues(fragment.text, corrected))
-                if any(not 0 <= issue.start < issue.end <= len(fragment.text)
-                       or fragment.text[issue.start:issue.end] != issue.word for issue in relative):
-                    raise core.BackendError(tr('Model zwrócił nieprawidłowy zakres korekty.'))
-                with self._lock:
-                    self._current_locked(epoch, cancel)
-                    self._put_locked(key, FragmentResult(corrected, relative))
+                try:
+                    output = correct(fragment.text, cancel)
+                    with self._lock:
+                        self._current_locked(epoch, cancel)
+                    corrected = _validated_correction(output, fragment.text)
+                    relative = tuple(dataclasses.replace(issue, source='Model', rule='MODEL_LIVE')
+                                     for issue in L.bielik_issues(fragment.text, corrected))
+                    if any(not 0 <= issue.start < issue.end <= len(fragment.text)
+                           or fragment.text[issue.start:issue.end] != issue.word for issue in relative):
+                        raise core.BackendError(tr('Model zwrócił nieprawidłowy zakres korekty.'), kind='bad_range')
+                except core.Cancelled:
+                    raise
+                except core.BackendError as exc:
+                    if not tolerate or core.error_kind(exc) not in REJECTED:
+                        raise
+                    rejected += 1
+                    corrected, relative = fragment.text, ()
+                else:
+                    with self._lock:
+                        self._current_locked(epoch, cancel)
+                        self._put_locked(key, FragmentResult(corrected, relative))
             visible_corrected = _unmasked_correction(fragment, corrected, non_language)
             if visible_corrected != corrected:
                 relative = tuple(dataclasses.replace(issue, source='Model', rule='MODEL_LIVE')
@@ -309,5 +329,10 @@ class FragmentChecker:
             assembled = ''.join(corrected_parts)
             # Check protected tokens across fragment boundaries as well as inside each
             # fragment, notably multi-line code and links split by the length bound.
-            assembled = core.clean(assembled, text) if text.strip() else text
-            return CheckResult(issues, hits, calls, len(fragments), assembled)
+            try:
+                assembled = core.clean(assembled, text) if text.strip() else text
+            except core.BackendError as exc:
+                if not tolerate or core.error_kind(exc) not in REJECTED:
+                    raise
+                assembled = text  # the live check shows the fragments' issues; a correction never gets here
+            return CheckResult(issues, hits, calls, len(fragments), assembled, rejected)

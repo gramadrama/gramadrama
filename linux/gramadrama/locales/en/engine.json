@@ -1,4 +1,7 @@
 {
+  "{model} nie odpowiada — sprawdzanie wstrzymane na minutę.": "{model} is not responding — checking paused for a minute.",
+  "1 zdanie bez sprawdzenia — model zwrócił niepewną odpowiedź.": "1 sentence unchecked — the model returned an uncertain answer.",
+  "Zdania: {count} bez sprawdzenia — model zwrócił niepewną odpowiedź.": "{count} sentences unchecked — the model returned an uncertain answer.",
   "Ustawienia zmieniły się podczas korekty. Użyj skrótu ponownie.": "Settings changed during correction. Use the shortcut again.",
   "Popraw": "Correct",
   "Ulepsz": "Improve",

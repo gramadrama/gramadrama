@@ -473,6 +473,53 @@ class ModelOnlyTests(unittest.TestCase):
         self.assertGreater(self.monitor.backoff_until, time.monotonic())
         self.assertEqual(self.monitor.bielik, [])
 
+    def issues(self):
+        return [event for event in self.events if event['ev'] == 'issues']
+
+    def test_a_server_failure_pauses_with_a_note_that_every_field_shows(self):
+        # macOS LiveMonitor: the results so far stay, checking pauses for a minute, and every field says why it shows
+        # nothing; the badge is then a „!”. A settings change ends the pause and its note.
+        paused = 'Test-model nie odpowiada — sprawdzanie wstrzymane na minutę.'
+        self.check('To domm.')
+        with mock.patch.object(S.model_live, 'correct_fragment', side_effect=core.BackendError('x', kind='timeout')):
+            self.check('To domm. Pies spi.')
+        last = self.issues()[-1]
+        self.assertEqual(([i['word'] for i in last['issues']], last.get('note'), last['checking']), (['domm'], paused, False))
+        calls = len(self.calls)
+        self.monitor.text_changed(2, 'Inny tekst.', None)
+        self.assertIsNone(self.monitor.note)  # another field: its own check says it again
+        self.monitor._layer2(self.monitor.version, 2, 'Inny tekst.')
+        last = self.issues()[-1]
+        self.assertEqual((last['field'], last['issues'], last.get('note')), (2, [], paused))
+        self.assertEqual(len(self.calls), calls)  # the model is not asked during the pause
+        self.current = dataclasses.replace(self.current, model='other-test-model')
+        self.monitor.refresh_settings(self.current)
+        self.assertNotIn('note', self.issues()[-1])
+        self.assertEqual(self.monitor.backoff_until, 0)
+
+    def test_an_unusable_answer_leaves_its_sentence_unchecked_with_a_note(self):
+        def correct(server, fragment, cancel, words=()):
+            if 'Pies' in fragment:
+                raise core.BackendError('x', kind='empty_reply')
+            return fragment.replace('domm', 'dom')
+        with mock.patch.object(S.model_live, 'correct_fragment', side_effect=correct):
+            self.check('To domm. Pies spi.')
+        last = self.issues()[-1]
+        self.assertEqual(([i['word'] for i in last['issues']], last.get('note')),
+                         (['domm'], '1 zdanie bez sprawdzenia — model zwrócił niepewną odpowiedź.'))
+        self.assertEqual(self.monitor.backoff_until, 0)  # the server answered: no pause
+        self.assertEqual(next(e for e in reversed(self.events) if e.get('event') == 'live_model')['rejected'], 1)
+        self.check('To domm. Pies spi.')  # a usable answer now: the note goes
+        self.assertNotIn('note', self.issues()[-1])
+        self.assertEqual(S.unchecked_note(2), 'Zdania: 2 bez sprawdzenia — model zwrócił niepewną odpowiedź.')
+
+    def test_the_standard_mode_has_no_note(self):
+        self.current = dataclasses.replace(self.current, live_model_only=False, live_bielik=True)
+        self.monitor.refresh_settings(self.current)
+        self.monitor.note = 'x'
+        self.monitor.text_changed(1, 'To domm.', None)
+        self.assertTrue(all('note' not in e for e in self.issues()))
+
     def test_old_failure_cannot_back_off_a_new_profile_during_settings_reload(self):
         self.monitor.text_changed(1, 'To domm.', None)
         previous, version = self.current, self.monitor.version

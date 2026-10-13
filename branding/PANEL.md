@@ -202,8 +202,8 @@ by the same panel as a short message without buttons; it disappears by itself af
   still, the result appears at once.
 - The dots run only while a server is asked (LanguageTool, the model in the background, model-only checking); a result
   from the cache and a pause in typing alone do not start them.
-- macOS: a message about checking with no errors (the server does not answer, sentences left unchecked) is a brick
-  circle with „!”.
+- Model only: a message about checking with no errors (the server does not answer, sentences left unchecked) is a
+  brick circle with „!”; the list (on hover, on macOS also the tooltip) says the message in rose.
 - Geometry: `linux/gnome-extension/lava.js` (test: `linux/tests/lava.test.mjs`); macOS: `Sources/GramaCore/Lava.swift`
   with the same numbers and the badge's states (test: `tests/GramaCoreTests/LavaTests.swift`), drawn by `LiveBadge`.
 
