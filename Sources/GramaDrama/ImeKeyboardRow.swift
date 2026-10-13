@@ -42,7 +42,9 @@ struct ImeKeyboardRow: View {
         guard ime.enabled else { return tr("Wyłączona. „Włącz…” poprosi o zgodę w Ustawieniach systemowych.") }
         guard ime.selected else { return tr("Włączona, ale piszesz teraz w układzie {layout}.", ["layout": ime.current]) }
         guard let hello = ime.hello else { return tr("Wybrana, ale nie odpowiada — kliknij w dowolne pole tekstowe.") }
-        return tr("Działa od {duration}.", ["duration": WindowText.duration(hello.uptime ?? 0)])
+        let text = tr("Działa od {duration}.", ["duration": WindowText.duration(hello.uptime ?? 0)])
+        // „32 godz.” kończy się kropką skrótu — bez drugiej.
+        return text.hasSuffix("..") ? String(text.dropLast()) : text
     }
 
     @ViewBuilder private func button(_ ime: ImeSetup.Snapshot) -> some View {
