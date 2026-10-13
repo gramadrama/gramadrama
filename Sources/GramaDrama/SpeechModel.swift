@@ -4,13 +4,16 @@ import GramaBackend
 @preconcurrency import WhisperKit
 
 /// Rozpoznawanie mowy na Macu: Whisper large-v3-turbo przez WhisperKit (Core ML, Neural Engine).
-/// Model (~1,6 GB) pobiera się raz do Application Support. Pierwsze wczytanie po pobraniu
+/// Model (~1,6 GB) pobiera się raz do Application Support, tylko przyciskiem „Pobierz” (Usługi, Dyktowanie) — sam
+/// nigdy. Pobrany wczytuje się w tle, gdy dyktowanie jest włączone. Pierwsze wczytanie po pobraniu
 /// (i po aktualizacji macOS) kompiluje go pod Neural Engine — to trwa kilka minut, potem sekundę.
 @MainActor
 final class SpeechModel: ObservableObject {
     static let shared = SpeechModel()
 
     enum State: Equatable {
+        /// Modelu nie ma na dysku: czeka na „Pobierz”.
+        case notDownloaded
         case notLoaded
         case downloading(Double)
         case loading
@@ -19,6 +22,7 @@ final class SpeechModel: ObservableObject {
 
         var label: String {
             switch self {
+            case .notDownloaded: tr("Model mowy (1,6 GB) nie jest jeszcze pobrany.")
             case .notLoaded: tr("Model mowy nie jest jeszcze wczytany.")
             case .downloading(let fraction): tr("Pobieram model mowy (1,6 GB)… {percent}%", ["percent": Int(fraction * 100)])
             case .loading: tr("Wczytuję model mowy… Za pierwszym razem kilka minut.")
@@ -28,7 +32,7 @@ final class SpeechModel: ObservableObject {
         }
     }
 
-    @Published private(set) var state: State = .notLoaded {
+    @Published private(set) var state: State = SpeechModel.isDownloaded ? .notLoaded : .notDownloaded {
         didSet { if state != oldValue { loadingSince = state == .loading ? Date() : nil } }
     }
     /// Od kiedy trwa wczytywanie — kilka sekund to zwykły start, minuty to kompilacja pod Neural Engine.
@@ -44,10 +48,16 @@ final class SpeechModel: ObservableObject {
     }
     private nonisolated static let requiredFiles = ["AudioEncoder.mlmodelc", "MelSpectrogram.mlmodelc", "TextDecoder.mlmodelc", "config.json"]
 
+    /// Model jest na dysku (wcześniej pobrany): wystarczy go wczytać.
+    nonisolated static var isDownloaded: Bool {
+        requiredFiles.allSatisfy { FileManager.default.fileExists(atPath: modelFolder.appendingPathComponent($0).path) }
+    }
+
     /// Terminy, które Whisper po polsku zapisuje fonetycznie („stejdżing”, „kod riwju”), jeśli ich nie podpowiemy.
     nonisolated static let defaultVocabulary = ["deploy", "staging", "PR", "merge", "code review", "feedback", "release", "Jira", "Slack"]
 
-    /// Pobiera (tylko raz) i wczytuje model. Równoczesne wywołania czekają na to samo wczytywanie.
+    /// Pobiera (tylko raz) i wczytuje model — przycisk „Pobierz” i „Wczytaj teraz”; dyktowanie i włączenie dyktowania
+    /// wołają je tylko dla pobranego modelu. Równoczesne wywołania czekają na to samo wczytywanie.
     func prepare() async throws {
         _ = try await model()
     }
@@ -71,8 +81,7 @@ final class SpeechModel: ObservableObject {
     }
 
     private func load() async throws -> LoadedWhisper {
-        let fm = FileManager.default
-        let complete = Self.requiredFiles.allSatisfy { fm.fileExists(atPath: Self.modelFolder.appendingPathComponent($0).path) }
+        let complete = Self.isDownloaded
         if !complete {
             state = .downloading(0)
             _ = try await WhisperKit.download(variant: Self.variant, downloadBase: Self.directory) { progress in

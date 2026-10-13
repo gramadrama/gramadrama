@@ -52,5 +52,8 @@
   "prawy ⌥": "right ⌥",
   "rozpoznaj": "detect",
   "rozpoznaj automatycznie": "detect automatically",
-  "zawsze": "always"
+  "zawsze": "always",
+  "Model mowy (1,6 GB) nie jest jeszcze pobrany.": "The speech model (1.6 GB) is not downloaded yet.",
+  "Dyktowanie: pobierz model mowy albo wybierz serwer (Usługi)": "Dictation: download the speech model or choose a server (Services)",
+  "Najpierw pobierz model mowy (1,6 GB) albo wybierz serwer mowy — Usługi → Rozpoznawanie mowy.": "Download the speech model (1.6 GB) first, or choose a speech server: Services → Speech recognition."
 }

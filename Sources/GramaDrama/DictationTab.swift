@@ -16,9 +16,15 @@ struct DictationTab: View {
                 SettingsRow(mark: .status(dictation.enabled ? recognizerOK : nil), title: tr("Dyktowanie"),
                             subtitle: dictation.enabled ? recognizerText : tr("Wyłączone.")) {
                     HStack(spacing: 8) {
+                        // Dwie drogi: model pobrany na ten Mac albo serwer mowy (Usługi), na którym model już jest.
+                        if dictation.enabled, dictation.speechBackend == .local, speech.state == .notDownloaded {
+                            Button(tr("Pobierz (1,6 GB)")) { Task { try? await speech.prepare() } }
+                                .help(tr("Whisper large-v3-turbo na tym Macu; pobiera się tylko po kliknięciu"))
+                        }
                         Button(tr("Usługi…")) { tab = .connection }.help(tr("Silnik rozpoznawania mowy ustawisz w zakładce Usługi"))
                         RowToggle(isOn: $dictation.enabled)
                     }
+                    .fixedSize()
                 }
                 Divider()
                 keyRow
@@ -100,6 +106,7 @@ struct DictationTab: View {
         case .local:
             switch speech.state {
             case .ready: return tr("Rozpoznaje Whisper na tym Macu.")
+            case .notDownloaded: return tr("Whisper na tym Macu — pobierz model mowy (1,6 GB) albo wybierz serwer mowy w Usługach.")
             case .notLoaded: return tr("Whisper na tym Macu — wczyta się przy pierwszym dyktowaniu.")
             default: return speech.state.label
             }

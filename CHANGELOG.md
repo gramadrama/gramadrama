@@ -70,7 +70,8 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
   merge and fade when nothing was found. A known count “breathes” during the next check. Reduce motion stops the
   animation.
 - Dictation while holding Fn / 🌐: Whisper on the Mac with a live preview in the pill and long recordings split at
-  pauses, or a server.
+  pauses, or a server. The Whisper model (1.6 GB) downloads only with a button in Services or Dictation, never on its
+  own; once downloaded it loads in the background.
 - Services on this Mac or on a server, Ollama with model download, the API key in the keychain, remote access
   sign-in and editable prompts (the same files as on Linux). The recommended model, `gemma4:e4b` (about 6.6 GB), is
   the one a new install starts with and the one the window recommends downloading, so the first correction works right

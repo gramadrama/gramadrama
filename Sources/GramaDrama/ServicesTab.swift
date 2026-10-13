@@ -434,11 +434,13 @@ struct ServicesTab: View {
         }
     }
 
-    /// Whisper w aplikacji: model (ok. 1,6 GB) pobiera się i wczytuje przy pierwszym dyktowaniu albo od razu.
+    /// Whisper w aplikacji: model (ok. 1,6 GB) pobiera się tylko tym przyciskiem; pobrany wczytuje się sam, gdy dyktowanie
+    /// jest włączone, albo od razu przez „Wczytaj teraz”.
     private var whisperRow: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsRow(mark: .status(localSpeechOK), title: "Whisper large-v3-turbo", subtitle: speech.state.label) {
                 switch speech.state {
+                case .notDownloaded: Button(tr("Pobierz (1,6 GB)")) { Task { try? await speech.prepare() } }
                 case .notLoaded: Button(tr("Wczytaj teraz")) { Task { try? await speech.prepare() } }
                 case .failed: Button(tr("Spróbuj ponownie")) { Task { try? await speech.prepare() } }
                 default: EmptyView()

@@ -26,6 +26,35 @@ in parentheses where they first appear. The macOS permission prompts stay in Pol
 Installation, updates, removal and limitations are covered by the [Linux guide](linux/README.md).
 A test on a clean system and an installation by someone outside the project are still release conditions.
 
+## What to install
+
+GramaDrama downloads and installs nothing on its own: every download below starts with a click.
+
+Required:
+
+- **The app.** Linux: the [installer](linux/README.md#installation). macOS: there is no signed download yet, so build it
+  from this repository ([building for macOS](#building-for-macos-developers)); it needs macOS 14 or later, Apple's
+  developer tools and the Accessibility permission.
+- **A language model.** [Ollama](https://ollama.com/download) on this computer, or a server with the Ollama protocol
+  or an OpenAI-style chat API ([service setup](docs/self-hosting.md)). With Ollama, the **Pull a model**
+  (*Pobierz model*) row in **Services → Language model** (*Usługi → Model językowy*) downloads a model; the recommended
+  one is `gemma4:e4b` (about 6.6 GB), and on macOS **Get Ollama…** (*Pobierz Ollamę…*) opens Ollama's download page.
+
+Optional:
+
+- **LanguageTool**, for grammar rules while typing and the explanations in the list of changes: a LanguageTool server
+  ([setup](docs/self-hosting.md#languagetool)). Without it everything else works; see
+  [services](#services-prompts-and-privacy).
+- **Dictation**, one of two ways, chosen in **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*);
+  on macOS both need the microphone permission:
+  - **On this computer** (*Ten Mac*; on Linux *Ten komputer*): Whisper runs here, so its model is downloaded here. On
+    macOS with **Download (1.6 GB)** (*Pobierz (1,6 GB)*) in that group or in **Dictation** (*Dyktowanie*); on Linux
+    with `linux/install_engine.py tools`, which needs an NVIDIA graphics card.
+  - **On a speech server** (*Serwer*): Whisper, or another speech model, runs on a server you set up, and the model is
+    installed there; nothing is downloaded on this computer. You enter the server's address and protocol
+    ([speech recognition](docs/self-hosting.md#speech-recognition)).
+- **The browser extension**, for text fields in web pages: [installation](browser/README.md#installation).
+
 ## Features
 
 | Feature | Linux — default shortcuts | macOS — default shortcuts |
@@ -84,12 +113,16 @@ Ollama); any model the app can reach works. Without LanguageTool:
   (texts up to 1500 characters) instead of grammar rules after 0.8 s; the experimental **Model only** mode
   (*Tylko model*) leaves the model alone.
 
-Dictation is optional as well. The recommended speech model is Whisper large-v3-turbo, and recognition on this
-computer always uses it: on macOS through WhisperKit (about 1.6 GB, downloaded and loaded in the background as soon as
-dictation is on, which it is by default; the first load prepares it for the Neural Engine and takes a few minutes),
-on Linux with an NVIDIA graphics card. A speech server can run another Whisper version or another speech model, as you
-prefer: with the OpenAI API you enter its name in the settings, and whisper.cpp uses the model the server was started
-with.
+Dictation is optional as well, and recognition runs one of two ways. The recommended speech model on both is Whisper
+large-v3-turbo.
+
+- **On this computer:** always Whisper large-v3-turbo, with its model on this computer. On macOS it runs through
+  WhisperKit; the model (about 1.6 GB) downloads only with **Download**, then loads in the background while dictation
+  is on, and its first load prepares it for the Neural Engine, which takes a few minutes. On Linux it needs an NVIDIA
+  graphics card.
+- **On a speech server:** the model is installed on the server, and nothing is downloaded on this computer. The server
+  can run Whisper large-v3-turbo or another Whisper version or speech model, as you prefer: with the OpenAI API you
+  enter the model's name in the settings, and whisper.cpp uses the model the server was started with.
 
 On both systems the **Services** tab offers the same choice for the model, LanguageTool and speech
 recognition: **This computer** (*Ten komputer*; on macOS *Ten Mac*) or **Server** (*Serwer*) with an address,

@@ -302,5 +302,8 @@
   "{model}, po dłuższej przerwie.": "{model}, after a longer pause.",
   "{shortcut} i dyktowanie przez Dostępność i schowek.": "{shortcut} and dictation go through Accessibility and the clipboard.",
   "{shortcut} ma już inna aplikacja — wybierz inny.": "Another app already uses {shortcut} — choose a different one.",
-  "{time} — „{result}”": "{time} — “{result}”"
+  "{time} — „{result}”": "{time} — “{result}”",
+  "Pobierz (1,6 GB)": "Download (1.6 GB)",
+  "Whisper large-v3-turbo na tym Macu; pobiera się tylko po kliknięciu": "Whisper large-v3-turbo on this Mac; it downloads only when you click",
+  "Whisper na tym Macu — pobierz model mowy (1,6 GB) albo wybierz serwer mowy w Usługach.": "Whisper on this Mac: download the speech model (1.6 GB), or choose a speech server in Services."
 }

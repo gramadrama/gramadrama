@@ -108,7 +108,8 @@ final class DictationController: ObservableObject {
     private func configure(enabled: Bool, key: DictationKey) {
         if enabled, !suspended {
             monitor.start(key: key)
-            // Model wczytujemy od razu, żeby pierwsze dyktowanie nie czekało (albo nie pobierało 1,6 GB).
+            // Pobrany model wczytujemy od razu, żeby pierwsze dyktowanie nie czekało. Niepobranego nie pobieramy sami
+            // (`.notDownloaded`): 1,6 GB tylko po „Pobierz” w Usługach albo Dyktowaniu.
             // Przy serwerze mowy model na Macu nie jest potrzebny — ani pobierany, ani wczytywany.
             if settings.speechBackend == .local, SpeechModel.shared.state == .notLoaded {
                 Task { try? await SpeechModel.shared.prepare() }
@@ -134,6 +135,7 @@ final class DictationController: ObservableObject {
         case (false, _): tr("Dyktowanie wyłączone")
         case (true, .ready), (true, .notLoaded):
             tr("Dyktowanie: przytrzymaj {key} i mów{alternate}", ["key": key, "alternate": alternate])
+        case (true, .notDownloaded): tr("Dyktowanie: pobierz model mowy albo wybierz serwer (Usługi)")
         case (true, .downloading(let fraction)): tr("Dyktowanie: pobieram model mowy… {percent}%", ["percent": Int(fraction * 100)])
         case (true, .loading): tr("Dyktowanie: wczytuję model mowy…")
         case (true, .failed): tr("Dyktowanie: błąd modelu mowy (zob. Ustawienia)")
@@ -182,6 +184,13 @@ final class DictationController: ObservableObject {
             }
         } else {
             switch SpeechModel.shared.state {
+            case .notDownloaded:
+                // Nic nie pobieramy na sam klawisz: okno pokazuje przycisk „Pobierz” w obwódce.
+                monitor.reset()
+                Toast.shared.show(tr("Najpierw pobierz model mowy (1,6 GB) albo wybierz serwer mowy — Usługi → Rozpoznawanie mowy."),
+                                  duration: 5)
+                AppDelegate.point(to: .speechRecognition)
+                return
             case .downloading(let fraction):
                 monitor.reset()
                 Toast.shared.show(tr("Model mowy jeszcze się pobiera ({percent}%).", ["percent": Int(fraction * 100)]))

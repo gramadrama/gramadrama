@@ -104,13 +104,15 @@ Open **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*) and 
   environment, the CUDA libraries and the Whisper large-v3-turbo model. It needs `uv`, a compatible NVIDIA card,
   its driver and space for several GB of data.
 - **This Mac (macOS):** Whisper large-v3-turbo through WhisperKit on the Neural Engine. The model (about 1.6 GB)
-  is downloaded and loaded in the background as soon as dictation is on (it is by default), so the first dictation
-  does not wait; the first load prepares it for the Neural Engine and takes a few minutes. With a speech server it is
-  neither downloaded nor loaded.
+  is downloaded only with **Download (1.6 GB)** (*Pobierz (1,6 GB)*) in this group or in **Dictation**
+  (*Dyktowanie*); the dictation key without it points there. Once downloaded, it loads in the background while
+  dictation is on, so the first dictation does not wait; the first load prepares it for the Neural Engine and takes a
+  few minutes. With a speech server it is neither downloaded nor loaded.
 - **Server:** the server's rows appear below it: enter the base address of the service, choose the **Protocol**
   (*Protokół*) and enter the model for the OpenAI API and an optional key. The recording is sent
-  to this service; the local Whisper model is not needed. Whisper large-v3-turbo is the recommended version, the one
-  used on this computer, but the server can run another Whisper version or speech model, as you prefer.
+  to this service. The speech model is installed on the server, not on this computer: nothing is downloaded here.
+  Whisper large-v3-turbo is the recommended version, the one used on this computer, but the server can run another
+  Whisper version or speech model, as you prefer.
 
 The protocol must match the API of the running server:
 
