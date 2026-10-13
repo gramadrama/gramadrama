@@ -77,7 +77,7 @@ TR_TEXT = ("Thank you for the quick reply. Let's meet on Thursday at 10:00 to di
            "the rollout schedule. I'll send a short agenda beforehand, and a summary of what we agree on to the "
            "whole team afterwards, so nobody has to guess.")
 # The docs are English, so is the panel in their pictures (--docs): the view the engine sends with an English
-# interface, the model of integration_app.py's docs pictures.
+# interface; the model of integration_app.py's docs pictures (DOCS_MODEL) as core.display_name shows it.
 EN_SRC = 'Hi Anna I am sending the corected version of the report. Let me know if you have any coments by friday.'
 EN_FIXED = 'Hi Anna, I am sending the corrected version of the report. Let me know if you have any comments by Friday.'
 EN_SEGMENTS = [['same', 'Hi Anna'], ['added', ','], ['same', ' I am sending the '], ['removed', 'corected'],
@@ -88,7 +88,7 @@ EN_CHANGES = [{'from': '', 'to': ',', 'reason': 'Missing punctuation'},
               {'from': 'corected', 'to': 'corrected', 'reason': 'Typo'},
               {'from': 'coments', 'to': 'comments', 'reason': 'Typo'},
               {'from': 'friday', 'to': 'Friday', 'reason': 'Capitalization'}]
-EN_MODEL = 'gemma-4-e4b-it'
+EN_MODEL = 'Gemma-4-E4B'
 PRIVATE = ('Pole hasła lub prywatne — GramaDrama go nie czyta.', 'Password or private field — GramaDrama does not read it.')
 TRICKY = '<b>pogrubienie</b> & <span foreground="red">„cytat”</span> \\n'  # must show literally
 
