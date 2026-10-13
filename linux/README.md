@@ -44,6 +44,8 @@ Until a model is chosen, **Home** (*Start*) lists the **First steps** (*Pierwsze
 missing, with a button that opens Services at the language model.
 In **Home → Try it** (*Start → Wypróbuj*) type a sentence, use the correction shortcut and accept the result with Enter.
 
+<img src="docs/app/try-panel-light.png" width="480" alt="Home → Try it: an English sentence and the panel with the proposed correction">
+
 If something goes wrong, **Super+Space** switches to the fallback input source. The text language set
 in the app does not change the system keyboard layout.
 
@@ -56,6 +58,11 @@ Check the installation state in the app or with:
 ```bash
 /usr/bin/python3 linux/install_engine.py status
 ```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-dark.png">
+  <img src="docs/app/app-light.png" width="320" alt="Home: the input source, the IBus engine and the panel near the cursor, with their versions; the correction shortcut confirmed in Try it">
+</picture>
 
 To uninstall:
 
@@ -82,6 +89,11 @@ the address, the status and **Check** (*Sprawdź*).
 There is no project server: a new installation uses services on this computer at their default
 addresses, which can be changed (the address must point to this computer). A server also has a protocol
 and an optional API key.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-connection-dark.png">
+  <img src="docs/app/app-connection-light.png" width="320" alt="Services: a language model server with the OpenAI protocol, LanguageTool and speech recognition on servers">
+</picture>
 
 | Service | Used for | This computer | Server |
 |---|---|---|---|
@@ -116,6 +128,11 @@ In **Writing → Text languages** (*Pisanie → Języki tekstu*) choose the prim
 Polish + English is the default. Choosing a single language turns off translation between
 languages and switching the dictation language with Shift.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-writing-dark.png">
+  <img src="docs/app/app-writing-light.png" width="320" alt="Writing: text languages, checking while typing, the dictionary and the rules turned off">
+</picture>
+
 Change the correction and translation shortcuts in **Home → Shortcuts → Change shortcuts** (*Start → Skróty → Zmień skróty*).
 Accepted combinations are Ctrl+Alt, Ctrl+Shift or Ctrl+Alt+Shift with a letter A–Z. The shortcuts must differ; a conflict
 with a GNOME shortcut requires changing either the system shortcut or the GramaDrama one. The defaults are below:
@@ -143,6 +160,11 @@ guarantee the quality of the chosen model or that a local dictionary is availabl
 
 In the **Apps** tab you can turn GramaDrama off for an application and set its default mode.
 The list keeps its settings in `~/.config/gramadrama/apps.json` and shows recently used applications.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-apps-dark.png">
+  <img src="docs/app/app-apps-light.png" width="320" alt="Apps: the state, the default mode and the switch of each application, a launch fix, and the browser extension">
+</picture>
 
 - GTK3 may not expose the selection; then correct the paragraph at the cursor instead.
 - After a click in some fields, and in Text Editor also right after a document is opened, an arrow key press is needed
@@ -192,6 +214,11 @@ keeps the address, the model and the key. A server with no address (and no remot
 Cleaning up the text with the model is an experimental option, off by default.
 Details: [dictation](docs/dictation.md).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-dictation-dark.png">
+  <img src="docs/app/app-dictation-light.png" width="320" alt="Dictation: the key, the speech language and the cleanup by the model">
+</picture>
+
 While you type, the local dictionary checks spelling, and after a pause LanguageTool
 and the model can join in. **Writing → Checking** (*Pisanie → Sposób sprawdzania*) is either **Standard** (*Standardowy*;
 the layers can be turned off separately) or the experimental **Model only** (*Tylko model*), which uses only the model
@@ -206,6 +233,11 @@ Text goes only to the configured addresses: when you correct or translate, and w
 background checking is on. The **Privacy** (*Prywatność*) tab shows, from the current settings, what goes where. The local dictionary and reading word positions send no text.
 The recording stays local when **This computer** is chosen; choosing recognition by a server
 sends it to the configured service. The optional cleanup sends the transcript to the model server.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-privacy-dark.png">
+  <img src="docs/app/app-privacy-light.png" width="320" alt="Privacy: what goes where, from the current settings">
+</picture>
 
 The words of the dictionary help the model and speech recognition: a correction names the ones its text already
 contains, and with recognition by a server the Whisper prompt with your own words and the latest words added to the
