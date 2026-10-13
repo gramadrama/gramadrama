@@ -20,8 +20,7 @@ and drives the extension's D-Bus interface directly with fixture views:
   --site          with --shots: the site's animations (site_anim, last): a correction and dictation,
                   frame by frame, made into site/public/img/anim-*.webp by site/tools/anim.py.
   --shots DIR     screenshots of every state, dark and light, over gnome-text-editor (and the full
-                  screen); --docs also refreshes docs/panel/*.png (English) and the site's panel pictures
-                  (site/public/img, Polish).
+                  screen); --docs also refreshes docs/panel/*.png (English).
 
 The stand-in engine (written into the session's work dir) subscribes to the Action and Focus signals
 exactly like the engine's PanelClient (sender org.gnome.Shell) and logs them as JSONL. Only a stand-in
@@ -1873,13 +1872,10 @@ EDITORS = {'correct': ('scenariusz.txt', SRC + '\n\nTu kończy się akapit, któ
            'en': ('in-english.txt', TR_TEXT + '\n', True),
            'correct_en': ('draft.txt', EN_SRC + '\n\nThis is where the paragraph GramaDrama corrects ends.\n', False)}
 BACKDROP = {'translate': 'pl', 'translate_working': 'pl', 'translate_pl': 'en'}
-# --docs: the English pictures of docs/panel (state -> backdrop) and, from the Polish states, the site's pictures
+# --docs: the English pictures of docs/panel (state -> backdrop)
 DOC_VIEWS = {'ready': 'correct_en', 'translate': 'pl', 'message': 'correct_en'}
 DOC_SHOTS = {'ready-dark': 'panel-ready-dark.png', 'ready-light': 'panel-ready-light.png',
              'translate-dark': 'panel-translate-dark.png', 'message-dark': 'panel-message-dark.png'}
-SITE = os.path.join(os.path.dirname(LINUX), 'site', 'public', 'img')
-SITE_SHOTS = {'ready_list-dark': 'panel-ready-dark.png', 'ready_list-light': 'panel-ready-light.png',
-              'translate-dark': 'panel-translate-dark.png'}
 
 
 def docs_views(sid):
@@ -1934,7 +1930,7 @@ def shoot_view(rig, v, path, full=None):
 
 def t_screenshots(rig):
     """Every state, dark and light, over a real editor (gnome-text-editor follows the scheme). With --docs also
-    docs/panel/*.png (English, DOC_VIEWS) and the site's pictures (Polish, SITE_SHOTS)."""
+    docs/panel/*.png (English, DOC_VIEWS)."""
     s, out = rig.s, rig.args.shots
     if not out:
         note('no --shots DIR: skipped')
@@ -1963,9 +1959,6 @@ def t_screenshots(rig):
             path = os.path.join(out, '%s-%s.png' % (name, variant))
             shoot_view(rig, v, path, os.path.join(out, 'full', '%s-%s.png' % (name, variant)))
             saved.append(path)
-            key = '%s-%s' % (name, variant)
-            if rig.args.docs and key in SITE_SHOTS:
-                shutil.copyfile(path, os.path.join(SITE, SITE_SHOTS[key]))
         for name, doc_backdrop in DOC_VIEWS.items() if rig.args.docs else ():
             key = '%s-%s' % (name, variant)
             if key not in DOC_SHOTS:
@@ -1979,7 +1972,7 @@ def t_screenshots(rig):
             os.makedirs(DOCS, exist_ok=True)
             shutil.copyfile(path, os.path.join(DOCS, DOC_SHOTS[key]))
         rig.hide(0)
-    note('%d screenshots in %s%s' % (len(saved), out, ' (+ docs/panel, site)' if rig.args.docs else ''))
+    note('%d screenshots in %s%s' % (len(saved), out, ' (+ docs/panel)' if rig.args.docs else ''))
     for editor in editors:
         editor.kill()
 
@@ -2015,6 +2008,7 @@ SITE_DESKTOP = {'light': '#f0ede7', 'dark': '#1f2322'}
 SITE_KEYS_BAND = 60  # px under a correction's panel for the keys pressed (site/tools/anim.py draws them there)
 SITE_LEVELS = (0.35, 0.8, 0.55, 0.95, 0.45, 0.85, 0.6, 0.9, 0.5, 0.3)
 SITE_TOOL = os.path.join(os.path.dirname(LINUX), 'site', 'tools', 'anim.py')
+SITE = os.path.join(os.path.dirname(LINUX), 'site', 'public', 'img')
 
 
 class SiteLoop:
@@ -2366,7 +2360,7 @@ def main():
     names = [n for n, _ in UNIT_TESTS + PANEL_TESTS + CALLER_TESTS]
     ap.add_argument('--only', help='comma-separated test names: %s' % ','.join(names))
     ap.add_argument('--shots', help='directory for screenshots of every state (dark and light)')
-    ap.add_argument('--docs', action='store_true', help="also refresh docs/panel/*.png and the site's panel pictures (needs --shots)")
+    ap.add_argument('--docs', action='store_true', help='also refresh docs/panel/*.png (needs --shots)')
     ap.add_argument('--site', action='store_true', help="site_anim: the site's animations (needs --shots)")
     ap.add_argument('--logs', help='copy the session logs here')
     ap.add_argument('-v', '--verbose', action='store_true')

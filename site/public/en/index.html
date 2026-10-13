@@ -35,7 +35,6 @@
     <a class="brand" href="/en/"><img src="/img/icon-192.png" width="32" height="32" alt="">GramaDrama</a>
     <nav aria-label="Main">
       <ul>
-        <li class="hide-sm"><a href="#how">How it works</a></li>
         <li class="hide-sm"><a href="#features">Features</a></li>
         <li class="hide-sm"><a href="#data">Your data</a></li>
         <li class="hide-sm"><a href="#requirements">Requirements</a></li>
@@ -57,9 +56,9 @@
       <p class="beta"><span class="state soon">Test version</span> Public downloads soon, Linux first.</p>
       <div class="cta">
         <a class="btn primary" href="https://github.com/gramadrama" rel="noopener">I want to test it</a>
-        <a class="btn ghost" href="#how">See how it works</a>
+        <a class="btn ghost" href="#features">See the features</a>
       </div>
-      <p class="hint"><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> — review the suggestion and press <kbd>Enter</kbd> to apply it.</p>
+      <p class="hint"><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>G</kbd> on macOS) — review the suggestion. <kbd>Enter</kbd> inserts it, <kbd>Esc</kbd> closes the panel.</p>
     </div>
 
     <figure class="hero-demo">
@@ -83,42 +82,11 @@
   </div>
 </section>
 
-<section id="how" aria-labelledby="how-h">
-  <div class="wrap">
-    <p class="eyebrow">How it works</p>
-    <h2 id="how-h">Three moves, without leaving the window</h2>
-    <p class="sub">Select text or place the caret in a supported field. Compatibility depends on the app and how it exposes its text.</p>
-    <div class="demo">
-      <figure class="demo-shot">
-        <picture>
-          <source srcset="/img/panel-ready-dark.png" media="(prefers-color-scheme: dark)">
-          <img src="/img/panel-ready-light.png" width="576" height="418" loading="lazy" alt="The GramaDrama panel above a text field: a Polish sentence with four corrections and a list of changes">
-        </picture>
-        <figcaption>The correction panel on Ubuntu with GNOME. Polish sample text, with LanguageTool explanations.</figcaption>
-      </figure>
-      <ol class="steps">
-        <li>
-          <h3>Write where you always do</h3>
-          <p>In a messenger, email or editor. The GramaDrama extension supports text fields in your browser.</p>
-        </li>
-        <li>
-          <h3>Ask for a correction</h3>
-          <p><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd> on Linux, <kbd>⌥</kbd><kbd>⌘</kbd><kbd>G</kbd> on macOS. The panel shows proposed changes.</p>
-        </li>
-        <li>
-          <h3>Review and apply</h3>
-          <p><kbd>Enter</kbd> inserts the result; <kbd>Esc</kbd> closes the panel. Read the suggestion — the model can be wrong.</p>
-        </li>
-      </ol>
-    </div>
-  </div>
-</section>
-
 <section class="soft" id="features" aria-labelledby="features-h">
   <div class="wrap">
     <p class="eyebrow">Features</p>
     <h2 id="features-h">One shortcut, six modes</h2>
-    <p class="sub">Correct, rewrite or translate the same text without pasting it into a chat. Example results — they depend on the model you choose.</p>
+    <p class="sub">Correct, rewrite or translate the same text without pasting it into a chat. Example results depend on the model, and a model can be wrong — so you always see the result before it goes in.</p>
     <div class="examples">
       <div class="ex"><h3>Correct</h3><p class="before">i will send you the raport tomorow</p><p class="after"><mark>I</mark> will send you the <mark>report</mark> <mark>tomorrow.</mark></p></div>
       <div class="ex"><h3>Improve</h3><p class="before">The meeting was long and we talked about a lot of different important things.</p><p class="after">In a long meeting we covered many important topics.</p></div>
@@ -157,16 +125,7 @@
       </div>
     </div>
 
-    <div class="feat two">
-      <div>
-        <h3>Checking while you type</h3>
-        <p>A badge counts detected mistakes. Underlines appear where the text field supports them.</p>
-      </div>
-      <div>
-        <h3>You control the changes</h3>
-        <p>Compare the suggestion with your text before applying it. When enabled, LanguageTool can explain detected errors.</p>
-      </div>
-    </div>
+    <p class="also"><strong>Checking while you type.</strong> A badge counts detected mistakes, and underlines appear where the text field supports them.</p>
   </div>
 </section>
 
@@ -174,7 +133,7 @@
   <div class="wrap">
     <p class="eyebrow">Your data</p>
     <h2 id="data-h">Your text and voice, on your terms</h2>
-    <p class="sub">No GramaDrama account is needed. Text goes to the configured model and to LanguageTool if enabled. For dictation, the selected speech service processes your recording.</p>
+    <p class="sub">No GramaDrama account is needed. You install the model and services yourself — on your computer, your own server or a compatible external service — and point GramaDrama to them in its settings.</p>
 
     <div class="flow">
       <div class="node"><b>Text or voice</b><span>Text from a supported field, or a recording made while dictating</span></div>
@@ -186,8 +145,8 @@
 
     <ul class="points">
       <li><strong>No account, no telemetry.</strong> The app collects no statistics, and its logs do not contain the text being corrected.</li>
-      <li><strong>Local after setup.</strong> Start the services you need and download their models first. The app has no default project server.</li>
-      <li><strong>You choose the service.</strong> Choose a compatible model and services running locally or remotely. A remote service handles your data according to its operator’s policies.</li>
+      <li><strong>Offline too.</strong> When the model, LanguageTool and Whisper run locally, your text and recordings stay on your computer or network. The app has no default project server.</li>
+      <li><strong>You choose the service.</strong> With a remote service, its operator decides how your data is processed and stored.</li>
     </ul>
   </div>
 </section>
@@ -196,7 +155,6 @@
   <div class="wrap">
     <p class="eyebrow">Requirements and availability</p>
     <h2 id="req-h">What you need</h2>
-    <p class="sub">Install and run your chosen models and services yourself, then point GramaDrama to them in its settings. They can run on your computer or your own server. You can also choose a compatible external service.</p>
     <div class="status" id="status">
       <div class="card">
         <span class="state soon">TESTING</span>
@@ -234,15 +192,11 @@
   </div>
 </section>
 
-<section class="soft" id="faq" aria-labelledby="faq-h">
+<section id="faq" aria-labelledby="faq-h">
   <div class="wrap">
     <p class="eyebrow">FAQ</p>
     <h2 id="faq-h">What people ask</h2>
     <div class="faq">
-      <details>
-        <summary>Is this an alternative to Grammarly and Wispr Flow?</summary>
-        <p>GramaDrama combines two use cases: the proofreading and rewriting familiar from Grammarly, and the dictation familiar from Wispr Flow. Features and supported apps differ, and dictation is still experimental. Both can run locally once you set up the models on compatible hardware.</p>
-      </details>
       <details>
         <summary>Does it work in my app?</summary>
         <p>Compatibility depends on how the app exposes text. The browser extension handles fields on web pages. Password fields, terminals and apps disabled in the settings are skipped. Some editors may lose formatting when text is replaced.</p>
@@ -253,25 +207,13 @@
       </details>
       <details>
         <summary>How much does it cost?</summary>
-        <p>The app is free and will be open source. You only pay if you choose a paid external service.</p>
-      </details>
-      <details>
-        <summary>Is my text stored anywhere?</summary>
-        <p>GramaDrama’s logs do not contain the text being corrected. Text goes to your chosen model and enabled LanguageTool during correction and background checking. If you use a server, data retention depends on its operator. Remote dictation also sends your recording to the speech service.</p>
-      </details>
-      <details>
-        <summary>Does it work offline?</summary>
-        <p>Yes, after downloading models and setting up local services. The model and any enabled LanguageTool or Whisper service must run on your computer or an accessible local network.</p>
-      </details>
-      <details>
-        <summary>When can I download it?</summary>
-        <p>The Linux version comes first, once testing is done; macOS later. Follow the progress on GitHub.</p>
+        <p>The app is free. You only pay for a paid external service, if you choose one.</p>
       </details>
     </div>
   </div>
 </section>
 
-<section id="contact" aria-labelledby="contact-h">
+<section class="soft" id="contact" aria-labelledby="contact-h">
   <div class="wrap contact">
     <h2 id="contact-h">Get in touch</h2>
     <p class="sub">Questions, feedback, ideas, or an offer to help with testing — write to me.</p>

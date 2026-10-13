@@ -35,7 +35,6 @@
     <a class="brand" href="/"><img src="/img/icon-192.png" width="32" height="32" alt="">GramaDrama</a>
     <nav aria-label="Główna">
       <ul>
-        <li class="hide-sm"><a href="#jak">Jak działa</a></li>
         <li class="hide-sm"><a href="#mozliwosci">Możliwości</a></li>
         <li class="hide-sm"><a href="#dane">Twoje dane</a></li>
         <li class="hide-sm"><a href="#wymagania">Wymagania</a></li>
@@ -57,9 +56,9 @@
       <p class="beta"><span class="state soon">Wersja testowa</span> Publiczne pobieranie wkrótce, najpierw na Linuksa.</p>
       <div class="cta">
         <a class="btn primary" href="https://github.com/gramadrama" rel="noopener">Chcę testować</a>
-        <a class="btn ghost" href="#jak">Zobacz, jak działa</a>
+        <a class="btn ghost" href="#mozliwosci">Zobacz możliwości</a>
       </div>
-      <p class="hint"><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> — sprawdź propozycję i&nbsp;zatwierdź klawiszem <kbd>Enter</kbd>.</p>
+      <p class="hint"><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> (na macOS <kbd>⌥</kbd><kbd>⌘</kbd><kbd>G</kbd>) — sprawdź propozycję. <kbd>Enter</kbd> wstawia, <kbd>Esc</kbd> zamyka.</p>
     </div>
 
     <figure class="hero-demo">
@@ -84,42 +83,11 @@
   </div>
 </section>
 
-<section id="jak" aria-labelledby="jak-h">
-  <div class="wrap">
-    <p class="eyebrow">Jak działa</p>
-    <h2 id="jak-h">Trzy ruchy, bez wychodzenia z&nbsp;okna</h2>
-    <p class="sub">Zaznacz tekst albo ustaw kursor w&nbsp;obsługiwanym polu. Zgodność zależy od aplikacji i&nbsp;sposobu udostępniania tekstu.</p>
-    <div class="demo">
-      <figure class="demo-shot">
-        <picture>
-          <source srcset="/img/panel-ready-dark.png" media="(prefers-color-scheme: dark)">
-          <img src="/img/panel-ready-light.png" width="576" height="418" loading="lazy" alt="Panel GramaDramy nad polem tekstowym: zdanie z czterema poprawkami i listą zmian">
-        </picture>
-        <figcaption>Panel korekty na Ubuntu z&nbsp;GNOME. Przykładowy tekst, widok z&nbsp;uzasadnieniami LanguageTool.</figcaption>
-      </figure>
-      <ol class="steps">
-        <li>
-          <h3>Pisz, gdzie zwykle</h3>
-          <p>W komunikatorze, poczcie lub edytorze. W&nbsp;przeglądarce pomaga rozszerzenie GramaDramy.</p>
-        </li>
-        <li>
-          <h3>Wywołaj korektę</h3>
-          <p><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd> na Linuksie, <kbd>⌥</kbd><kbd>⌘</kbd><kbd>G</kbd> na macOS. Panel pokazuje proponowane zmiany.</p>
-        </li>
-        <li>
-          <h3>Sprawdź i&nbsp;zatwierdź</h3>
-          <p><kbd>Enter</kbd> wstawia wynik, <kbd>Esc</kbd> zamyka panel. Przeczytaj propozycję — model może się pomylić.</p>
-        </li>
-      </ol>
-    </div>
-  </div>
-</section>
-
 <section class="soft" id="mozliwosci" aria-labelledby="moz-h">
   <div class="wrap">
     <p class="eyebrow">Możliwości</p>
     <h2 id="moz-h">Jeden skrót, sześć trybów</h2>
-    <p class="sub">Ten sam tekst poprawisz, przepiszesz albo przetłumaczysz bez kopiowania go do czatu. Przykładowe wyniki — zależą od wybranego modelu.</p>
+    <p class="sub">Ten sam tekst poprawisz, przepiszesz albo przetłumaczysz bez kopiowania go do czatu. Przykładowe wyniki zależą od modelu, a&nbsp;model może się pomylić — dlatego wynik zawsze widzisz przed wstawieniem.</p>
     <div class="examples">
       <div class="ex"><h3>Popraw</h3><p class="before">jutro wysle ci raport bo dzis nie zdąże</p><p class="after"><mark>Jutro</mark> <mark>wyślę</mark> ci raport<mark>,</mark> bo <mark>dziś</mark> nie <mark>zdążę.</mark></p></div>
       <div class="ex"><h3>Ulepsz</h3><p class="before">Spotkanie było długie i&nbsp;omówiliśmy na nim dużo różnych ważnych rzeczy.</p><p class="after">Na długim spotkaniu omówiliśmy wiele ważnych spraw.</p></div>
@@ -158,16 +126,7 @@
       </div>
     </div>
 
-    <div class="feat two">
-      <div>
-        <h3>Sprawdzanie podczas pisania</h3>
-        <p>Licznik pokazuje wykryte błędy. Tam, gdzie pole tekstowe to umożliwia, zobaczysz też podkreślenia.</p>
-      </div>
-      <div>
-        <h3>Kontrola nad zmianami</h3>
-        <p>Przed zatwierdzeniem porównasz tekst z&nbsp;propozycją. Włączony LanguageTool może dodać uzasadnienia wykrytych błędów.</p>
-      </div>
-    </div>
+    <p class="also"><strong>Sprawdzanie podczas pisania.</strong> Licznik pokazuje wykryte błędy, a&nbsp;tam, gdzie pole na to pozwala, zobaczysz też podkreślenia.</p>
   </div>
 </section>
 
@@ -175,7 +134,7 @@
   <div class="wrap">
     <p class="eyebrow">Twoje dane</p>
     <h2 id="dane-h">Twój tekst i&nbsp;głos, na Twoich zasadach</h2>
-    <p class="sub">Nie potrzebujesz konta GramaDramy. Tekst trafia do skonfigurowanego modelu i&nbsp;LanguageTool, jeśli go włączysz. Przy dyktowaniu nagranie przetwarza wybrana usługa rozpoznawania mowy.</p>
+    <p class="sub">Nie potrzebujesz konta GramaDramy. Model i&nbsp;usługi instalujesz samodzielnie — na swoim komputerze, własnym serwerze albo w&nbsp;zgodnej usłudze zewnętrznej — i&nbsp;wskazujesz je w&nbsp;ustawieniach.</p>
 
     <div class="flow">
       <div class="node"><b>Tekst lub głos</b><span>Tekst z&nbsp;obsługiwanego pola albo nagranie podczas dyktowania</span></div>
@@ -187,8 +146,8 @@
 
     <ul class="points">
       <li><strong>Bez konta i&nbsp;telemetrii.</strong> Aplikacja nie zbiera statystyk, a&nbsp;jej logi nie zawierają poprawianego tekstu.</li>
-      <li><strong>Lokalnie po konfiguracji.</strong> Najpierw uruchom potrzebne usługi i&nbsp;pobierz modele. Aplikacja nie ma domyślnego serwera projektu.</li>
-      <li><strong>Ty wybierasz usługę.</strong> Wybierasz zgodny model i&nbsp;usługi działające lokalnie lub zdalnie. Przy zdalnej usłudze zasady przetwarzania danych zależą od jej operatora.</li>
+      <li><strong>Także bez internetu.</strong> Gdy model, LanguageTool i&nbsp;Whisper działają lokalnie, tekst i&nbsp;nagranie nie opuszczają Twojego komputera ani sieci. Aplikacja nie ma domyślnego serwera projektu.</li>
+      <li><strong>Ty wybierasz usługę.</strong> Przy usłudze zdalnej to jej operator decyduje, jak przetwarza i&nbsp;przechowuje dane.</li>
     </ul>
   </div>
 </section>
@@ -197,7 +156,6 @@
   <div class="wrap">
     <p class="eyebrow">Wymagania i&nbsp;dostępność</p>
     <h2 id="wym-h">Czego potrzebujesz</h2>
-    <p class="sub">Wybrane modele i&nbsp;usługi instalujesz oraz uruchamiasz samodzielnie, a&nbsp;potem wskazujesz je w&nbsp;ustawieniach GramaDramy. Mogą działać na Twoim komputerze lub własnym serwerze. Możesz też wybrać zgodną usługę zewnętrzną.</p>
     <div class="status" id="status">
       <div class="card">
         <span class="state soon">W TESTACH</span>
@@ -235,15 +193,11 @@
   </div>
 </section>
 
-<section class="soft" id="pytania" aria-labelledby="pytania-h">
+<section id="pytania" aria-labelledby="pytania-h">
   <div class="wrap">
     <p class="eyebrow">Pytania</p>
     <h2 id="pytania-h">Krótko o&nbsp;tym, o&nbsp;co pytacie</h2>
     <div class="faq">
-      <details>
-        <summary>Czy to alternatywa dla Grammarly i&nbsp;Wispr Flow?</summary>
-        <p>GramaDrama łączy dwa zastosowania: korektę i&nbsp;zmianę stylu tekstu znane z&nbsp;Grammarly oraz dyktowanie znane z&nbsp;Wispr Flow. Zakres funkcji i&nbsp;obsługiwanych aplikacji jest inny, a&nbsp;dyktowanie pozostaje testowe. Oba zastosowania mogą działać lokalnie, po przygotowaniu modeli i&nbsp;zgodnego sprzętu.</p>
-      </details>
       <details>
         <summary>Czy to działa w&nbsp;mojej aplikacji?</summary>
         <p>Zgodność zależy od tego, jak aplikacja udostępnia tekst. Obsługę pól na stronach zapewnia rozszerzenie przeglądarki. Pola haseł, terminale i&nbsp;aplikacje wyłączone w&nbsp;ustawieniach są pomijane. W&nbsp;niektórych edytorach podmiana tekstu może usunąć formatowanie.</p>
@@ -254,25 +208,13 @@
       </details>
       <details>
         <summary>Ile to kosztuje?</summary>
-        <p>Aplikacja jest bezpłatna i&nbsp;będzie miała otwarte źródła. Zapłacisz tylko wtedy, gdy wybierzesz płatną usługę zewnętrzną.</p>
-      </details>
-      <details>
-        <summary>Czy mój tekst jest gdzieś zapisywany?</summary>
-        <p>Logi GramaDramy nie zawierają poprawianego tekstu. Tekst trafia do wybranego modelu i&nbsp;włączonego LanguageTool przy korekcie oraz sprawdzaniu w&nbsp;tle. Jeśli używasz serwera, przechowywanie danych zależy od jego operatora. Przy zdalnym dyktowaniu do usługi trafia nagranie.</p>
-      </details>
-      <details>
-        <summary>Czy działa bez internetu?</summary>
-        <p>Tak, po pobraniu modeli i&nbsp;przygotowaniu usług lokalnych. Model oraz włączone usługi LanguageTool i&nbsp;Whisper muszą działać na Twoim komputerze lub w&nbsp;dostępnej sieci lokalnej.</p>
-      </details>
-      <details>
-        <summary>Kiedy będzie można pobrać?</summary>
-        <p>Najpierw wersja na Linuksa, po zakończeniu testów; macOS później. Postępy śledzisz na GitHubie.</p>
+        <p>Aplikacja jest bezpłatna. Zapłacisz tylko za płatną usługę zewnętrzną, jeśli ją wybierzesz.</p>
       </details>
     </div>
   </div>
 </section>
 
-<section id="kontakt" aria-labelledby="kontakt-h">
+<section class="soft" id="kontakt" aria-labelledby="kontakt-h">
   <div class="wrap contact">
     <h2 id="kontakt-h">Kontakt z&nbsp;projektem</h2>
     <p class="sub">Pytania, uwagi, pomysły albo chęć pomocy przy testach — napisz.</p>
