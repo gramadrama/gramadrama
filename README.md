@@ -84,9 +84,12 @@ Ollama); any model the app can reach works. Without LanguageTool:
   (texts up to 1500 characters) instead of grammar rules after 0.8 s; the experimental **Model only** mode
   (*Tylko model*) leaves the model alone.
 
-Dictation is optional as well. Recognition on this computer uses Whisper large-v3-turbo: on macOS through WhisperKit
-(about 1.6 GB, downloaded at the first dictation), on Linux with an NVIDIA graphics card. With a speech server, the
-server's model is used.
+Dictation is optional as well. The recommended speech model is Whisper large-v3-turbo, and recognition on this
+computer always uses it: on macOS through WhisperKit (about 1.6 GB, downloaded and loaded in the background as soon as
+dictation is on, which it is by default; the first load prepares it for the Neural Engine and takes a few minutes),
+on Linux with an NVIDIA graphics card. A speech server can run another Whisper version or another speech model, as you
+prefer: with the OpenAI API you enter its name in the settings, and whisper.cpp uses the model the server was started
+with.
 
 On both systems the **Services** tab offers the same choice for the model, LanguageTool and speech
 recognition: **This computer** (*Ten komputer*; on macOS *Ten Mac*) or **Server** (*Serwer*) with an address,

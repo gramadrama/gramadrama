@@ -18,7 +18,8 @@ PROTOCOLS = (('openai', 'Zgodny z OpenAI'), ('ollama', 'Ollama'))
 SPEECH_PROTOCOLS = (('openai', 'Zgodny z OpenAI'), ('whispercpp', 'whisper.cpp'))
 # Ollama's "thinking" (core.LLM_THINKS): off is what the corrections were measured with (docs/models.md).
 THINKS = (('off', 'wyłączone (zalecane)'), ('model', 'domyślne ustawienie modelu'))
-# The model to pull into Ollama on this computer when none is typed (LocalOllama.suggestedModel on the Mac).
+# The recommended model, pulled into Ollama on this computer when none is typed (LocalOllama.suggestedModel on the Mac,
+# where it is also the default model of a new install).
 SUGGESTED_MODEL = 'gemma4:e4b'
 LLM_FIELDS = (checks.FILE, 'llm_location', 'llm_local_url', 'llm_url', 'llm_api')
 LT_FIELDS = ('languagetool_location', 'languagetool_local_url', 'languagetool_url')
@@ -74,7 +75,7 @@ class ServicesTab:
                                           text=settings.model)
         self.llm_model_row.connect('apply', lambda row: self.apply_text(row, 'model', tr('modelu')))
         self.shown = {'model': settings.model, 'whisper_model': settings.whisper_model, 'auth_client_id': settings.auth_client_id}
-        self.pull_entry = Adw.EntryRow(title=tr('Pobierz model, np. {value} (ok. 6,6 GB)', value=SUGGESTED_MODEL),
+        self.pull_entry = Adw.EntryRow(title=tr('Pobierz model; zalecany {value} (ok. 6,6 GB)', value=SUGGESTED_MODEL),
                                        show_apply_button=True, use_markup=False)
         self.pull_entry.connect('apply', lambda *_: self.pull_model())
         self.pull_row = Adw.ActionRow(use_markup=False, visible=False)

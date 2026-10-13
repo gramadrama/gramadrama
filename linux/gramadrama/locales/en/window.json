@@ -72,7 +72,7 @@
   "Adres serwera": "Server address",
   "Klucz API (opcjonalny)": "API key (optional)",
   "Model (nazwa na serwerze)": "Model (its name on the server)",
-  "Pobierz model, np. {value} (ok. 6,6 GB)": "Pull a model, e.g. {value} (about 6.6 GB)",
+  "Pobierz model; zalecany {value} (ok. 6,6 GB)": "Pull a model; {value} is recommended (about 6.6 GB)",
   "Pobieram {value}": "Pulling {value}",
   "Pobrano {value}.": "Pulled {value}.",
   "Nie pobrano {value}": "{value} was not pulled",

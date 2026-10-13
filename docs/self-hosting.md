@@ -101,13 +101,16 @@ GramaDrama uses LanguageTool for grammar rules and explanations, not as a condit
 Open **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*) and choose:
 
 - **This computer (Linux):** local Whisper. The `linux/install_engine.py tools` command downloads a separate
-  environment, the CUDA libraries and the Whisper model. It needs `uv`, a compatible NVIDIA card,
+  environment, the CUDA libraries and the Whisper large-v3-turbo model. It needs `uv`, a compatible NVIDIA card,
   its driver and space for several GB of data.
-- **This Mac (macOS):** Whisper large-v3-turbo through WhisperKit on the Neural Engine; the model (about 1.6 GB)
-  is downloaded at the first dictation.
+- **This Mac (macOS):** Whisper large-v3-turbo through WhisperKit on the Neural Engine. The model (about 1.6 GB)
+  is downloaded and loaded in the background as soon as dictation is on (it is by default), so the first dictation
+  does not wait; the first load prepares it for the Neural Engine and takes a few minutes. With a speech server it is
+  neither downloaded nor loaded.
 - **Server:** the server's rows appear below it: enter the base address of the service, choose the **Protocol**
   (*Protokół*) and enter the model for the OpenAI API and an optional key. The recording is sent
-  to this service; the local Whisper model is not needed.
+  to this service; the local Whisper model is not needed. Whisper large-v3-turbo is the recommended version, the one
+  used on this computer, but the server can run another Whisper version or speech model, as you prefer.
 
 The protocol must match the API of the running server:
 
