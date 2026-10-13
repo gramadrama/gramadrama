@@ -290,13 +290,6 @@ figcaption { margin-top: 12px; font-size: 15px; color: var(--ink-2); }
 .points strong { color: var(--ink); font-weight: 650; }
 
 /* wymagania */
-.setup-title { margin: 32px 0 18px; }
-.needs { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); padding: 0; margin: 0; list-style: none; }
-@media (min-width: 860px) { .needs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.needs li { padding: 0 0 0 20px; border-left: 2px solid var(--line); }
-.needs p { margin: 0; color: var(--ink-2); font-size: 16px; }
-.needs h4 { margin: 0 0 8px; font-size: 18px; line-height: 1.4; }
-.setup-note { margin: 24px 0 0; color: var(--ink-2); font-size: 15px; max-width: 66em; }
 
 /* pytania: natywne <details>, bez skryptów */
 .faq { max-width: 760px; border-top: 1px solid var(--line); }
