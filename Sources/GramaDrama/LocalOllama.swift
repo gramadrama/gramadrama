@@ -36,8 +36,8 @@ final class LocalOllama: ObservableObject {
     private var downloadTask: Task<Void, Never>?
 
     static let downloadPage = URL(string: "https://ollama.com/download")!
-    /// Model do pobrania na tym Macu: Gemma 4 E4B (ok. 6,6 GB) mieści się w pamięci obok innych programów już przy 16 GB.
-    static let suggestedModel = "gemma4:e4b"
+    /// Model zalecany do pobrania na tym Macu: domyślny model nowej instalacji (`Settings.defaultModel`).
+    static let suggestedModel = Settings.defaultModel
 
     nonisolated private static let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral

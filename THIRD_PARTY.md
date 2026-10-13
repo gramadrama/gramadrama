@@ -62,9 +62,8 @@ The model server (e.g. Ollama, llama.cpp or a service compatible with the OpenAI
 transcription server and the weights of language models are not part of GramaDrama. The user installs them
 and checks their licences and terms of use, and for external services also their data processing rules.
 
-On both systems the app offers to download the `gemma4:e4b` model (Gemma 4) through Ollama, and on macOS
-the default model name in the settings is `hf.co/google/gemma-4-12B-it-qat-q4_0-gguf`. The cards of these
-models state the Apache-2.0 licence. The download happens only when the user asks for it.
+On both systems the app recommends the `gemma4:e4b` model (Gemma 4) for download through Ollama, and on macOS
+it is also the default model name in the settings. Its card states the Apache-2.0 licence. The download happens only when the user asks for it.
 
 ## Developer tools
 

@@ -323,7 +323,7 @@ struct ServicesTab: View {
                         Text(pullText(download)).font(.caption).foregroundStyle(.secondary)
                     }
                 } else {
-                    Text(tr("Nazwa z biblioteki Ollamy, np. {model} (ok. 6,6 GB).", ["model": LocalOllama.suggestedModel]))
+                    Text(tr("Nazwa z biblioteki Ollamy; zalecany {model} (ok. 6,6 GB).", ["model": LocalOllama.suggestedModel]))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }

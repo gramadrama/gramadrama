@@ -29,7 +29,8 @@ Do not add `/v1` to the address with the native Ollama protocol. Addresses and t
 On macOS, for Ollama on the same computer, choose **Services → Language model → This Mac**
 (*Usługi → Model językowy → Ten Mac*). The app connects to `http://127.0.0.1:11434`, shows whether Ollama is installed
 and running, with **Get Ollama…** (*Pobierz Ollamę…*) and **Start** (*Uruchom*), and pulls the model entered in the
-**Pull a model** (*Pobierz model*) row with a progress bar; the suggestion is `gemma4:e4b` (about 6.6 GB).
+**Pull a model** (*Pobierz model*) row with a progress bar. Any model from the Ollama library works; the recommended
+one is `gemma4:e4b` (about 6.6 GB), and a new install starts with its name in the settings.
 Ollama from Homebrew starts as a service, not with the button in the app. On this Mac the model stays in memory
 for 30 min after its last use and is not loaded when the app starts; on a server, for 24 hours.
 Set up Ollama on another computer in **Server** as above.

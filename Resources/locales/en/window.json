@@ -84,7 +84,7 @@
   "Nagranie rozpoznaje Whisper na tym Macu i nie jest zapisywane.": "Whisper on this Mac recognizes the recording; it is not stored.",
   "Nagrywa tylko, gdy trzymasz klawisz dyktowania.": "Records only while you hold the dictation key.",
   "Najedź na słowo, żeby zobaczyć poprawkę.": "Point at a word to see the correction.",
-  "Nazwa z biblioteki Ollamy, np. {model} (ok. 6,6 GB).": "A name from the Ollama library, e.g. {model} (about 6.6 GB).",
+  "Nazwa z biblioteki Ollamy; zalecany {model} (ok. 6,6 GB).": "A name from the Ollama library; {model} is recommended (about 6.6 GB).",
   "Nie dotyczy — żadna z wybranych usług nie łączy się przez bramę.": "Not used — none of the chosen services connects through the gateway.",
   "Nie jest zainstalowana — to bezpłatna aplikacja do modeli językowych na Macu.": "Not installed — a free app for language models on the Mac.",
   "Nie jest zainstalowana.": "Not installed.",

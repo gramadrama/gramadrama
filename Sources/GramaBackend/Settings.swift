@@ -93,7 +93,7 @@ package final class Settings: ObservableObject {
         languageToolLocalURL = defaults.string(forKey: "languageToolLocalURL") ?? ""
         remoteBaseURL = defaults.string(forKey: "remoteBaseURL") ?? ""
         remoteClientID = defaults.string(forKey: "remoteClientID") ?? ""
-        model = defaults.string(forKey: "model") ?? "hf.co/google/gemma-4-12B-it-qat-q4_0-gguf:latest"
+        model = defaults.string(forKey: "model") ?? Self.defaultModel
         disabledBundleIDs = defaults.stringArray(forKey: "disabledBundleIDs") ?? []
         manualBundleIDs = defaults.stringArray(forKey: "manualBundleIDs") ?? []
         appModes = defaults.dictionary(forKey: "appModes") as? [String: String] ?? [:]
@@ -176,6 +176,11 @@ package final class Settings: ObservableObject {
     package var modelOnlyActive: Bool { liveCheckEnabled && liveModelOnly }
 
     /// „hf.co/speakleash/Bielik-11B-v2.3-Instruct-GGUF:Q4_K_M" → „Bielik-11B-v2.3",
+    /// Model nowej instalacji, ten sam, który okno zaleca w wierszu „Pobierz model” (`LocalOllama.suggestedModel`): po
+    /// pobraniu od razu działa. Gemma 4 E4B (ok. 6,6 GB) mieści się w pamięci obok innych programów już przy 16 GB.
+    /// Zapisany wybór (klucz `model`) zostaje.
+    package static let defaultModel = "gemma4:e4b"
+
     /// „hf.co/google/gemma-4-12B-it-qat-q4_0-gguf:latest" → „Gemma-4-12B", „qwen3:8b" → „Qwen3:8b".
     package static func displayName(ofModel model: String) -> String {
         let last = model.split(separator: "/").last.map(String.init) ?? model

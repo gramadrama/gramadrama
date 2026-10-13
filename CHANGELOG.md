@@ -72,7 +72,9 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
 - Dictation while holding Fn / 🌐: Whisper on the Mac with a live preview in the pill and long recordings split at
   pauses, or a server.
 - Services on this Mac or on a server, Ollama with model download, the API key in the keychain, remote access
-  sign-in and editable prompts (the same files as on Linux).
+  sign-in and editable prompts (the same files as on Linux). The recommended model, `gemma4:e4b` (about 6.6 GB), is
+  the one a new install starts with and the one the window recommends downloading, so the first correction works right
+  after the download; a model chosen before stays.
 
 ### Notes
 
