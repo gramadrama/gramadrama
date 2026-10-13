@@ -18,7 +18,8 @@ and drives the extension's D-Bus interface directly with fixture views:
                   ".../gramadrama-engine --ibus" may Show/Hide/Subscribe (a stand-in engine proves
                   both sides).
   --shots DIR     screenshots of every state, dark and light, over gnome-text-editor (and the full
-                  screen); --docs also refreshes docs/panel/*.png.
+                  screen); --docs also refreshes docs/panel/*.png (English) and the site's panel pictures
+                  (site/public/img, Polish).
 
 The stand-in engine (written into the session's work dir) subscribes to the Action and Focus signals
 exactly like the engine's PanelClient (sender org.gnome.Shell) and logs them as JSONL. Only a stand-in
@@ -75,6 +76,20 @@ TR_SRC = ('Dziękuję za szybką odpowiedź. Spotkajmy się w czwartek o 10:00, 
 TR_TEXT = ("Thank you for the quick reply. Let's meet on Thursday at 10:00 to discuss the project details and "
            "the rollout schedule. I'll send a short agenda beforehand, and a summary of what we agree on to the "
            "whole team afterwards, so nobody has to guess.")
+# The docs are English, so is the panel in their pictures (--docs): the view the engine sends with an English
+# interface, the model of integration_app.py's docs pictures.
+EN_SRC = 'Hi Anna I am sending the corected version of the report. Let me know if you have any coments by friday.'
+EN_FIXED = 'Hi Anna, I am sending the corrected version of the report. Let me know if you have any comments by Friday.'
+EN_SEGMENTS = [['same', 'Hi Anna'], ['added', ','], ['same', ' I am sending the '], ['removed', 'corected'],
+               ['added', 'corrected'], ['same', ' version of the report. Let me know if you have any '],
+               ['removed', 'coments'], ['added', 'comments'], ['same', ' by '], ['removed', 'friday'],
+               ['added', 'Friday'], ['same', '.']]
+EN_CHANGES = [{'from': '', 'to': ',', 'reason': 'Missing punctuation'},
+              {'from': 'corected', 'to': 'corrected', 'reason': 'Typo'},
+              {'from': 'coments', 'to': 'comments', 'reason': 'Typo'},
+              {'from': 'friday', 'to': 'Friday', 'reason': 'Capitalization'}]
+EN_MODEL = 'gemma-4-e4b-it'
+PRIVATE = ('Pole hasła lub prywatne — GramaDrama go nie czyta.', 'Password or private field — GramaDrama does not read it.')
 TRICKY = '<b>pogrubienie</b> & <span foreground="red">„cytat”</span> \\n'  # must show literally
 
 
@@ -1809,10 +1824,25 @@ Rig._try_ping = _try_ping
 # at the start of the paragraph (translations: the paragraph selected from the end backwards).
 EDITORS = {'correct': ('scenariusz.txt', SRC + '\n\nTu kończy się akapit, który GramaDrama poprawia.\n', False),
            'pl': ('po-polsku.txt', TR_SRC + '\n', True),
-           'en': ('in-english.txt', TR_TEXT + '\n', True)}
+           'en': ('in-english.txt', TR_TEXT + '\n', True),
+           'correct_en': ('draft.txt', EN_SRC + '\n\nThis is where the paragraph GramaDrama corrects ends.\n', False)}
 BACKDROP = {'translate': 'pl', 'translate_working': 'pl', 'translate_pl': 'en'}
+# --docs: the English pictures of docs/panel (state -> backdrop) and, from the Polish states, the site's pictures
+DOC_VIEWS = {'ready': 'correct_en', 'translate': 'pl', 'message': 'correct_en'}
 DOC_SHOTS = {'ready-dark': 'panel-ready-dark.png', 'ready-light': 'panel-ready-light.png',
              'translate-dark': 'panel-translate-dark.png', 'message-dark': 'panel-message-dark.png'}
+SITE = os.path.join(os.path.dirname(LINUX), 'site', 'public', 'img')
+SITE_SHOTS = {'ready_list-dark': 'panel-ready-dark.png', 'ready_list-light': 'panel-ready-light.png',
+              'translate-dark': 'panel-translate-dark.png'}
+
+
+def docs_views(sid):
+    """The views of DOC_VIEWS with an English interface."""
+    return {'ready': view(sid, ui_language='en', source=EN_SRC, text=EN_FIXED, segments=EN_SEGMENTS, changes=EN_CHANGES,
+                          count=len(EN_CHANGES), note='%s · 2.9 s' % EN_MODEL, editable=True),
+            'translate': view(sid, ui_language='en', mode=5, target='en', source=TR_SRC, text=TR_TEXT, segments=[],
+                              changes=[], count=0, scope='selection', note='%s · PL → EN · 3.4 s' % EN_MODEL),
+            'message': message(sid, PRIVATE[1])}
 
 
 def shot_area(rig, path, x, y, w, h):
@@ -1840,13 +1870,31 @@ def focus_editor(rig, key):
                5, what='caret at the start of %s' % name)
 
 
+def shoot_view(rig, v, path, full=None):
+    """The caret's text line and the panel (or toast) of view v with its shadow; the full screen too into full."""
+    what = 'toast' if v['kind'] == 'message' else 'panel'
+    check(rig.show(v), 'screenshot %s: Show' % os.path.basename(path))
+    rig.pointer_away()
+    st = rig.settle(what)
+    time.sleep(0.35)
+    r = st[what]['rect']
+    c = st['caret']
+    top = min(r[1] - 28, round(c['y']) - 14)
+    bottom = max(r[1] + r[3] + 28, round(c['y'] + c['height']) + 14)
+    shot_area(rig, path, r[0] - 28, top, r[2] + 56, bottom - top)
+    if full:
+        rig.s.shot(full, cursor=False)
+
+
 def t_screenshots(rig):
-    """Every state, dark and light, over a real editor (gnome-text-editor follows the scheme)."""
+    """Every state, dark and light, over a real editor (gnome-text-editor follows the scheme). With --docs also
+    docs/panel/*.png (English, DOC_VIEWS) and the site's pictures (Polish, SITE_SHOTS)."""
     s, out = rig.s, rig.args.shots
     if not out:
         note('no --shots DIR: skipped')
         return
     os.makedirs(os.path.join(out, 'full'), exist_ok=True)
+    os.makedirs(os.path.join(out, 'docs'), exist_ok=True)
     s.eval('gdMain.messageTray.bannerBlocked = true; gdMain.messageTray.getSources().forEach(x => x.destroy()); true')
     editors = []
     for key, (name, text, _select) in EDITORS.items():
@@ -1864,28 +1912,28 @@ def t_screenshots(rig):
                 focus_editor(rig, backdrop)
                 time.sleep(0.3)
             sid = rig.next_id()
-            v = (message(sid, 'Pole prywatne — pomijam.') if name == 'message' else problem_view(sid) if name == 'problem'
+            v = (message(sid, PRIVATE[0]) if name == 'message' else problem_view(sid) if name == 'problem'
                  else state_views(sid)[name])
-            check(rig.show(v), 'screenshot %s: Show' % name)
-            what = 'toast' if name == 'message' else 'panel'
-            rig.pointer_away()
-            st = rig.settle(what)
-            time.sleep(0.35)
-            r = st[what]['rect']
-            c = st['caret']
-            # the caret's text line and the panel with its shadow
-            top = min(r[1] - 28, round(c['y']) - 14)
-            bottom = max(r[1] + r[3] + 28, round(c['y'] + c['height']) + 14)
             path = os.path.join(out, '%s-%s.png' % (name, variant))
-            shot_area(rig, path, r[0] - 28, top, r[2] + 56, bottom - top)
-            s.shot(os.path.join(out, 'full', '%s-%s.png' % (name, variant)), cursor=False)
+            shoot_view(rig, v, path, os.path.join(out, 'full', '%s-%s.png' % (name, variant)))
             saved.append(path)
             key = '%s-%s' % (name, variant)
-            if rig.args.docs and key in DOC_SHOTS:
-                os.makedirs(DOCS, exist_ok=True)
-                shutil.copyfile(path, os.path.join(DOCS, DOC_SHOTS[key]))
+            if rig.args.docs and key in SITE_SHOTS:
+                shutil.copyfile(path, os.path.join(SITE, SITE_SHOTS[key]))
+        for name, doc_backdrop in DOC_VIEWS.items() if rig.args.docs else ():
+            key = '%s-%s' % (name, variant)
+            if key not in DOC_SHOTS:
+                continue
+            rig.hide(0)
+            focus_editor(rig, doc_backdrop)
+            time.sleep(0.3)
+            path = os.path.join(out, 'docs', DOC_SHOTS[key])
+            shoot_view(rig, docs_views(rig.next_id())[name], path)
+            saved.append(path)
+            os.makedirs(DOCS, exist_ok=True)
+            shutil.copyfile(path, os.path.join(DOCS, DOC_SHOTS[key]))
         rig.hide(0)
-    note('%d screenshots in %s%s' % (len(saved), out, ' (+ docs/panel)' if rig.args.docs else ''))
+    note('%d screenshots in %s%s' % (len(saved), out, ' (+ docs/panel, site)' if rig.args.docs else ''))
     for editor in editors:
         editor.kill()
 
@@ -2095,7 +2143,7 @@ def main():
     names = [n for n, _ in UNIT_TESTS + PANEL_TESTS + CALLER_TESTS]
     ap.add_argument('--only', help='comma-separated test names: %s' % ','.join(names))
     ap.add_argument('--shots', help='directory for screenshots of every state (dark and light)')
-    ap.add_argument('--docs', action='store_true', help='also refresh docs/panel/*.png (needs --shots)')
+    ap.add_argument('--docs', action='store_true', help="also refresh docs/panel/*.png and the site's panel pictures (needs --shots)")
     ap.add_argument('--logs', help='copy the session logs here')
     ap.add_argument('-v', '--verbose', action='store_true')
     args = ap.parse_args()
