@@ -65,6 +65,10 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
   length limit. Words can be removed from the list.
 - "Turn off rule" on the card of a LanguageTool grammar rule and in the correction panel: the rule stays off until it is
   turned on again in the same section.
+- The checking-while-typing badge as on Linux: while LanguageTool or the model is asked and the count is not known yet,
+  three lavender blobs drift like wax in a lava lamp; with the result they flow into a brick circle with the count, or
+  merge and fade when nothing was found. A known count “breathes” during the next check. Reduce motion stops the
+  animation.
 - Dictation while holding Fn / 🌐: Whisper on the Mac with a live preview in the pill and long recordings split at
   pauses, or a server.
 - Services on this Mac or on a server, Ollama with model download, the API key in the keychain, remote access

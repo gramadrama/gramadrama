@@ -48,6 +48,11 @@ final class LiveMonitor {
     private var languageToolTask: Task<Void, Never>?
     private var bielikIssues: [LiveIssue] = []
     private var bielikTask: Task<Void, Never>?
+    /// Zapytania do serwera w toku (jak `checks_in_progress` na Linuksie): póki trwają, plakietka pokazuje lawę, a znana
+    /// liczba „oddycha”. Nowe sprawdzanie je czyści, więc spóźnione zakończenie starego zapytania niczego nie zmienia;
+    /// wynik z pamięci w ogóle ich nie zapala.
+    private var languageToolCheck: UUID?
+    private var bielikCheck: UUID?
     /// Po błędzie połączenia Bielik w tle odpoczywa (niedostępny serwer nie może zalewać logów ani sieci).
     private var bielikPausedUntil = Date.distantPast
     /// Tryb „tylko model” (eksperymentalny): jedyna warstwa, gdy jest włączony. `modelOnly` — tryb z ostatniego
@@ -93,6 +98,7 @@ final class LiveMonitor {
     func cancelModelCheck() {
         bielikTask?.cancel()
         bielikTask = nil
+        bielikCheck = nil
         modelOnlyTask?.cancel()
         modelOnlyTask = nil
         modelOnlyWaiting = false
@@ -101,6 +107,7 @@ final class LiveMonitor {
     func reset() {
         quickTask?.cancel()
         languageToolTask?.cancel()
+        languageToolCheck = nil
         cancelModelCheck()
         bielikIssues = []
         modelOnlyIssues = []
@@ -428,6 +435,7 @@ final class LiveMonitor {
     private func check() {
         quickTask?.cancel()
         languageToolTask?.cancel()
+        languageToolCheck = nil
         cancelModelCheck()
         if modelOnly {
             scheduleModelOnly()
@@ -446,9 +454,16 @@ final class LiveMonitor {
         guard Settings.shared.liveLanguageToolEnabled else { return }
         languageToolTask = Task {
             try? await Task.sleep(nanoseconds: Self.languageToolDelay)
-            guard !Task.isCancelled, let issues = await LiveChecker.shared.languageTool(live),
-                  !Task.isCancelled, checked == text else { return }
-            languageToolIssues = issues
+            guard !Task.isCancelled else { return }
+            let token = UUID()
+            if !live.present.isEmpty {
+                languageToolCheck = token
+                showBadge(frame: nil)
+            }
+            let issues = await LiveChecker.shared.languageTool(live)
+            guard !Task.isCancelled else { return }
+            if languageToolCheck == token { languageToolCheck = nil }
+            if let issues, checked == text { languageToolIssues = issues }
             showBadge(frame: nil)
         }
     }
@@ -461,17 +476,23 @@ final class LiveMonitor {
             try? await Task.sleep(nanoseconds: Self.bielikDelay)
             guard !Task.isCancelled, checked == text, !isSuspended() else { return }
             let started = Date()
-            let issues = await LiveChecker.shared.bielik(checked)
+            let token = UUID()
+            let issues = await LiveChecker.shared.bielik(checked) { [weak self] in
+                guard let self, !Task.isCancelled, checked == text else { return }
+                bielikCheck = token
+                showBadge(frame: nil)
+            }
             guard !Task.isCancelled else { return }
+            if bielikCheck == token { bielikCheck = nil }
             guard let issues else {
                 bielikPausedUntil = Date().addingTimeInterval(60)
                 EventLog.write("live_bielik_failed", ["chars": checked.count])
+                showBadge(frame: nil)
                 return
             }
             EventLog.write("live_bielik", ["chars": checked.count, "issues": issues.count,
                                            "ms": Int(Date().timeIntervalSince(started) * 1000)])
-            guard checked == text else { return }
-            bielikIssues = issues
+            if checked == text { bielikIssues = issues }
             showBadge(frame: nil)
         }
     }
@@ -532,11 +553,13 @@ final class LiveMonitor {
         tr("{model} nie odpowiada — sprawdzanie wstrzymane na minutę.", ["model": Settings.shared.modelDisplayName])
     }
 
+    /// Plakietka sama decyduje, co z tym zrobić: bez błędów i sprawdzania lawa zlewa się i znika, a bez lawy plakietka
+    /// po prostu się chowa.
     private func showBadge(frame: NSRect?) {
         let issues = visibleIssues
-        let checking = modelOnly && modelOnlyWaiting
+        let checking = modelOnly ? modelOnlyWaiting : languageToolCheck != nil || bielikCheck != nil
         let note = modelOnly ? modelOnlyNote : nil
-        if issues.isEmpty, !checking, note == nil { badge.hide() } else { badge.show(issues, checking: checking, note: note, in: frame) }
+        badge.show(issues, checking: checking, note: note, in: frame)
         showUnderlines(issues)
     }
 
@@ -658,6 +681,8 @@ final class LiveMonitor {
 
 /// Plakietka w prawym dolnym rogu pola: liczba błędów; po najechaniu nad nią lista, w której sugestia poprawia słowo,
 /// a „Popraw…” — tak jak kliknięcie samej plakietki — otwiera panel poprawki (jak plakietka na Linuksie).
+/// Póki sprawdzanie trwa, a liczby jeszcze nie ma, trzy lawendowe bańki dryfują jak wosk w lampie; z wynikiem zlewają się
+/// w ceglane koło z liczbą, a bez błędów — zlewają się i znikają (`Lava`, PANEL.md; `show()` w `live.js` na Linuksie).
 /// Nie zabiera fokusu ani klawiszy — aplikacja docelowa pisze dalej.
 @MainActor
 final class LiveBadge {
@@ -667,25 +692,67 @@ final class LiveBadge {
     private var panel: NSPanel?
     private let model = LiveBadgeModel()
     private var field: NSRect?
+    /// Koniec zlewania albo wskakiwania liczby: przestawia stan i zatrzymuje klatki.
+    private var settleTask: Task<Void, Never>?
 
     var isVisible: Bool { panel?.isVisible ?? false }
 
-    /// `checking`: model sprawdza tekst (tryb „tylko model”); `note`: komunikat o stanie sprawdzania.
+    /// „Ogranicz ruch” (Dostępność): bańki stoją, wynik od razu, bez zlewania i wskakiwania liczby.
+    private var animations: Bool { !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
+    /// `checking`: zapytanie do serwera w toku (LanguageTool, model w tle, tryb „tylko model”); `note`: komunikat
+    /// o stanie sprawdzania (bez błędów plakietka pokazuje wtedy „!”).
     func show(_ issues: [LiveIssue], checking: Bool = false, note: String? = nil, in frame: NSRect?) {
         if let frame { field = frame }
         guard let field else { return }
+        let now = LiveBadgeModel.now()
+        let lamp = model.lamp.settled(at: now)
+            .next(count: issues.count, note: note != nil, checking: checking, animations: animations, now: now)
+        guard lamp != .hidden else { return conceal() }
         if model.issues != issues { model.issues = issues }
         if model.checking != checking { model.checking = checking }
         if model.note != note { model.note = note }
+        if model.lamp != lamp { model.lamp = lamp }
+        sync(now)
         let panel = self.panel ?? makePanel()
         place(panel, in: field)
         if !panel.isVisible { panel.orderFrontRegardless() }
     }
 
+    /// Inne pole, inna aplikacja, kliknięcie: plakietka znika i zapomina pole.
     func hide() {
-        model.expanded = false
-        panel?.orderOut(nil)
+        conceal()
         field = nil
+    }
+
+    /// Nic do pokazania w tym samym polu: plakietka znika, ale pamięta, gdzie stoi — lawa z następnego sprawdzania
+    /// pojawi się od razu, a nie dopiero przy kolejnym odczycie pola.
+    private func conceal() {
+        settleTask?.cancel()
+        settleTask = nil
+        if model.lamp != .hidden { model.lamp = .hidden }
+        if model.animating { model.animating = false }
+        if model.expanded { model.expanded = false }
+        panel?.orderOut(nil)
+    }
+
+    /// Klatki tylko wtedy, gdy coś się rusza; koniec zlewania i wskakiwania liczby przestawia stan sam (koło z liczbą
+    /// albo, bez błędów, schowana plakietka).
+    private func sync(_ now: Double) {
+        settleTask?.cancel()
+        settleTask = nil
+        let animating = animations && model.lamp.moves(checking: model.checking, at: now)
+        if model.animating != animating { model.animating = animating }
+        guard let next = model.lamp.change(after: now) else { return }
+        settleTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(max(0, next - now) * 1_000_000) + 5_000_000)
+            guard !Task.isCancelled, let self else { return }
+            let now = LiveBadgeModel.now()
+            let lamp = model.lamp.settled(at: now)
+            guard lamp != .hidden else { return conceal() }
+            if model.lamp != lamp { model.lamp = lamp }
+            sync(now)
+        }
     }
 
     private func makePanel() -> NSPanel {
@@ -701,7 +768,7 @@ final class LiveBadge {
             }))
         hosting.onHover = { [weak self] inside in
             guard let self else { return }
-            model.expanded = inside
+            model.expanded = inside && model.lamp.text != nil
             if let panel = self.panel, let field = self.field { place(panel, in: field) }
         }
         let panel = BadgePanel(contentRect: NSRect(x: 0, y: 0, width: 30, height: 22),
@@ -709,7 +776,8 @@ final class LiveBadge {
         panel.contentView = hosting
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        // Cień tylko pod listą: cień okna liczy się z kształtu treści, a bańki zmieniają go co klatkę.
+        panel.hasShadow = false
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
@@ -730,6 +798,8 @@ final class LiveBadge {
         }
         let frame = NSRect(origin: origin, size: size)
         if panel.frame != frame { panel.setFrame(frame, display: true) }
+        if panel.hasShadow != model.expanded { panel.hasShadow = model.expanded }
+        if model.expanded { panel.invalidateShadow() }
     }
 }
 
@@ -758,12 +828,21 @@ private final class BadgeHostingView<Content: View>: NSHostingView<Content> {
 
 @MainActor
 final class LiveBadgeModel: ObservableObject {
+    typealias Lamp = Lava.Lamp
+
     @Published var issues: [LiveIssue] = []
     @Published var expanded = false
-    /// Tryb „tylko model”: zapytanie do serwera w toku (wynik z pamięci nie zapala wskaźnika).
+    /// Zapytanie do serwera w toku (LanguageTool, model w tle albo tryb „tylko model”; wynik z pamięci go nie zapala).
     @Published var checking = false
     /// Stan sprawdzania do pokazania: serwer nie odpowiada, część zdań bez sprawdzenia.
     @Published var note: String?
+    @Published var lamp = Lamp.hidden
+    /// Klatki płyną (bańki, zlewanie, wskakiwanie, „oddech”); inaczej plakietka stoi w stanie końcowym.
+    @Published var animating = false
+    /// Zamrożony czas (ms) dla zrzutów `--preview-panel`.
+    var clock: Double?
+
+    static func now() -> Double { Date().timeIntervalSinceReferenceDate * 1000 }
 }
 
 struct LiveBadgeView: View {
@@ -785,27 +864,10 @@ struct LiveBadgeView: View {
     }
 
     private var pill: some View {
-        Button(action: open) { pillLabel }.buttonStyle(.plain)
-    }
-
-    private var pillLabel: some View {
-        HStack(spacing: 4) {
-            if model.checking {
-                ProgressView().controlSize(.mini).tint(.white)
-            }
-            if !model.issues.isEmpty || !model.checking {
-                Text(model.issues.isEmpty && model.note != nil ? "!" : "\(model.issues.count)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 7)
-        .frame(minWidth: 22, minHeight: 18)
-        // Cegła: to, co wykryło sprawdzanie, nad dowolną aplikacją w obu motywach (BRAND.md).
-        .background(Brand.badge, in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.35)))
-        .help([model.checking ? tr("Sprawdzam…") : summary, model.note].compactMap { $0 }.joined(separator: "\n"))
+        Button(action: open) { LavaLamp(model: model) }
+            .buttonStyle(.plain)
+            .help([model.checking ? tr("Sprawdzam…") : summary, model.note].compactMap { $0 }.joined(separator: "\n"))
+            .accessibilityLabel(model.lamp.text == nil ? tr("Sprawdzam…") : summary)
     }
 
     private var list: some View {
@@ -867,5 +929,112 @@ struct LiveBadgeView: View {
 
     private var summary: String {
         UI.count(model.issues.count, ("błąd", "błędy", "błędów"), ("issue", "issues"))
+    }
+}
+
+/// Lawa na plakietce (`Lava`, PANEL.md): lawendowe bańki z mostkami między bliskimi, zlewanie w koło (pigułkę przy
+/// dwóch cyfrach), lawenda przechodząca w cegłę i wskakująca liczba. Klatki tylko wtedy, gdy coś się rusza
+/// (`animating`); w stanie końcowym wszystko stoi.
+private struct LavaLamp: View {
+    @ObservedObject var model: LiveBadgeModel
+    @Environment(\.colorScheme) private var scheme
+
+    // Kolory jak na Linuksie (BRAND.md): lawenda, kiedy aplikacja pracuje, cegła dla tego, co znalazła.
+    private static let lavender = (light: rgb(0x66579E), dark: rgb(0xBCB0EC))
+    private static let brick = rgb(0xAD4E2C)
+    private static let brickHover = rgb(0x9A4426)
+
+    private static func rgb(_ hex: Int) -> [Double] {
+        [16, 8, 0].map { Double((hex >> $0) & 0xFF) / 255 }
+    }
+
+    /// Jedna klatka: bańki albo kształt, ich kolor i krycie, tekst i jego wskakiwanie.
+    private struct Frame {
+        var width: Double = 24
+        var blobs: [Lava.Blob] = []
+        var shape: Double?
+        var colour: [Double]
+        var alpha: Double = 1
+        var text: String?
+        var pop: Double = 1
+    }
+
+    var body: some View {
+        TimelineView(.animation(paused: !model.animating || model.clock != nil)) { context in
+            let frame = frame(at: model.clock ?? context.date.timeIntervalSinceReferenceDate * 1000)
+            ZStack {
+                Canvas { context, _ in draw(frame, in: &context) }
+                if let text = frame.text {
+                    Text(text)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                        .scaleEffect(0.5 + 0.5 * Lava.easeOutBack(frame.pop))
+                        .opacity(min(1, Lava.easeOutBack(frame.pop)))
+                }
+            }
+            .frame(width: frame.width, height: Lava.height)
+            .contentShape(Rectangle())
+        }
+    }
+
+    /// `_repaint` z `live.js`. Bez klatek (`animating` wyłączone) — stan końcowy, bez względu na zegar.
+    private func frame(at now: Double) -> Frame {
+        let moving = model.animating || model.clock != nil
+        let lavender = scheme == .dark ? Self.lavender.dark : Self.lavender.light
+        switch model.lamp {
+        case .hidden:
+            return Frame(colour: lavender, alpha: 0)
+        case .thinking(let began):
+            return Frame(blobs: Lava.drift(moving ? now - began : 0), colour: lavender)
+        case .merging(let began, let at, let into):
+            let shape = Lava.shapeWidth(text: into ?? "1"), width = Lava.areaWidth(text: into ?? "1")
+            let elapsed = moving ? now - at : Lava.mergeMS + Lava.fadeMS
+            var frame = Frame(width: width, colour: lavender, text: into, pop: (elapsed - Lava.mergeMS) / Lava.numberMS)
+            if elapsed < Lava.mergeMS {
+                frame.blobs = Lava.merge(Lava.drift(at - began, width: width), progress: elapsed / Lava.mergeMS,
+                                         shape: shape, width: width)
+            } else {
+                frame.shape = shape
+                if into != nil {
+                    frame.colour = Lava.mix(lavender, Self.brick, (elapsed - Lava.mergeMS) / Lava.tintMS)
+                } else {
+                    frame.alpha = max(0, 1 - (elapsed - Lava.mergeMS) / Lava.fadeMS)
+                }
+            }
+            return frame
+        case .count(let text, let popped):
+            // Pod kursorem ciemniejsza cegła; najechanie śledzi panel (`BadgeHostingView`) i ono też rozwija listę.
+            var frame = Frame(width: Lava.areaWidth(text: text), shape: Lava.shapeWidth(text: text),
+                              colour: model.expanded ? Self.brickHover : Self.brick, text: text)
+            if moving, let popped { frame.pop = (now - popped) / Lava.numberMS }
+            if moving, model.checking { frame.alpha = Lava.breath(now) }
+            return frame
+        }
+    }
+
+    private func draw(_ frame: Frame, in context: inout GraphicsContext) {
+        let c = frame.colour
+        let fill = Color(.sRGB, red: c[0], green: c[1], blue: c[2], opacity: frame.alpha)
+        for b in frame.blobs {
+            context.fill(Path(ellipseIn: CGRect(x: b.x - b.r, y: b.y - b.r, width: 2 * b.r, height: 2 * b.r)), with: .color(fill))
+        }
+        for b in Lava.bridges(frame.blobs) {
+            let point = { (p: (Double, Double)) in CGPoint(x: p.0, y: p.1) }
+            var path = Path()
+            path.move(to: point(b.p1))
+            path.addCurve(to: point(b.p3), control1: point(b.h1), control2: point(b.h3))
+            path.addLine(to: point(b.p4))
+            path.addCurve(to: point(b.p2), control1: point(b.h4), control2: point(b.h2))
+            path.closeSubpath()
+            context.fill(path, with: .color(fill))
+        }
+        if let shape = frame.shape {
+            // Koło albo pigułka; jasna obwódka 35% odcina je od ciemnego albo ceglanego tła aplikacji.
+            let rect = CGRect(x: (frame.width - shape) / 2, y: 0, width: shape, height: Lava.height)
+            context.fill(Path(roundedRect: rect, cornerRadius: Lava.radius), with: .color(fill))
+            context.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: Lava.radius - 0.5),
+                           with: .color(.white.opacity(0.35 * frame.alpha)), lineWidth: 1)
+        }
     }
 }

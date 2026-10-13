@@ -248,11 +248,14 @@ package final class Backend {
     /// `target` dotyczy tylko trybu .translate (domyślnie kierunek automatyczny).
     /// `background`: sprawdzanie w tle — nie przerywa osieroconych zapytań (robi to dopiero panel).
     /// Ten sam tekst (bez białych znaków na brzegach), tryb, kierunek, wskazówki i model → wynik z pamięci
-    /// albo dołączenie do zapytania w toku.
+    /// albo dołączenie do zapytania w toku. `onWait`: wyniku nie ma w pamięci — zaraz pytamy serwer (albo dołączamy
+    /// do zapytania w toku); sprawdzanie na żywo zapala wtedy lawę na plakietce.
     package func correct(_ text: String, mode: Mode, target: TranslationTarget? = nil, background: Bool = false,
-                 onPartial: @escaping @MainActor (String) -> Void) async throws -> String {
+                 onPartial: @escaping @MainActor (String) -> Void,
+                 onWait: @escaping @MainActor () -> Void = {}) async throws -> String {
         guard usesCache else {
             lastSource = "model"
+            await onWait()
             return try await correctUncached(text, mode: mode, target: target, onPartial: onPartial)
         }
         // Słowa słownika, o których korekta się dowiaduje, zmieniają prompt — więc i klucz pamięci.
@@ -260,7 +263,7 @@ package final class Backend {
         let key = ([model, modelServerKey, mode.rawValue, target?.rawValue ?? "auto", text.trimmed] + (spelling.isEmpty ? [] : [spelling.joined(separator: ",")]))
             .joined(separator: "\u{1F}")
         let (core, source) = try await Self.corrections.value(for: key, chars: text.count, background: background,
-                                                              onPartial: onPartial) { forward in
+                                                              onPartial: onPartial, onWait: onWait) { forward in
             let result = try await self.correctUncached(text, mode: mode, target: target, onPartial: forward)
             return Self.core(result, of: text)
         }

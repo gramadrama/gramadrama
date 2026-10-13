@@ -76,8 +76,9 @@ final class LiveChecker {
     /// polskie): pozostałe sprawdza LanguageTool, a model potrafi je „poprawić” tłumaczeniem („I have the plan” →
     /// „Mam plan”). Akapit po akapicie (etap 4B): niezmienione akapity biorą wynik ze wspólnej pamięci, więc literówka
     /// w długim mailu to jedno krótkie zapytanie, a akapit pobrany potem przez ⌥⌘G trafia w gotowy wynik.
-    /// Akapit bez zdania w głównym języku w ogóle nie idzie do modelu.
-    func bielik(_ text: String) async -> [LiveIssue]? {
+    /// Akapit bez zdania w głównym języku w ogóle nie idzie do modelu. `onWait`: akapit idzie do serwera (nie ma go
+    /// w pamięci).
+    func bielik(_ text: String, onWait: @escaping @MainActor () -> Void = {}) async -> [LiveIssue]? {
         var issues: [LiveIssue] = []
         var location = 0
         let languages = Settings.shared.textLanguages
@@ -86,7 +87,8 @@ final class LiveChecker {
             defer { location += length + 1 }
             let live = LiveText(paragraph, languages: languages)
             guard !paragraph.isBlank, live.has(languages.primary) else { continue }
-            guard let corrected = try? await backend.correct(paragraph, mode: .fix, background: true, onPartial: { _ in }),
+            guard let corrected = try? await backend.correct(paragraph, mode: .fix, background: true, onPartial: { _ in },
+                                                             onWait: onWait),
                   !Task.isCancelled else { return nil }
             // Maska liczona na akapicie, zakresy przesuwane dopiero po filtrze.
             issues += Self.issues(from: paragraph, corrected: corrected)

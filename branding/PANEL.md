@@ -186,7 +186,7 @@ Texts: „Czytam scenariusz…” (“Reading the script…”), „Zero dramatu
 theatre, e.g. „Serwer nie odpowiada” (“The server does not answer”) and what failed in the connection (Error, above). Refusals (e.g. a password field) are shown
 by the same panel as a short message without buttons; it disappears by itself after a few seconds and does not capture keys.
 
-## Checking-while-typing badge (Linux)
+## Checking-while-typing badge
 
 - The colour says what is happening: lavender dots — the app is checking; a brick circle with a number —
   errors found (`BRAND.md`).
@@ -198,9 +198,14 @@ by the same panel as a short message without buttons; it disappears by itself af
 - No errors: the dots merge and disappear (0.45 s).
 - Another check with a known number: the circle stays and gently “breathes”; the new number pops in
   after the result, without merging again.
-- GNOME animations turned off: the dots stand still, the result appears at once.
-- Geometry: `linux/gnome-extension/lava.js` (test: `linux/tests/lava.test.mjs`). macOS still has
-  the old badge.
+- Animations turned off (GNOME: Accessibility → Animations; macOS: Accessibility → Reduce motion): the dots stand
+  still, the result appears at once.
+- The dots run only while a server is asked (LanguageTool, the model in the background, model-only checking); a result
+  from the cache and a pause in typing alone do not start them.
+- macOS: a message about checking with no errors (the server does not answer, sentences left unchecked) is a brick
+  circle with „!”.
+- Geometry: `linux/gnome-extension/lava.js` (test: `linux/tests/lava.test.mjs`); macOS: `Sources/GramaCore/Lava.swift`
+  with the same numbers and the badge's states (test: `tests/GramaCoreTests/LavaTests.swift`), drawn by `LiveBadge`.
 
 ## Scope and refusals
 

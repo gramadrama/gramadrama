@@ -104,14 +104,39 @@ enum DebugPreview {
         ]
         let badge = LiveBadgeModel()
         badge.issues = issues
+        badge.lamp = .count("2", popped: nil)
         let expanded = LiveBadgeModel()
         expanded.issues = issues
+        expanded.lamp = .count("2", popped: nil)
         expanded.expanded = true
         // Długie sugestie: idą jedna pod drugą.
         let long = LiveBadgeModel()
         long.issues = [LiveIssue(range: NSRange(location: 0, length: 12), word: "konfigurację", message: "Możliwa literówka.",
                                  suggestions: ["konfiguracja serwera", "konfiguracyjny"], source: .languageTool, rule: "TEST")]
+        long.lamp = .count("1", popped: nil)
         long.expanded = true
+        // Lawa (PANEL.md): bańki dryfują, zlewają się, lawenda przechodzi w cegłę, liczba wskakuje; pigułka, „99+”,
+        // „!” (komunikat bez błędów) i liczba, która „oddycha” w trakcie sprawdzania. Zegar zamrożony (ms).
+        func lamp(_ lamp: LiveBadgeModel.Lamp, at clock: Double, checking: Bool = false) -> LiveBadgeView {
+            let model = LiveBadgeModel()
+            model.lamp = lamp
+            model.clock = clock
+            model.checking = checking
+            return LiveBadgeView(model: model)
+        }
+        let lava = HStack(spacing: 14) {
+            lamp(.thinking(began: 0), at: 1234)
+            lamp(.thinking(began: 0), at: 2600)
+            lamp(.thinking(began: 0), at: 4100)
+            lamp(.merging(began: 0, at: 4100, into: "2"), at: 4100 + 260)
+            lamp(.merging(began: 0, at: 4100, into: "2"), at: 4100 + 520 + 90)
+            lamp(.merging(began: 0, at: 4100, into: "2"), at: 4100 + 520 + 240)
+            lamp(.merging(began: 0, at: 4100, into: nil), at: 4100 + 520 + 200)
+            lamp(.count("12", popped: nil), at: 0)
+            lamp(.count("99+", popped: nil), at: 0)
+            lamp(.count("!", popped: nil), at: 0)
+            lamp(.count("2", popped: nil), at: 700, checking: true)
+        }
         // Lista zmian otwarta (⌘I).
         let changes = CorrectionSession(captured: captured, mode: .fix)
         changes.showForScreenshot(fixed, elapsed: 2.9, changesOpen: true)
@@ -144,6 +169,7 @@ enum DebugPreview {
                               apply: { _ in }, ignore: {}, learn: nil, turnOff: {})
                 LiveBadgeView(model: long)
             })),
+            ("badge-lava", AnyView(lava)),
         ]
         for (name, view) in shots {
             for (variant, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
