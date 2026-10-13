@@ -125,7 +125,7 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .hero .wrap { display: grid; gap: clamp(36px, 6vw, 72px); grid-template-columns: minmax(0, 1fr); align-items: center; }
 .hero .wrap > * { min-width: 0; }
-@media (min-width: 940px) { .hero .wrap { grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); } }
+@media (min-width: 940px) { .hero .wrap { grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr); } }
 
 .eyebrow {
   margin: 0 0 14px; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--link);
@@ -157,6 +157,14 @@ h1 .grad {
 kbd {
   font: 600 0.82em/1 var(--mono); padding: 0.28em 0.55em; border-radius: 7px;
   background: var(--surface); border: 1px solid var(--line); border-bottom-width: 2px; color: var(--ink); white-space: nowrap;
+}
+
+/* ——— animacje z prawdziwego GNOME (site/tools/anim.py), w ramce jak każdy figure img; bez ruchu: makieta panelu niżej ——— */
+.hero-demo { margin: 0 auto; max-width: 604px; }
+.hero .panel { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-demo { display: none; }
+  .hero .panel { display: block; }
 }
 
 /* ——— panel (makieta dzisiejszego panelu: linux/gnome-extension/stylesheet.css i panel.js, branding/PANEL.md) ——— */
@@ -239,12 +247,14 @@ p { margin: 0 0 1em; text-wrap: pretty; }
   content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
   position: absolute; top: 0; left: 0; font-weight: 800; color: var(--on-accent); background: var(--accent);
 }
-.steps h3 { font-size: 18px; line-height: 1.5; }
+.steps h3, .steps h4 { margin: 0 0 8px; font-size: 18px; line-height: 1.5; }
 .steps p { color: var(--ink-2); font-size: 16px; margin: 0; }
 
 /* możliwości */
 .feat { display: grid; gap: 28px 40px; grid-template-columns: 1fr; }
-@media (min-width: 860px) { .feat { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 860px) { .feat { grid-template-columns: repeat(3, minmax(0, 1fr)); } .feat.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dictation { margin-bottom: clamp(48px, 7vw, 80px); }
+.dictation h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
 .feat h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .feat p { margin: 0; color: var(--ink-2); font-size: 16px; }
 .tag {
@@ -252,17 +262,14 @@ p { margin: 0 0 1em; text-wrap: pretty; }
   background: var(--brick-soft); color: var(--brick-ink);
 }
 /* przykłady trybów: przed i po */
-.examples { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); margin: 0; }
+.examples { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); margin: 0 0 clamp(48px, 7vw, 80px); }
 @media (min-width: 860px) { .examples { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .ex { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
-.ex h3 { margin: 0 0 10px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.ex h3 { display: inline-block; margin: 0 0 12px; padding: 4px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; background: var(--panel-soft); color: var(--ink); }
 .ex p { margin: 0; font-size: 16px; line-height: 1.5; }
 .ex .before { color: var(--ink-2); margin-bottom: 8px; }
-.ex .after { font-weight: 600; }
-.ex .after::before { content: "→ "; color: var(--sage-ink); font-weight: 700; }
-.more-examples { margin: 18px 0 40px; }
-.more-examples summary { width: fit-content; padding: 10px 0; color: var(--link); cursor: pointer; font-size: 16px; font-weight: 600; }
-.more-examples[open] summary { margin-bottom: 12px; }
+.ex .after { padding: 8px 10px; border: 1px solid var(--panel-line); border-radius: 8px; }
+.ex mark { color: inherit; background: var(--sage-soft); border-radius: 3px; }
 
 /* zrzuty */
 figure { margin: 0; }
