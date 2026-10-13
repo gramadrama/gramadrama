@@ -53,6 +53,14 @@ Optional:
   - **On a speech server** (*Serwer*): Whisper, or another speech model, runs on a server you set up, and the model is
     installed there; nothing is downloaded on this computer. You enter the server's address and protocol
     ([speech recognition](docs/self-hosting.md#speech-recognition)).
+- **The GramaDrama keyboard** (macOS, recommended): the input source *Polski (GramaDrama)*, which
+  `./scripts/build-app.sh` installs with the app when the signing certificate exists
+  (`./scripts/create-signing-cert.sh`). Turn it on in **Home → First steps** (*Start → Pierwsze kroki*) or
+  **Apps → Integrations** (*Aplikacje → Integracje*) with **Turn on…** (*Włącz…*) and allow it in System Settings;
+  it types in the layout you had when you turned it on. While it is selected, ⌥⌘G reads and replaces text without
+  Accessibility or the clipboard in macOS apps, Mail and the new Outlook, and dictation inserts text through it almost
+  everywhere, browsers and Slack included, never in terminals. Without it both work through Accessibility and the
+  clipboard. Apps that were open before the installation may not see it until they are restarted.
 - **The browser extension**, for text fields in web pages: [installation](browser/README.md#installation).
 
 ## Features

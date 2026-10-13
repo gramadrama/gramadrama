@@ -73,7 +73,8 @@ struct StartTab: View {
     // MARK: Pierwsze kroki
 
     /// Nowa instalacja, w której model jeszcze nie działa (`build_first_steps` na Linuksie): co zostało do pierwszej
-    /// korekty, po kolei. Znika, gdy model działa albo po pierwszej udanej korekcie.
+    /// korekty, po kolei, i zalecana klawiatura GramaDrama (tylko na Macu). Znika, gdy model działa albo po pierwszej
+    /// udanej korekcie.
     private var firstStepsSection: some View {
         let shortcut = settings.correctionShortcut.label
         return SettingsSection(title: tr("Pierwsze kroki"), note: tr("Potem {shortcut} poprawia tekst w każdej aplikacji.", ["shortcut": shortcut])) {
@@ -83,6 +84,8 @@ struct StartTab: View {
                 SettingsRow(mark: .status(model.diagnostics == nil ? nil : false), title: tr("Model językowy"), subtitle: modelStepText) {
                     Button(tr("Otwórz Usługi")) { WindowHighlight.shared.point(to: .languageModel) }.buttonStyle(.borderedProminent)
                 }
+                Divider()
+                ImeKeyboardRow(model: model, explained: true)
                 Divider()
                 SettingsRow(mark: .icon("text.cursor"), title: tr("Pierwsza korekta"),
                             subtitle: tr("W polu Wypróbuj poniżej: kliknij w tekst i naciśnij {shortcut}.", ["shortcut": shortcut]))

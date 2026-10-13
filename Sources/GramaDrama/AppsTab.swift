@@ -103,9 +103,7 @@ struct AppsTab: View {
                                     .map { "\(WindowText.appName($0.key)) (\($0.value))" }.joined(separator: ", ")]))
                 Divider()
                 if let ime = model.ime {
-                    SettingsRow(mark: .status(imeOK(ime)), title: tr("Klawiatura GramaDrama"), subtitle: imeDescription(ime)) {
-                        imeButton(ime)
-                    }
+                    ImeKeyboardRow(model: model)
                     if let message = model.imeMessage {
                         Divider()
                         SettingsRow(mark: .icon("info.circle"), title: tr("Włączanie"), subtitle: message)
@@ -124,34 +122,10 @@ struct AppsTab: View {
                                     subtitle: tr("{apps} — działały przed instalacją klawiatury i mogą jej nie widzieć.", ["apps": ime.restart.joined(separator: ", ")]))
                     }
                 } else {
-                    SettingsRow(mark: .status(nil), title: tr("Klawiatura GramaDrama"), subtitle: tr("Sprawdzam…"))
+                    ImeKeyboardRow(model: model)
                 }
             }
         }
     }
 
-    private func imeOK(_ ime: ImeSetup.Snapshot) -> Bool? {
-        guard ime.installed, ime.signed else { return ime.installed ? false : nil }
-        if !ime.enabled || !ime.selected { return nil }
-        return ime.hello != nil
-    }
-
-    private func imeDescription(_ ime: ImeSetup.Snapshot) -> String {
-        guard ime.installed else { return tr("Nie jest zainstalowana.") }
-        guard ime.signed else { return tr("Ta kopia aplikacji nie jest podpisana, więc klawiatura z nią nie współpracuje.") }
-        guard ime.enabled else { return tr("Wyłączona. „Włącz…” poprosi o zgodę w Ustawieniach systemowych.") }
-        guard ime.selected else { return tr("Włączona, ale piszesz teraz w układzie {layout}.", ["layout": ime.current]) }
-        guard let hello = ime.hello else { return tr("Wybrana, ale nie odpowiada — kliknij w dowolne pole tekstowe.") }
-        return tr("Działa od {duration}.", ["duration": WindowText.duration(hello.uptime ?? 0)])
-    }
-
-    @ViewBuilder private func imeButton(_ ime: ImeSetup.Snapshot) -> some View {
-        if ime.installed, ime.signed {
-            if !ime.enabled {
-                Button(model.imeBusy ? tr("Czekam na zgodę…") : tr("Włącz…")) { model.enableIME() }.disabled(model.imeBusy)
-            } else {
-                Button(ime.selected ? tr("Przełącz na {layout}", ["layout": ime.fallbackName]) : tr("Przełącz na GramaDramę")) { model.toggleKeyboard() }
-            }
-        }
-    }
 }
