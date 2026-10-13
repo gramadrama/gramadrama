@@ -17,6 +17,8 @@ and drives the extension's D-Bus interface directly with fixture views:
   caller session  no test mode: only a process whose command line ends with
                   ".../gramadrama-engine --ibus" may Show/Hide/Subscribe (a stand-in engine proves
                   both sides).
+  --site          with --shots: the site's animations (site_anim, last): a correction and dictation,
+                  frame by frame, made into site/public/img/anim-*.webp by site/tools/anim.py.
   --shots DIR     screenshots of every state, dark and light, over gnome-text-editor (and the full
                   screen); --docs also refreshes docs/panel/*.png (English) and the site's panel pictures
                   (site/public/img, Polish).
@@ -25,7 +27,7 @@ The stand-in engine (written into the session's work dir) subscribes to the Acti
 exactly like the engine's PanelClient (sender org.gnome.Shell) and logs them as JSONL. Only a stand-in
 that called Subscribe may receive Focus (docs/apps.md, section 1): the others prove it is unicast.
 
-usage: /usr/bin/python3 tests/integration_panel.py [--only NAME[,NAME...]] [--shots DIR] [--docs]
+usage: /usr/bin/python3 tests/integration_panel.py [--only NAME[,NAME...]] [--shots DIR] [--docs] [--site]
                                                    [--logs DIR] [-v]
 """
 import argparse
@@ -1982,6 +1984,183 @@ def t_screenshots(rig):
         editor.kill()
 
 
+# ---- the site's animations (--site) ------------------------------------------------------------------------
+# Two loops for the site's pages: a correction (typing, Ctrl+Alt+G, the panel, Enter) and dictation (the right Ctrl
+# held, the pill, the text in the field), in Polish and English, light and dark. Real GNOME Shell, gnome-text-editor
+# and the extension's panel and pill, frame by frame: each state settles and is shot whole, and
+# ../site/tools/anim.py crops the frames, shows the keys pressed and writes site/public/img/anim-*.webp. The text
+# goes into the editor through the clipboard, which looks as the engine's insert does.
+EN_SITE_SRC = 'Yesterday I goed to the shpo, but I forgot my wallet so I had to go back.'
+EN_SITE_FIXED = 'Yesterday I went to the shop, but I forgot my wallet, so I had to go back.'
+EN_SITE_SEGMENTS = [['same', 'Yesterday I '], ['removed', 'goed'], ['added', 'went'], ['same', ' to the '],
+                    ['removed', 'shpo'], ['added', 'shop'], ['same', ', but I forgot my wallet'], ['added', ','],
+                    ['same', ' so I had to go back.']]
+EN_SITE_CHANGES = [{'from': 'goed', 'to': 'went', 'reason': 'Grammar / style'},
+                   {'from': 'shpo', 'to': 'shop', 'reason': 'Typo'},
+                   {'from': '', 'to': ',', 'reason': 'Missing punctuation'}]
+SITE_TEXT = {
+    'pl': {'file': 'wiadomosc.txt', 'greeting': 'Cześć Ola,', 'model': 'Bielik 11B', 'time': '2,9 s',
+           'source': SRC, 'fixed': FIXED, 'segments': SEGMENTS, 'changes': CHANGES, 'key': 'prawy Ctrl',
+           'language': 'PL', 'dictated': 'Jutro wyślę ci raport, bo dziś już nie zdążę.'},
+    'en': {'file': 'message.txt', 'greeting': 'Hi Anna,', 'model': EN_MODEL, 'time': '2.9 s',
+           'source': EN_SITE_SRC, 'fixed': EN_SITE_FIXED, 'segments': EN_SITE_SEGMENTS, 'changes': EN_SITE_CHANGES,
+           'key': 'right Ctrl', 'language': 'EN', 'dictated': "I'll send you the report tomorrow, I won't make it today."},
+}
+# The correction's editor at the right edge of the screen: the panel is then clamped there too, whatever the caret's
+# x, and the loop stays narrow. The dictation's editor just above the pill (bottom centre, hud.js).
+SITE_CORRECT_WINDOW = (700, 90, 572, 340)
+SITE_DICTATE_WINDOW = (350, 440, 580, 240)
+# the desktop behind the windows: the site's soft background (site.css --bg-soft), no wallpaper
+SITE_DESKTOP = {'light': '#f0ede7', 'dark': '#1f2322'}
+SITE_KEYS_BAND = 60  # px under a correction's panel for the keys pressed (site/tools/anim.py draws them there)
+SITE_LEVELS = (0.35, 0.8, 0.55, 0.95, 0.45, 0.85, 0.6, 0.9, 0.5, 0.3)
+SITE_TOOL = os.path.join(os.path.dirname(LINUX), 'site', 'tools', 'anim.py')
+
+
+class SiteLoop:
+    """The frames of one loop and the screen area they show."""
+
+    def __init__(self, rig, out, name):
+        self.rig, self.out, self.name, self.frames, self.rects = rig, out, name, [], []
+
+    def frame(self, ms, keys=None):
+        path = os.path.join(self.out, '%s-%02d.png' % (self.name, len(self.frames)))
+        self.rig.s.shot(path, cursor=False)
+        self.frames.append({'file': os.path.basename(path), 'ms': ms, 'keys': keys})
+
+    def show(self, v):
+        check(self.rig.show(v), '%s: Show %s' % (self.name, v['status']))
+        self.rig.pointer_away()
+        self.rects.append(self.rig.settle('panel')['panel']['rect'])
+        time.sleep(0.35)
+
+    def hud(self, **v):
+        shown = self.rig.call('Hud', '(s)', [json.dumps(dict(v, v=1))])[0]
+        check(shown == (v['state'] != 'hidden'), '%s: Hud %s' % (self.name, v['state']), shown)
+        time.sleep(0.25)
+        h = self.rig.state()['hud']
+        if h.get('visible'):
+            self.rects.append([(1280 - h['width']) // 2, h['y'], h['width'], h['height']])
+
+    def save(self, window, variant, still=None, band=0):
+        x0, y0, x1, y1 = window[0], window[1], window[0] + window[2], window[1] + window[3]
+        for x, y, w, h in self.rects:
+            x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x + w), max(y1, y + h)
+        x0, y0, x1, y1 = max(0, x0 - 24), max(0, y0 - 24), min(1280, x1 + 24), min(800, y1 + 24 + band)
+        with open(os.path.join(self.out, self.name + '.json'), 'w', encoding='utf-8') as f:
+            json.dump({'crop': [x0, y0, x1 - x0, y1 - y0], 'variant': variant, 'still': still, 'frames': self.frames},
+                      f, indent=1)
+
+
+def site_editor(rig, text, place, name):
+    """The editor with the greeting and an empty line under it, alone on the desktop (the others minimized). Its own
+    data directory for each loop: gnome-text-editor reopens the documents of its last session as tabs."""
+    s = rig.s
+    data = os.path.join(s.work, 'editor-' + name)
+    os.makedirs(data, exist_ok=True)
+    editor = s.spawn_text_editor(text['file'], text['greeting'] + '\n\n\n',
+                                 env={'XDG_DATA_HOME': data, 'LANGUAGE': text['language'].lower()})
+    s.place_window(text['file'], *place)
+    s.eval('global.get_window_actors().map(a => a.meta_window).filter(w => !(w.get_title() || "").startsWith(%s))'
+           '.forEach(w => w.minimize()); true' % json.dumps(text['file']))
+    s.activate_window(text['file'])
+    s.combo('ctrl', 'end')
+    rig.pointer_away()
+    time.sleep(0.8)
+    return editor
+
+
+def site_correction(rig, out, lang, variant):
+    t, s = SITE_TEXT[lang], rig.s
+    loop = SiteLoop(rig, out, 'correct-%s-%s' % (lang, variant))
+    editor = site_editor(rig, t, SITE_CORRECT_WINDOW, loop.name)
+    try:
+        loop.frame(700)
+        words = t['source'].split(' ')
+        for i, word in enumerate(words):
+            s.type_text(word if i == len(words) - 1 else word + ' ')
+            time.sleep(0.15)
+            loop.frame(110 if i < len(words) - 1 else 800)
+        wait_until(lambda: rig.state()['caret'], 5, what='the caret after typing')
+        keys = ['Ctrl', 'Alt', 'G']
+        sid = rig.next_id()
+        busy = dict(text='', segments=[], changes=[], count=0, note=t['model'], ui_language=lang, source=t['source'])
+        loop.show(view(sid, 'checking', **busy))
+        loop.frame(450, keys)
+        fixed = t['fixed']
+        for i in (1, 2):
+            loop.show(view(sid, 'working', **dict(busy, text=fixed[:i * len(fixed) // 3])))
+            loop.frame(260, keys if i == 1 else None)
+        loop.show(view(sid, editable=True, ui_language=lang, source=t['source'], text=fixed, segments=t['segments'],
+                       changes=t['changes'], count=len(t['changes']), note='%s · %s' % (t['model'], t['time'])))
+        loop.frame(2000)
+        loop.frame(700, ['Enter'])
+        rig.hide(sid)
+        rig.set_clipboard(t['greeting'] + '\n\n' + fixed)
+        s.combo('ctrl', 'a')
+        s.combo('ctrl', 'v')
+        rig.pointer_away()
+        time.sleep(0.6)
+        loop.frame(2800)
+        loop.save(s.window(t['file'])['frame'], variant, band=SITE_KEYS_BAND)
+    finally:
+        editor.kill()
+
+
+def site_dictation(rig, out, lang, variant):
+    t, s = SITE_TEXT[lang], rig.s
+    loop = SiteLoop(rig, out, 'dictate-%s-%s' % (lang, variant))
+    editor = site_editor(rig, t, SITE_DICTATE_WINDOW, loop.name)
+    try:
+        loop.frame(800)
+        listening = dict(state='listening', language=t['language'], ui_language=lang)
+        for i, level in enumerate(SITE_LEVELS):
+            loop.hud(level=level, seconds=i * 0.2, **listening)
+            loop.frame(150, [t['key']])
+        still = len(loop.frames) - 4  # a listening frame: the picture for reduced motion
+        for _ in range(3):
+            loop.hud(state='recognizing', ui_language=lang)
+            loop.frame(220)
+        loop.hud(state='hidden')
+        rig.set_clipboard(t['dictated'])
+        s.combo('ctrl', 'v')
+        rig.pointer_away()
+        time.sleep(0.6)
+        loop.frame(2800)
+        loop.save(s.window(t['file'])['frame'], variant, still)
+    finally:
+        editor.kill()
+
+
+def t_site_anim(rig):
+    """The site's animations (--site, needs --shots): frames in DIR/site, then site/tools/anim.py."""
+    s = rig.s
+    if not rig.args.site:
+        note('no --site: skipped')
+        return
+    out = os.path.join(rig.args.shots, 'site')
+    os.makedirs(out, exist_ok=True)
+    s.eval('gdMain.messageTray.bannerBlocked = true; gdMain.messageTray.getSources().forEach(x => x.destroy()); true')
+    # a caret that does not blink between frames, and no spelling squiggles of the editor's own
+    for setting in ('org.gnome.desktop.interface cursor-blink false', 'org.gnome.TextEditor spellcheck false'):
+        r = s.sh('gsettings set ' + setting)
+        check(r['rc'] == 0, 'gsettings ' + setting, r)
+    r = s.sh("gsettings set org.gnome.desktop.background picture-options 'none'")
+    check(r['rc'] == 0, 'gsettings background', r)
+    for variant in ('light', 'dark'):
+        rig.scheme(variant)
+        r = s.sh("gsettings set org.gnome.desktop.background primary-color '%s'" % SITE_DESKTOP[variant])
+        check(r['rc'] == 0, 'gsettings background colour', r)
+        time.sleep(1)
+        for lang in ('pl', 'en'):
+            site_correction(rig, out, lang, variant)
+            site_dictation(rig, out, lang, variant)
+    rig.scheme('light')
+    r = subprocess.run([sys.executable, SITE_TOOL, out, SITE], capture_output=True, text=True, timeout=600)
+    check(r.returncode == 0, 'site/tools/anim.py', r.stderr.strip()[-2000:])
+    note(r.stdout.strip())
+
+
 PANEL_TESTS = [('ping', t_ping), ('testmode', t_testmode), ('states', t_states), ('plurals', t_plurals),
                ('escape', t_escape), ('updates', t_updates), ('caret_follow', t_caret_follow), ('above', t_above),
                ('window_fallback', t_window_fallback), ('buttons', t_buttons), ('problem', t_problem), ('copy', t_copy),
@@ -1991,7 +2170,7 @@ PANEL_TESTS = [('ping', t_ping), ('testmode', t_testmode), ('states', t_states),
                ('invalid', t_invalid), ('oversized', t_oversized),
                ('vanish', t_vanish), ('focus', t_focus), ('osk', t_osk), ('no_monitor', t_no_monitor),
                ('enable_failure', t_enable_failure), ('shutdown', t_shutdown), ('cycle', t_cycle),
-               ('screenshots', t_screenshots)]
+               ('screenshots', t_screenshots), ('site_anim', t_site_anim)]
 
 
 # ---- caller session ------------------------------------------------------------------------------------------
@@ -2188,6 +2367,7 @@ def main():
     ap.add_argument('--only', help='comma-separated test names: %s' % ','.join(names))
     ap.add_argument('--shots', help='directory for screenshots of every state (dark and light)')
     ap.add_argument('--docs', action='store_true', help="also refresh docs/panel/*.png and the site's panel pictures (needs --shots)")
+    ap.add_argument('--site', action='store_true', help="site_anim: the site's animations (needs --shots)")
     ap.add_argument('--logs', help='copy the session logs here')
     ap.add_argument('-v', '--verbose', action='store_true')
     args = ap.parse_args()
@@ -2196,6 +2376,8 @@ def main():
         ap.error('unknown test in --only: %s' % sorted(only - set(names)))
     if args.docs and not args.shots:
         ap.error('--docs needs --shots DIR')
+    if args.site and not args.shots:
+        ap.error('--site needs --shots DIR')
     pick = lambda tests: [(n, f) for n, f in tests if only is None or n in only]  # noqa: E731
     t0 = time.time()
     run_units(pick(UNIT_TESTS), args)
