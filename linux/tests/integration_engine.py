@@ -1906,7 +1906,13 @@ def panel_dictation_pill(r):
     """With the extension (version 5): the pill at the bottom while the right Ctrl is held, its bars
     moving with the level; then 'Rozpoznaję…', and gone once the text is at the caret. The panel session's
     test microphone wakes in PANEL_MIC_MS like a suspended USB one (version 14): until then the pill says
-    'Budzę mikrofon…', and the microphone opened at the key-down, so the audio counts from then."""
+    'Budzę mikrofon…', and the microphone opened at the key-down, so the audio counts from then. A long message shown
+    before (version 17: wider and wrapped) leaves the next pill the 230 px one, its bars moving."""
+    r.s.call('org.gnome.Shell', '/pl/gramadrama/Panel', 'pl.gramadrama.Panel1', 'Hud', '(s)', [json.dumps(
+        {'v': 1, 'state': 'message', 'seconds': 1,
+         'message': 'Nie wiem, czy tekst trafił do pola — sprawdź; jest też w schowku (Ctrl+V).'})])  # test mode: any caller
+    st = wait_panel(r, lambda st: st['hud']['visible'] and st['hud']['state'] == 'message', 'the message')
+    check(st['hud']['width'] > 230 and st['hud']['lines'] == 2 and not st['hud']['cut'], 'the message whole', st['hud'])
     win = r.gtk(4)
     r.gtk_field(win, 'tv', TV, KOT)
     n = r.e.mark()
@@ -1917,7 +1923,7 @@ def panel_dictation_pill(r):
               'the pill waits for the microphone', st['hud'])
         st = wait_panel(r, lambda st: st['hud']['visible'] and st['hud']['state'] == 'listening' and not st['hud']['waiting']
                         and st['hud']['time'] is not None and max(st['hud']['bars']) > 4, 'the pill listening')
-        check(st['hud']['text'] == 'Słucham…' and not st['hud']['reactive'], 'the pill', st['hud'])
+        check(st['hud']['text'] == 'Słucham…' and not st['hud']['reactive'] and st['hud']['width'] == 230, 'the pill', st['hud'])
         check(not st['panel']['visible'], 'the correction panel came up', st['panel'])
         time.sleep(0.5)
     finally:

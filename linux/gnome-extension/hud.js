@@ -6,7 +6,8 @@
 //                Shift with the key dictates in the other one) and the time "m:ss"; with `waiting` (no audio yet:
 //                a suspended USB microphone wakes in up to 2 s) a spinner and "Budzę mikrofon…" instead
 //   recognizing  filled masks, a spinner, "Rozpoznaję…" ("Porządkuję…" while Bielik cleans up)
-//   message      a short text for `seconds`, after putting `copy` on the clipboard when given
+//   message      a text for `seconds`, after putting `copy` on the clipboard when given; a long one is never cut:
+//                the pill widens up to MESSAGE_WIDTH (the macOS toast's width) and wraps, growing upwards
 //   hidden
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -19,6 +20,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 export const HUD_WIDTH = 230;
 export const HUD_HEIGHT = 40;
+export const MESSAGE_WIDTH = 420; // the widest message pill: the toast's maxWidth on macOS (Toast.swift)
 const HUD_BOTTOM = 48; // above the bottom of the work area
 const BAR_WEIGHTS = [0.45, 0.75, 1, 0.75, 0.45];
 const TEXTS = {listening: 'Słucham…', waiting: 'Budzę mikrofon…', recognizing: 'Rozpoznaję…', cleaning: 'Porządkuję…'};
@@ -62,6 +64,7 @@ export class Hud {
         this._gone = false;
         this._timer = 0;
         this._state = 'hidden';
+        this._width = HUD_WIDTH; // the pill's width: HUD_WIDTH, or a message's (_messageWidth)
         this.actor = new St.BoxLayout({
             name: 'gramadrama-hud',
             style_class: 'gd-hud gd-dark',
@@ -82,6 +85,7 @@ export class Hud {
             y_align: Clutter.ActorAlign.CENTER, pivot_point: new Graphene.Point({x: 0.5, y: 0.5})});
         this._label = new St.Label({style_class: 'gd-hud-label', x_expand: true, y_align: Clutter.ActorAlign.CENTER});
         this._label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        this._label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR; // a message's long word breaks too
         this._lang = new St.Label({style_class: 'gd-hud-lang', y_align: Clutter.ActorAlign.CENTER});
         this._time = new St.Label({style_class: 'gd-hud-time', y_align: Clutter.ActorAlign.CENTER});
         for (const child of [this._logo, this._bars, this._spinner, this._label, this._lang, this._time])
@@ -136,7 +140,18 @@ export class Hud {
             this._spinning = false;
             this._spinner.remove_all_transitions();
         }
-        this._label.text = view.state === 'message' ? view.message : tr(TEXTS[view.waiting ? 'waiting' : view.state], view.ui_language);
+        const message = view.state === 'message';
+        this._label.text = message ? view.message : tr(TEXTS[view.waiting ? 'waiting' : view.state], view.ui_language);
+        // A message is said whole (the clipboard ones say where the dictated text went): it wraps, in a pill as wide as
+        // its line up to MESSAGE_WIDTH. The other states keep the 230 px pill of macOS.
+        this._label.clutter_text.line_wrap = message;
+        this._label.clutter_text.ellipsize = message ? Pango.EllipsizeMode.NONE : Pango.EllipsizeMode.END;
+        if (message)
+            this.actor.add_style_class_name('gd-hud-message');
+        else
+            this.actor.remove_style_class_name('gd-hud-message');
+        this._width = message ? this._messageWidth() : HUD_WIDTH;
+        this.actor.width = this._width;
         if (listening) {
             BAR_WEIGHTS.forEach((weight, i) => (this._barActors[i].height = Math.round(4 + 14 * view.level * weight)));
             const seconds = Math.floor(view.seconds);
@@ -155,11 +170,22 @@ export class Hud {
         return true;
     }
 
+    /** The width of a message's pill: its text on one line, between the pill's 230 px and MESSAGE_WIDTH. */
+    _messageWidth() {
+        this.actor.width = -1; // the natural width again, not the last fixed one
+        const [, natural] = this.actor.get_preferred_width(-1);
+        return Math.min(Math.max(Math.ceil(natural), HUD_WIDTH), MESSAGE_WIDTH);
+    }
+
     _place() {
         const index = global.display.get_current_monitor(); // the monitor with the pointer, as on macOS
         const area = Main.layoutManager.getWorkAreaForMonitor(index);
-        const [, height] = this.actor.get_preferred_height(HUD_WIDTH);
-        this.actor.set_position(Math.round(area.x + (area.width - HUD_WIDTH) / 2),
+        // The width chosen in show(), never read back from the actor: reading this.actor.width while a relayout is
+        // queued left the bars at their old height in the engine's session (the levels came, the bars stayed at 4 px).
+        const width = this._width;
+        const [, height] = this.actor.get_preferred_height(width);
+        // The bottom stays where it is: a message of more lines grows upwards.
+        this.actor.set_position(Math.round(area.x + (area.width - width) / 2),
             Math.round(area.y + area.height - HUD_BOTTOM - Math.max(height, HUD_HEIGHT)));
     }
 
@@ -198,13 +224,14 @@ export class Hud {
     describe() {
         if (this._gone)
             return {visible: false};
-        const [, natural] = this._label.get_preferred_width(-1);
+        const layout = this._label.clutter_text.get_layout();
         return {visible: this.actor.visible, state: this._state, waiting: this._state === 'listening' && !!this._waiting,
             text: this._label.text,
             language: this._lang.visible ? this._lang.text : null,
             time: this._time.visible ? this._time.text : null, bars: this._barActors.map(bar => bar.height),
             spinning: !!this._spinning, reactive: this.actor.reactive, width: Math.round(this.actor.width),
-            cut: this._label.has_allocation() && this._label.allocation.get_width() + 0.5 < natural,
+            height: Math.round(this.actor.height), lines: layout.get_line_count(),
+            cut: this._label.has_allocation() && layout.is_ellipsized(),
             y: Math.round(this.actor.y)};
     }
 }

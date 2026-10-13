@@ -55,6 +55,7 @@ TEST_ENV = {'GRAMADRAMA_ENGINE_TEST': '1'}
 STANDIN_EXEC = '/bin/sh -c \'exec /usr/bin/python3 "$XDG_DATA_HOME/gramadrama-engine/gramadrama-engine" --ibus\''
 VERSION = str(json.load(open(os.path.join(EXTENSION, 'metadata.json')))['version'])
 PANEL_WIDTH, PAD, GAP, EDGE = 520, 16, 6, 8
+HUD_WIDTH, MESSAGE_WIDTH = 230, 420  # hud.js: the pill, and the widest pill of a message
 WIN_TITLE = 'GD test GTK4 gtk4'
 MODE_NAMES = ['Popraw', 'Ulepsz', 'Formalnie', 'Luźniej', 'Krócej', 'Tłumacz']
 
@@ -950,6 +951,35 @@ def t_hud(rig):
     check(wait_until(lambda: rig.clipboard() == 'Podyktowany tekst.', 3, what='clipboard'), 'copy on the clipboard')
     wait_until(lambda: not rig.state()['hud']['visible'], 3, what='the message to hide itself')
     check(0.8 <= time.monotonic() - t0 <= 2.2, 'seconds honoured', time.monotonic() - t0)
+    # Every message of the engine's dictation (engine/dictate.py), in Polish and in English, is shown whole: a long one
+    # widens the pill up to the macOS toast's 420 px and wraps, growing upwards from the same bottom.
+    sys.path.insert(0, LINUX)
+    from gramadrama.engine.dictate import MESSAGES
+    with open(os.path.join(LINUX, 'gramadrama', 'locales', 'en', 'engine.json'), encoding='utf-8') as f:
+        english = json.load(f)
+    for text in list(MESSAGES.values()) + [english[text] for text in MESSAGES.values()]:
+        check(hud(state='message', message=text, seconds=5), 'Hud message %r' % text)
+        time.sleep(0.3)  # laid out on the next frame
+        st = rig.state()['hud']
+        check(st['text'] == text and not st['cut'], 'the whole message: %s' % text, st)
+        check(HUD_WIDTH <= st['width'] <= MESSAGE_WIDTH and (st['lines'] == 1 or st['width'] == MESSAGE_WIDTH),
+              'as wide as its line, up to %d px: %s' % (MESSAGE_WIDTH, text), st)
+        check(abs(st['y'] + max(st['height'], 40) + 48 - bottom) <= 2, 'the same bottom: %s' % text, st['y'], st['height'])
+    check(hud(state='message', message='Nic nie rozpoznałem.') and rig.state()['hud']['width'] == HUD_WIDTH,
+          'a short message keeps the pill', rig.state()['hud'])
+    clipboard, before = MESSAGES['uncertain'], rig.state()['variant']
+    for variant in ('dark', 'light'):
+        rig.scheme(variant)
+        check(hud(state='message', message=clipboard, seconds=5), 'the longest message, %s' % variant)
+        time.sleep(0.3)
+        check(rig.state()['hud']['lines'] == 2, 'on two lines', rig.state()['hud'])
+        if rig.args.shots:
+            top = rig.state()['hud']['y']
+            shot_area(rig, os.path.join(rig.args.shots, 'hud-message-%s.png' % variant), (1280 - MESSAGE_WIDTH) // 2 - 20,
+                      top - 20, MESSAGE_WIDTH + 40, rig.state()['hud']['height'] + 40)
+    rig.scheme(before)
+    check(hud(state='listening', level=0.5, seconds=1) and rig.state()['hud']['width'] == HUD_WIDTH,
+          'the listening pill is 230 px again', rig.state()['hud'])
     check(hud(state='listening') and not hud(state='hidden') and not rig.state()['hud']['visible'], 'hidden')
     for bad in ('nie json', '[]', '{"v": 1, "state": "dancing"}', '{"v": 1, "state": "message"}', '{"state": "listening"}',
                 '{"v": 1, "state": "message", "message": "x", "copy": 5}'):

@@ -652,9 +652,10 @@ counters differ between engine objects and restart with the engine process.
 empty, or there is no monitor (then anything shown is hidden).
 
 **Other overlays.** The dictation pill (230 × 40 px) stands at the bottom centre of the monitor with
-the pointer, 48 px above the work area's bottom. The live badge stands inside a page field's
-bottom-right corner (3 px from the edges of a field lower than 34 px, else 6 px) when the browser
-extension reports the field; elsewhere 8 px inside the focused window's right edge, level with the
+the pointer, 48 px above the work area's bottom. A message is never cut: its pill is as wide as its line, up to
+420 px (the width of the macOS toast that shows these messages), wraps beyond that and grows upwards.
+The live badge stands inside a page field's bottom-right corner (3 px from the edges of a field lower than 34 px,
+else 6 px) when the browser extension reports the field; elsewhere 8 px inside the focused window's right edge, level with the
 caret's line (near the window's bottom when the caret is unknown), at least 20 px from the work
 area's top and bottom. Underlines are drawn inside the focused window's actor, so they move with
 the window and the app's own popups cover them. `Live` and `Marks` return `false` while the
