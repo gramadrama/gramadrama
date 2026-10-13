@@ -75,6 +75,19 @@ Dictation can use a local Whisper (on Linux with an NVIDIA graphics card, on mac
 or a server of your choice with the OpenAI or whisper.cpp API. The choice and its settings are in
 **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*).
 
+**Only the language model is required.** The recommended one is `gemma4:e4b` (Gemma 4, about 6.6 GB through
+Ollama); any model the app can reach works. Without LanguageTool:
+
+- correcting and translating work the same, but the list of changes has no explanations, which come from
+  LanguageTool's rules;
+- checking while typing uses the system's spelling dictionary at once and the model after a pause of about 3 s
+  (texts up to 1500 characters) instead of grammar rules after 0.8 s; the experimental **Model only** mode
+  (*Tylko model*) leaves the model alone.
+
+Dictation is optional as well. Recognition on this computer uses Whisper large-v3-turbo: on macOS through WhisperKit
+(about 1.6 GB, downloaded at the first dictation), on Linux with an NVIDIA graphics card. With a speech server, the
+server's model is used.
+
 On both systems the **Services** tab offers the same choice for the model, LanguageTool and speech
 recognition: **This computer** (*Ten komputer*; on macOS *Ten Mac*) or **Server** (*Serwer*) with an address,
 a protocol and an optional API key (on macOS in the keychain, on Linux in a settings file readable only

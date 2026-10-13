@@ -6,7 +6,8 @@ or on a server at the address you enter (**Server**, *Serwer*), and remote acces
 computer has a default address, which can be changed to another address of this computer: Ollama
 `http://127.0.0.1:11434`, LanguageTool on Linux `http://127.0.0.1:8010`, and on macOS, with the field empty,
 the first of the ports 8010 and 8081 that answers.
-The language model is enough for the first correction. LanguageTool and dictation are optional.
+The language model is enough for the first correction and for everyday use; LanguageTool and dictation are optional
+(what changes without LanguageTool: [services in the README](../README.md#services-prompts-and-privacy)).
 There is no default project server. The commands below start the services on the same computer;
 for another computer, use its address and set up network access.
 
