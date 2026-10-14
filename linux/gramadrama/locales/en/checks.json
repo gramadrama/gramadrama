@@ -209,5 +209,10 @@
   "polski": "Polish",
   "angielski": "English",
   "niemiecki": "German",
-  "Brak słownika: {value} — pisownia nie jest sprawdzana. Zainstaluj go poleceniem spod przycisku, a sprawdzanie użyje go w ciągu minuty.": "No dictionary: {value} — spelling is not checked. Install it with the command from the button, and checking will use it within a minute."
+  "Brak słownika: {value} — pisownia nie jest sprawdzana. Zainstaluj go poleceniem spod przycisku, a sprawdzanie użyje go w ciągu minuty.": "No dictionary: {value} — spelling is not checked. Install it with the command from the button, and checking will use it within a minute.",
+  "GramaDrama nie jest jeszcze włączona na tym koncie.": "GramaDrama is not on for this account yet.",
+  "Działa starsza wersja niż zainstalowana. Wyloguj się i zaloguj ponownie.": "An older version than the installed one is running. Log out and log in again.",
+  "Brak plików z paczki — zainstaluj ją ponownie: sudo apt install --reinstall gramadrama.": "The package’s files are missing — install it again: sudo apt install --reinstall gramadrama.",
+  "IBus nie wczytał silnika. Włącz GramaDramę na tym koncie (uruchomi IBus ponownie).": "IBus has not loaded the engine. Switch GramaDrama on for this account (it restarts IBus).",
+  "Nie połączona — włącz GramaDramę na tym koncie, a potem uruchom przeglądarkę.": "Not connected — switch GramaDrama on for this account, then start the browser."
 }

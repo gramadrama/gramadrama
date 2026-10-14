@@ -170,5 +170,15 @@
   "Dokończ to w części „Integracja z GNOME” poniżej.": "Finish this under “GNOME integration” below.",
   "Jeszcze jeden krok: model językowy": "One more step: the language model",
   "Wtyczka działa w Chrome, Chromium, Edge, Brave i Vivaldi — tu żadnej z nich nie ma. W Firefoksie skrót korekty działa bez niej, jak w innych aplikacjach.": "The extension works in Chrome, Chromium, Edge, Brave and Vivaldi — none of them is here. In Firefox the correction shortcut works without it, as in other apps.",
-  "Słowniki": "Dictionaries"
+  "Słowniki": "Dictionaries",
+  "Włącz na tym koncie": "Switch on for this account",
+  "Włączam GramaDramę na tym koncie…": "Switching GramaDrama on for this account…",
+  "GramaDrama jest włączona na tym koncie. Panel pojawi się po wylogowaniu i ponownym zalogowaniu.": "GramaDrama is on for this account. The panel appears after you log out and log in again.",
+  "Wyłącz GramaDramę na tym koncie…": "Switch GramaDrama off for this account…",
+  "Wyłączyć GramaDramę na tym koncie?": "Switch GramaDrama off for this account?",
+  "Źródło wprowadzania, panel, skrót, host przeglądarki i adres gramadrama:// wrócą do stanu sprzed włączenia. Ustawienia zostają. Potem paczkę usuniesz poleceniem: sudo apt remove gramadrama — wcześniej wyłącz GramaDramę tak samo na każdym koncie, na którym ją włączono.": "The input source, the panel, the shortcut, the browser host and the gramadrama:// address go back to how they were before. The settings stay. Then remove the package with: sudo apt remove gramadrama — first switch GramaDrama off in the same way on every account where it was switched on.",
+  "Wyłączam GramaDramę na tym koncie…": "Switching GramaDrama off for this account…",
+  "Wyłączono GramaDramę na tym koncie. Paczkę usuniesz poleceniem: sudo apt remove gramadrama": "GramaDrama is off for this account. Remove the package with: sudo apt remove gramadrama",
+  "Nie udało się: {value}": "Failed: {value}",
+  "Wyłącz": "Switch off"
 }

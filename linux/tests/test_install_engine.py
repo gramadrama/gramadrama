@@ -553,3 +553,83 @@ class PackageTests(unittest.TestCase):
                 I.install()
         self.assertIn('sudo apt remove gramadrama', str(stopped.exception))
 
+
+class AccountTests(unittest.TestCase):
+    """The package (.deb): setup and teardown on one account, synthetic (no session, subprocesses or signals)."""
+
+    def setUp(self):
+        import contextlib
+        import io
+        import tempfile
+        from unittest import mock
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = self.root = Path(temporary.name)
+        stack = contextlib.ExitStack()
+        self.addCleanup(stack.close)
+        (root / 'lib').mkdir()
+        (root / 'lib' / 'gramadrama-engine').write_text('the package engine')
+        (root / 'extension').mkdir()
+        (root / 'component.xml').write_text('<component><engines><engine><layout>us</layout></engine></engines></component>')
+        paths = {'SYSTEM_LAUNCHER': root / 'lib' / 'gramadrama-engine', 'SYSTEM_DIR': root / 'lib',
+                 'SYSTEM_EXTENSION': root / 'extension', 'COMPONENT': root / 'component.xml',
+                 'BACKUP': root / 'config' / 'backup.json', 'EXTENSION': root / 'no-user-extension'}
+        for name, value in paths.items():
+            stack.enter_context(mock.patch.object(I, name, value))
+        self.sources = [('xkb', 'gb')]
+        self.enabled = ['other@example.com']
+        live = {'get_sources': mock.Mock(side_effect=lambda: list(self.sources)),
+                'set_sources': mock.Mock(side_effect=lambda sources: setattr(self, 'sources', list(sources))),
+                'enabled_extensions': mock.Mock(side_effect=lambda: list(self.enabled)),
+                'set_enabled_extensions': mock.Mock(side_effect=lambda uuids: setattr(self, 'enabled', list(uuids))),
+                'old_binding': mock.Mock(return_value=None), 'set_old_binding': mock.Mock(),
+                'registered': mock.Mock(return_value=True), 'global_engine': mock.Mock(return_value='gramadrama'),
+                'ibus_cli': mock.Mock(), 'wait': mock.Mock(side_effect=lambda predicate, seconds: predicate()),
+                'register_browser_hosts': mock.Mock(return_value=[]), 'register_scheme': mock.Mock(return_value=True),
+                'remove_legacy_copy': mock.Mock(return_value=False), 'remove_legacy_shortcut': mock.Mock(return_value=False),
+                'copy_extension': mock.Mock(side_effect=AssertionError('the package has its own panel')),
+                'package_engine_pids': mock.Mock(return_value=[4242]), 'unregister_scheme': mock.Mock(),
+                'unregister_browser_hosts': mock.Mock(return_value=[]), 'remove_launch_fixes': mock.Mock(return_value=[])}
+        self.live = {name: stack.enter_context(mock.patch.object(I, name, value)) for name, value in live.items()}
+        self.run = stack.enter_context(mock.patch.object(I.subprocess, 'run'))
+        self.kill = stack.enter_context(mock.patch.object(I.os, 'kill'))
+        stack.enter_context(mock.patch.dict('os.environ', {'XDG_CURRENT_DESKTOP': 'ubuntu:GNOME'}))
+        self.out = stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+
+    def test_setup_needs_the_package(self):
+        (self.root / 'lib' / 'gramadrama-engine').unlink()
+        with self.assertRaises(SystemExit) as stopped:
+            I.setup()
+        self.assertIn('nie jest zainstalowana', str(stopped.exception))
+        self.live['set_sources'].assert_not_called()
+
+    def test_setup_on_this_account(self):
+        self.assertEqual(I.setup(), 0)
+        self.live['register_browser_hosts'].assert_called_once_with(self.root / 'lib' / 'gramadrama-browser-host')
+        self.live['register_scheme'].assert_called_once_with(package=True)
+        self.run.assert_not_called()  # IBus knew the engine: no restart
+        self.assertEqual(self.sources, [('ibus', 'gramadrama'), ('xkb', 'gb')])  # the user's own layout stays the fallback
+        self.assertEqual(self.enabled, ['other@example.com', I.EXTENSION_ID])
+        self.assertIn('po wylogowaniu', self.out.getvalue())
+        self.assertTrue(I.BACKUP.exists())
+
+    def test_setup_restarts_an_ibus_that_does_not_know_the_engine(self):
+        answers = iter([False, True])
+        self.live['registered'].side_effect = lambda: next(answers)
+        self.sources = []
+        self.assertEqual(I.setup(), 0)
+        self.run.assert_called_once_with(['systemctl', '--user', 'restart', I.IBUS_UNIT], check=True)
+        self.assertEqual(self.sources, [('ibus', 'gramadrama'), ('xkb', 'us')])  # the description's layout as the fallback
+
+    def test_teardown_restores_the_account(self):
+        I.setup()
+        self.live['old_binding'].return_value = ''
+        I.teardown()
+        self.assertEqual(self.sources, [('xkb', 'gb')])
+        self.assertEqual(self.enabled, ['other@example.com'])
+        self.kill.assert_called_once_with(4242, 15)
+        self.live['unregister_browser_hosts'].assert_called_once_with(self.root / 'lib')
+        self.live['unregister_scheme'].assert_called_once_with()
+        self.assertFalse(I.BACKUP.exists())
+        self.assertIn('sudo apt remove gramadrama', self.out.getvalue())
+

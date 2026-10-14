@@ -27,9 +27,9 @@ ACTIONS = {'enable_panel': 'Włącz', 'keyboard': 'Ustawienia', 'install': 'Kopi
            'try_model': 'Sprawdź', 'cancel_model': 'Przerwij', 'install_tools': 'Kopiuj polecenie',
            'install_dictionaries': 'Kopiuj polecenie',
            'prompts_open': 'Otwórz folder', 'login': 'Zaloguj się…', 'logout': 'Wyloguj',
-           'extension_folder': 'Otwórz folder', 'ollama_download': 'Pobierz Ollamę…'}
+           'extension_folder': 'Otwórz folder', 'ollama_download': 'Pobierz Ollamę…', 'setup': 'Włącz na tym koncie'}
 # Fixes that are a new install's first step (Pierwsze kroki): their button is the suggested action
-NEXT_STEPS = frozenset(('ollama_download',))
+NEXT_STEPS = frozenset(('ollama_download', 'setup'))
 # Where a service runs (core.LOCATIONS), as the Mac's LocationRow: the choice and its icon.
 LOCATIONS = (('local', 'Ten komputer', 'computer-symbolic'), ('server', 'Serwer', 'network-server-symbolic'))
 # Brand colours (branding/BRAND.md): lavender accent (the app's actions), sage for "works", brick

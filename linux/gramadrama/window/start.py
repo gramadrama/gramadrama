@@ -349,10 +349,11 @@ class StartTab:
                 row.set_check(failed)
             self.update_summary()
             return False
-        source = checks.source_check(sources, result['current'])
+        package = result.get('package', False)
+        source = checks.source_check(sources, result['current'], package)
         self.browser_folder = result.get('browser_folder', '')
         self.browser_row.set_check(checks.browser_check(result['status'], result.get('browser_hosts', []), self.browser_folder,
-                                                        result.get('browsers_present')))
+                                                        result.get('browsers_present'), package))
         self.source_state = source
         self.source, self.install = result['source'], result['install']
         self.version_row.set_subtitle(checks.app_version_text(self.install, APP_DIR))
@@ -370,10 +371,10 @@ class StartTab:
         self.source_row.set_check(source)
         self.engine_row.set_check(checks.engine_check(
             result['status'], result['registered'], result['installed'], result['component'], result['install'],
-            result['origin'], result['differs'], result['stale']))
+            result['origin'], result['differs'], result['stale'], package))
         self.panel_row.set_check(checks.panel_check(
             result['extension'], result['loaded'], result['on_disk'],
-            (result['install'] or {}).get('panel_changed_at'), result['shell_started'], user_disabled))
+            (result['install'] or {}).get('panel_changed_at'), result['shell_started'], user_disabled, package))
         self.update_summary()
         return False
 

@@ -449,10 +449,13 @@ def not_reached(source, conflicts):
 
 
 # ---- input source, engine, panel --------------------------------------------------------------------
-def source_check(sources, current):
-    """sources: GNOME's input sources [(type, id)]; current: `ibus engine` (None: unknown)."""
+def source_check(sources, current, package=False):
+    """sources: GNOME's input sources [(type, id)]; current: `ibus engine` (None: unknown); package: the .deb is installed
+    (package_installed), whose fix is the account setup instead of the installer."""
     sources = [tuple(s) for s in sources]
     if ENGINE_SOURCE not in sources:
+        if package:
+            return Check(ERROR, tr('GramaDrama nie jest jeszcze włączona na tym koncie.'), 'setup')
         return Check(ERROR, tr('Brak źródła GramaDrama wśród źródeł wprowadzania. Uruchom instalator.'),
                      'install')
     if current == ENGINE_NAME:
@@ -490,18 +493,21 @@ def version_text(info, now=None):
     return text
 
 
-def engine_check(status, registered, installed, component, info, origin, differs, stale=False):
+def engine_check(status, registered, installed, component, info, origin, differs, stale=False, package=False):
     """status: the engine's Status() or None when it is not running; registered: IBus lists the
     engine (None: the ibus CLI did not answer); installed: the copy in ~/.local/share/gramadrama-engine
     exists; component: 'current', 'outdated', 'missing' or 'unknown' (the description IBus reads);
     info: install_info(); origin: 'installed', 'repository' or None (where the running engine was
     started from); differs: the installed copy differs from its repository; stale: the running
-    engine started before the installer last changed its code."""
+    engine started before the installer last changed its code; package: the .deb is installed (no installer to run:
+    the account setup, a new login or apt)."""
     if status is not None:
         if status.get('test'):
             return Check(WARNING, tr('Działa w trybie testowym (GRAMADRAMA_ENGINE_TEST=1) — {value}.', value=tr('tylko z serwerem na 127.0.0.1') if status.get('backend') == 'real' else tr('poprawki nie trafiają do modelu')))
         if stale:
             # Switching the input source only recreates engine objects in the same process.
+            if package:
+                return Check(WARNING, tr('Działa starsza wersja niż zainstalowana. Wyloguj się i zaloguj ponownie.'))
             return Check(WARNING, tr('Działa starsza wersja niż zainstalowana. Uruchom instalator ponownie (zrestartuje silnik) albo wyloguj się i zaloguj.'), 'install')
         if origin == 'repository':
             return Check(OK, tr('Działa z repozytorium (bez instalacji)'))
@@ -511,6 +517,10 @@ def engine_check(status, registered, installed, component, info, origin, differs
             return Check(WARNING, tr('Nie udało się zapytać IBus (ibus-daemon nie odpowiada?).'))
         if not installed:
             return Check(ERROR, tr('Nie jest zainstalowany. Uruchom instalator.'), 'install')
+        if registered is False and package:
+            if component == 'missing':
+                return Check(ERROR, tr('Brak plików z paczki — zainstaluj ją ponownie: sudo apt install --reinstall gramadrama.'))
+            return Check(ERROR, tr('IBus nie wczytał silnika. Włącz GramaDramę na tym koncie (uruchomi IBus ponownie).'), 'setup')
         if registered is False:
             if component == 'missing':
                 return Check(ERROR, tr('Brak opisu silnika dla IBus. Uruchom instalator (jedno polecenie sudo).'),
@@ -528,7 +538,7 @@ def engine_check(status, registered, installed, component, info, origin, differs
 EXT_ACTIVE, EXT_INACTIVE, EXT_ERROR, EXT_OUT_OF_DATE, EXT_INITIALIZED = 1, 2, 3, 4, 6
 
 
-def panel_check(info, loaded, on_disk, changed_at, shell_started, user_disabled=False):
+def panel_check(info, loaded, on_disk, changed_at, shell_started, user_disabled=False, package=False):
     """info: GetExtensionInfo of the panel ({} when GNOME does not know it); loaded: the version
     its Ping reports (None: no answer); on_disk: the version in the installed metadata.json (None:
     not installed); changed_at: when the installer last changed the panel's files; shell_started:
@@ -537,6 +547,8 @@ def panel_check(info, loaded, on_disk, changed_at, shell_started, user_disabled=
     if not info:
         if on_disk is not None:  # copied during this session: GNOME has not seen it yet
             return Check(WARNING, tr('Zainstalowany — wczyta się po wylogowaniu i ponownym zalogowaniu.'))
+        if package:
+            return Check(ERROR, tr('Brak plików z paczki — zainstaluj ją ponownie: sudo apt install --reinstall gramadrama.'))
         return Check(WARNING, tr('Nie jest zainstalowany — wyniki pokaże zwykłe okienko IBus. Uruchom instalator.'),
                      'install')
     if user_disabled:
@@ -1122,7 +1134,7 @@ def browsers_present():
     return [name for name, relative in browserhost.BROWSER_CONFIGS if (config_home() / relative).is_dir()]
 
 
-def browser_check(status, registered, folder, present=None):
+def browser_check(status, registered, folder, present=None, package=False):
     """The row "Wtyczka" of the Przeglądarka group (the Mac's browserSection): the extensions connected to the engine (status is
     its Status JSON, None when it does not answer), else what is missing: a registered host, the extension loaded. folder:
     where the extension to load is. present: browsers_present(); with none of them (Ubuntu comes with Firefox only) there
@@ -1138,6 +1150,8 @@ def browser_check(status, registered, folder, present=None):
     if not registered and present is not None and not present:
         return Check(INFO, tr('Wtyczka działa w Chrome, Chromium, Edge, Brave i Vivaldi — tu żadnej z nich nie ma. W Firefoksie '
                               'skrót korekty działa bez niej, jak w innych aplikacjach.'))
+    if not registered and package:
+        return Check(WARNING, tr('Nie połączona — włącz GramaDramę na tym koncie, a potem uruchom przeglądarkę.'), 'setup')
     if not registered:
         return Check(WARNING, tr('Nie połączona — uruchom instalator, a potem przeglądarkę (Chrome, Chromium, Edge albo Brave).'), 'install')
     return Check(INFO, tr('Nie połączona — przeglądarka zamknięta albo wtyczka niewgrana (chrome://extensions → Tryb dewelopera → „Załaduj rozpakowane”).'), 'extension_folder')
@@ -1426,6 +1440,6 @@ def probe_system(conn, app_dir):
         'installed': (engine_dir() / 'gramadrama-engine').exists(), 'component': component_state(),
         'install': install, 'source': source,
         'differs': bool(source) and copy_differs(source),
-        'browser_hosts': registered_browser_hosts(), 'browsers_present': browsers_present(),
+        'browser_hosts': registered_browser_hosts(), 'browsers_present': browsers_present(), 'package': package_installed(),
         'browser_folder': str(browser_extension_dir(app_dir)),
     }

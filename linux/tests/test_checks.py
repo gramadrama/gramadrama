@@ -927,3 +927,26 @@ class CleanInstallTests(unittest.TestCase):
         self.assertEqual((check.state, check.action), (WARNING, 'install_dictionaries'))
         self.assertIn('polski, niemiecki', check.text)
         self.assertEqual(C.dictionary_command(['pl', 'de']), 'sudo apt install hunspell-pl hunspell-de-de')
+
+
+class PackageModeTests(unittest.TestCase):
+    """The .deb package: the fix is switching GramaDrama on for the account (no installer, no sudo), a new login or apt."""
+
+    def test_the_fixes_of_the_package(self):
+        missing = C.source_check([('xkb', 'pl')], None, package=True)
+        self.assertEqual((missing.state, missing.action), (ERROR, 'setup'))
+        self.assertEqual(C.source_check([('xkb', 'pl')], None).action, 'install')  # the source install as before
+        not_loaded = C.engine_check(None, False, True, 'current', {}, None, False, package=True)
+        self.assertEqual((not_loaded.state, not_loaded.action), (ERROR, 'setup'))
+        broken = C.engine_check(None, False, True, 'missing', {}, None, False, package=True)
+        self.assertEqual(broken.action, None)
+        self.assertIn('apt install --reinstall gramadrama', broken.text)
+        stale = C.engine_check({'pid': 1}, True, True, 'current', {}, 'installed', False, stale=True, package=True)
+        self.assertEqual((stale.state, stale.action), (WARNING, None))
+        self.assertIn('Wyloguj się', stale.text)
+        panel = C.panel_check({}, None, None, None, None, package=True)
+        self.assertEqual(panel.state, ERROR)
+        self.assertIn('--reinstall', panel.text)
+        browser = C.browser_check({'browsers': {}}, [], '/x', ['Google Chrome'], package=True)
+        self.assertEqual((browser.state, browser.action), (WARNING, 'setup'))
+

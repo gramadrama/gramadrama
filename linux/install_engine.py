@@ -7,6 +7,9 @@
     install_engine.py uninstall   restore the previous input sources, remove the engine, the app,
                                   the panel (only its entry in the enabled extensions) and the app's
                                   launch fixes
+    install_engine.py setup       the .deb package (/usr/lib/gramadrama): GramaDrama on this account, everything
+                                  `install` does besides copying files and the sudo step; the app runs it
+    install_engine.py teardown    the package: GramaDrama off on this account (before `apt remove`)
     install_engine.py tools       download what dictation needs into
                                   ~/.local/share/gramadrama-tools (about 4.3 GB): a Python 3.13
                                   environment with faster-whisper and CUDA 12 libraries (uv) and the
@@ -57,6 +60,9 @@ LAUNCHER = TARGET / 'gramadrama-engine'
 STAGED_XML = TARGET / 'gramadrama.xml'
 COMPONENT = Path('/usr/share/ibus/component/gramadrama.xml')
 SYSTEM_LAUNCHER = Path('/usr/lib/gramadrama/gramadrama-engine')  # the .deb package's engine (scripts/build-deb.sh)
+SYSTEM_DIR = SYSTEM_LAUNCHER.parent
+SYSTEM_DESKTOP = Path('/usr/share/applications') / 'pl.gramadrama.Linux.desktop'
+SYSTEM_EXTENSION = Path('/usr/share/gnome-shell/extensions') / 'gramadrama@gramadrama.local'
 BACKUP = CONFIG / 'gramadrama' / 'engine-install-backup.json'
 IBUS_UNIT = 'org.freedesktop.IBus.session.GNOME.service'
 ENGINE = ('ibus', 'gramadrama')
@@ -307,19 +313,19 @@ def browserhost_module():
     return browserhost
 
 
-def host_manifest():
+def host_manifest(launcher=None):
     """The manifest of the native messaging host: only the extension of GramaDrama (its ID comes from the key in its manifest)
-    may start it."""
+    may start it. launcher: the user's copy's host, or the package's."""
     browserhost = browserhost_module()
     return {'name': HOST_NAME, 'description': 'GramaDrama: the browser extension and the engine',
-            'path': str(HOST_LAUNCHER), 'type': 'stdio', 'allowed_origins': [browserhost.EXTENSION_ORIGIN]}
+            'path': str(launcher or HOST_LAUNCHER), 'type': 'stdio', 'allowed_origins': [browserhost.EXTENSION_ORIGIN]}
 
 
-def register_browser_hosts():
+def register_browser_hosts(launcher=None):
     """The host's manifest in every browser of browserhost.BROWSER_CONFIGS that has a configuration directory (one that was never run has
     none). Returns the names of those browsers."""
     registered = []
-    manifest = json.dumps(host_manifest(), indent=2) + '\n'
+    manifest = json.dumps(host_manifest(launcher), indent=2) + '\n'
     for name, relative in browserhost_module().BROWSER_CONFIGS:
         directory = CONFIG / relative
         if not directory.is_dir():
@@ -334,8 +340,9 @@ def register_browser_hosts():
     return registered
 
 
-def unregister_browser_hosts():
-    """Take our manifests away (only ours: a file of that name that points elsewhere is somebody else's)."""
+def unregister_browser_hosts(root=None):
+    """Take our manifests away (only ours, pointing into root: a file of that name that points elsewhere is somebody else's)."""
+    root = root or TARGET
     removed = []
     for name, relative in browserhost_module().BROWSER_CONFIGS:
         path = CONFIG / relative / 'NativeMessagingHosts' / (HOST_NAME + '.json')
@@ -343,7 +350,7 @@ def unregister_browser_hosts():
             data = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError):
             continue
-        if isinstance(data, dict) and data.get('name') == HOST_NAME and str(data.get('path', '')).startswith(str(TARGET)):
+        if isinstance(data, dict) and data.get('name') == HOST_NAME and str(data.get('path', '')).startswith(str(root)):
             path.unlink(missing_ok=True)
             removed.append(name)
     return removed
@@ -425,14 +432,19 @@ def without_scheme(text):
     return '\n'.join(lines) + ('\n' if lines else '')
 
 
-def register_scheme():
+def register_scheme(package=False):
     """gramadrama://auth, where the browser comes back from a login (gramadrama/oidc.py), goes to the app: the desktop
     entry says it handles the scheme and it becomes the default for it (a line in ~/.config/mimeapps.list). False
-    when that did not work; the login still works, the user pastes the address the browser came back to."""
-    if not DESKTOP.exists() or not ours(DESKTOP, str(APP_LAUNCHER)):
+    when that did not work; the login still works, the user pastes the address the browser came back to. package:
+    the package's desktop entry, which the package registered already."""
+    if package:
+        if not SYSTEM_DESKTOP.exists():
+            return False
+    elif not DESKTOP.exists() or not ours(DESKTOP, str(APP_LAUNCHER)):
         return False
     try:
-        subprocess.run(['update-desktop-database', str(APPLICATIONS)], capture_output=True, timeout=30)
+        if not package:
+            subprocess.run(['update-desktop-database', str(APPLICATIONS)], capture_output=True, timeout=30)
         return subprocess.run(['gio', 'mime', SCHEME_TYPE, DESKTOP.name], capture_output=True, timeout=30).returncode == 0
     except (OSError, subprocess.SubprocessError):
         return False
@@ -644,6 +656,19 @@ def install(layout=None):
         if not wait(registered, 15):
             sys.exit('IBus nie widzi silnika GramaDrama. Niczego więcej nie zmieniono.')
     write_install_info(registered_layout=layout, registered_component_digest=component_digest)
+    panel_changed = enable_on_account(layout)
+    print('Gotowe. Model i inne usługi ustawisz w aplikacji GramaDrama → Usługi, skróty w Start, języki tekstu w Pisanie.'
+          ' Powrót: /usr/bin/python3 %s uninstall' % shlex.quote(str(Path(__file__).resolve())))
+    if panel_changed:
+        print('Panel GramaDramy (dodatek GNOME) pojawi się po wylogowaniu i ponownym zalogowaniu.'
+              ' Do tego czasu wyniki są w zwykłym okienku IBus.')
+    return 0
+
+
+def enable_on_account(layout, package=False):
+    """What install and setup share: the previous sources and shortcut saved (once), the old Ctrl+Alt+G shortcut out of
+    the way, GramaDrama the first input source and active, the panel enabled (the user's copy refreshed first; the
+    package's is the system's), the first client's leftovers removed. True when the panel needs the next login."""
     backup = json.loads(BACKUP.read_text()) if BACKUP.exists() else {'sources': get_sources(), 'binding': old_binding()}
     if 'extensions' not in backup:
         backup['extensions'] = enabled_extensions()
@@ -652,33 +677,98 @@ def install(layout=None):
     binding = old_binding()
     if binding is not None and binding.lower() in HOTKEYS:
         set_old_binding('')  # GNOME would take Ctrl+Alt+G before the input method sees it
-    stale = stale_engines(engine_pids(), read_install_info().get('engine_changed_at'))
-    if stale:  # an older engine than the copy: the next activation starts the new code
-        for pid in stale:
-            os.kill(pid, 15)
-        wait(lambda: not set(stale) & set(engine_pids()), 5)
+    if not package:
+        stale = stale_engines(engine_pids(), read_install_info().get('engine_changed_at'))
+        if stale:  # an older engine than the copy: the next activation starts the new code
+            for pid in stale:
+                os.kill(pid, 15)
+            wait(lambda: not set(stale) & set(engine_pids()), 5)
     set_sources(with_engine(get_sources(), layout))
     if not wait(lambda: global_engine() == 'gramadrama', 5):
         ibus_cli('engine', 'gramadrama')  # GNOME normally activates the first source itself
     if not wait(lambda: global_engine() == 'gramadrama', 10):
-        print('Uwaga: GramaDrama nie jest jeszcze aktywna. Wybierz „%s” na górnym pasku.' % KEYBOARD_LAYOUTS[layout][1])
-    panel_changed = copy_extension()
-    if panel_changed:  # the app tells "log in again" apart from "already running" by this time
-        write_install_info(panel_changed_at=time.time())
-    if EXTENSION.exists() and EXTENSION_ID not in enabled_extensions():
+        print('Uwaga: GramaDrama nie jest jeszcze aktywna. Wybierz „%s” na górnym pasku.'
+              % KEYBOARD_LAYOUTS.get(layout, (None, 'GramaDrama'))[1])
+    if package:
+        panel_changed, present = False, SYSTEM_EXTENSION.exists() or EXTENSION.exists()
+    else:
+        panel_changed = copy_extension()
+        if panel_changed:  # the app tells "log in again" apart from "already running" by this time
+            write_install_info(panel_changed_at=time.time())
+        present = EXTENSION.exists()
+    if present and EXTENSION_ID not in enabled_extensions():
         set_enabled_extensions(enabled_extensions() + [EXTENSION_ID])
         panel_changed = True
     if remove_legacy_copy():
         print('Usunięto starą aplikację GTK: %s' % LEGACY_APP)
     if remove_legacy_shortcut():
         print('Usunięto stary skrót GNOME „GramaDrama — aktywne pole tekstowe”.')
-    print('Gotowe. Model i inne usługi ustawisz w aplikacji GramaDrama → Usługi, skróty w Start, języki tekstu w Pisanie.'
-          ' Powrót: /usr/bin/python3 %s uninstall' % shlex.quote(str(Path(__file__).resolve())))
+    return panel_changed
+
+
+def component_layout():
+    """The keyboard layout of the installed IBus description (its <layout>), or None."""
+    import xml.etree.ElementTree as ET
+    try:
+        return (ET.parse(COMPONENT).getroot().findtext('.//layout') or '').strip() or None
+    except (OSError, ET.ParseError):
+        return None
+
+
+def package_engine_pids():
+    """This user's engines started from the package (other users' run under their own accounts)."""
+    out = subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/python3 %s' % SYSTEM_LAUNCHER],
+                         capture_output=True, text=True)
+    return [int(p) for p in out.stdout.split()]
+
+
+def setup():
+    """The package (.deb): GramaDrama on this account. The package installed the files and the IBus description; this does
+    the rest, which only the user can (their GSettings, their browsers' hosts, their default for gramadrama://). The app's
+    first step runs it; no root needed."""
+    if not SYSTEM_LAUNCHER.exists():
+        sys.exit('Paczka GramaDramy nie jest zainstalowana (brak %s).' % SYSTEM_LAUNCHER)
+    if 'GNOME' not in os.environ.get('XDG_CURRENT_DESKTOP', ''):
+        sys.exit('Potrzebna jest sesja GNOME.')
+    layout = component_layout() or 'pl'
+    register_browser_hosts(SYSTEM_DIR / 'gramadrama-browser-host')
+    if not register_scheme(package=True):
+        print('Uwaga: nie udało się zarejestrować adresu gramadrama:// (powrót z logowania do serwera); '
+              'przy logowaniu wklej adres, na który wróciła przeglądarka.')
+    if not registered():  # ibus-daemon read its descriptions before the package was installed
+        print('Uruchamiam ponownie IBus, żeby wczytał GramaDramę (pisanie zatrzyma się na ~1 s)…')
+        subprocess.run(['systemctl', '--user', 'restart', IBUS_UNIT], check=True)
+        if not wait(registered, 15):
+            sys.exit('IBus nie widzi silnika GramaDrama. Niczego więcej nie zmieniono.')
+    panel_changed = enable_on_account(layout, package=True)
+    print('Gotowe: GramaDrama jest włączona na tym koncie.')
     if panel_changed:
-        print('Panel GramaDramy (dodatek GNOME) pojawi się po wylogowaniu i ponownym zalogowaniu.'
-              ' Do tego czasu wyniki są w zwykłym okienku IBus.')
+        print('Panel GramaDramy pojawi się po wylogowaniu i ponownym zalogowaniu. Do tego czasu wyniki są w zwykłym okienku IBus.')
     return 0
 
+
+def teardown():
+    """The package: GramaDrama off on this account, before `sudo apt remove gramadrama` (apt cannot reach the accounts):
+    the input sources and the old shortcut as before, the panel's entry out of the enabled extensions, this user's
+    engine stopped, the browser hosts, the gramadrama:// default and the launch fixes removed. The package's files,
+    the settings and apps.json stay."""
+    backup = json.loads(BACKUP.read_text()) if BACKUP.exists() else {}
+    sources = [tuple(s) for s in backup.get('sources') or []]
+    set_sources(without_engine(sources or get_sources(), component_layout() or 'pl'))
+    current = enabled_extensions()
+    if EXTENSION_ID in current:
+        set_enabled_extensions([uuid for uuid in current if uuid != EXTENSION_ID])
+    if backup.get('binding') is not None and old_binding() == '':
+        set_old_binding(backup['binding'])
+    for pid in package_engine_pids():
+        os.kill(pid, 15)
+    unregister_scheme()
+    unregister_browser_hosts(SYSTEM_DIR)
+    for path in remove_launch_fixes():
+        print('Usunięto poprawkę uruchamiania: %s' % path)
+    BACKUP.unlink(missing_ok=True)
+    print('Wyłączono GramaDramę na tym koncie. Paczkę usuniesz poleceniem: sudo apt remove gramadrama')
+    return 0
 
 def uninstall():
     backup = json.loads(BACKUP.read_text()) if BACKUP.exists() else {}
@@ -741,13 +831,13 @@ def install_tools():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('command', choices=['status', 'install', 'uninstall', 'tools'])
+    parser.add_argument('command', choices=['status', 'install', 'uninstall', 'setup', 'teardown', 'tools'])
     parser.add_argument('--layout', choices=KEYBOARD_LAYOUTS, help='układ klawiatury dla install; niezależny od języków tekstu')
     args = parser.parse_args()
     if args.layout and args.command != 'install':
         parser.error('--layout dotyczy tylko polecenia install')
     return {'status': lambda: status() or 0, 'install': lambda: install(args.layout), 'uninstall': uninstall,
-            'tools': install_tools}[args.command]()
+            'setup': setup, 'teardown': teardown, 'tools': install_tools}[args.command]()
 
 
 if __name__ == '__main__':

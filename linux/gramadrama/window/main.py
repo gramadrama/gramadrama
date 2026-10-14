@@ -90,6 +90,8 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         header = Adw.HeaderBar(title_widget=Adw.ViewSwitcher(stack=self.stack, policy=Adw.ViewSwitcherPolicy.NARROW))
         menu = Gio.Menu()
         menu.append(tr('Otwórz log silnika'), 'win.open-log')
+        if checks.package_installed():  # the package: apt cannot reach the accounts, so this goes first
+            menu.append(tr('Wyłącz GramaDramę na tym koncie…'), 'win.teardown')
         menu.append(tr('O GramaDramie'), 'win.about')
         menu.append(tr('Zakończ'), 'app.quit')
         header.pack_end(Gtk.MenuButton(icon_name='open-menu-symbolic', menu_model=menu, primary=True,
@@ -112,7 +114,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         # Window actions are on D-Bus too (org.gtk.Actions), which is how the harness presses them.
         actions = [('refresh', lambda *_: self.refresh()), ('open-log', lambda *_: self.open_log()),
                    ('about', lambda *_: self.about()), ('try-model', lambda *_: self.try_model()),
-                   ('add-app', lambda *_: self.add_app_dialog())]
+                   ('add-app', lambda *_: self.add_app_dialog()), ('teardown', lambda *_: self.teardown_dialog())]
         actions += [('tab-' + name, lambda *_, tab=name: self.show_tab(tab)) for name, _, _ in TABS]
         if STATE_FILE:  # tests: the state written now, e.g. for where widgets are after a change of layout
             actions.append(('write-state', lambda *_: self.write_state()))
@@ -476,6 +478,9 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
             command = checks.install_command(self.source, 'tools' if action == 'install_tools' else 'install')
             self.get_clipboard().set(command)
             self.toast(tr('Skopiowano: {value} — wklej w terminalu.', value=command))
+        elif action == 'setup':
+            self.run_account('setup', tr('Włączam GramaDramę na tym koncie…'), tr(
+                'GramaDrama jest włączona na tym koncie. Panel pojawi się po wylogowaniu i ponownym zalogowaniu.'))
         elif action == 'install_dictionaries':
             command = checks.dictionary_command(checks.missing_dictionaries(self.load_settings().languages))
             self.get_clipboard().set(command)
@@ -496,6 +501,46 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
             self.cancel_model()
         elif action == 'ollama_download':
             Gtk.UriLauncher.new(checks.OLLAMA_DOWNLOAD).launch(self, None, None)
+
+    def run_account(self, command, busy, success):
+        """The package (.deb): install_engine.py setup or teardown on this account, without root. A failure shows the
+        installer's last line (it speaks Polish only)."""
+        script = checks.SYSTEM_DIR / 'install_engine.py'
+        if not script.exists():
+            self.toast(tr('Brak plików z paczki — zainstaluj ją ponownie: sudo apt install --reinstall gramadrama.'))
+            return
+        self.toast(busy)
+        try:
+            process = Gio.Subprocess.new(['/usr/bin/python3', str(script), command],
+                                         Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
+        except GLib.Error as exc:
+            self.toast(exc.message)
+            return
+
+        def done(process, result):
+            try:
+                _ok, out, _err = process.communicate_utf8_finish(result)
+                ok = process.get_successful()
+            except GLib.Error as exc:
+                out, ok = exc.message, False
+            lines = [line for line in (out or '').splitlines() if line.strip()]
+            self.toast(success if ok else tr('Nie udało się: {value}', value=lines[-1] if lines else '?'))
+            self.refresh()
+        process.communicate_utf8_async(None, None, done)
+
+    def teardown_dialog(self):
+        dialog = Adw.AlertDialog(heading=tr('Wyłączyć GramaDramę na tym koncie?'), body=tr(
+            'Źródło wprowadzania, panel, skrót, host przeglądarki i adres gramadrama:// wrócą do stanu sprzed włączenia. '
+            'Ustawienia zostają. Potem paczkę usuniesz poleceniem: sudo apt remove gramadrama — wcześniej wyłącz '
+            'GramaDramę tak samo na każdym koncie, na którym ją włączono.'), body_use_markup=False)
+        dialog.add_response('cancel', tr('Anuluj'))
+        dialog.add_response('teardown', tr('Wyłącz'))
+        dialog.set_response_appearance('teardown', Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response('cancel')
+        dialog.connect('response', lambda _d, response: response == 'teardown' and self.run_account(
+            'teardown', tr('Wyłączam GramaDramę na tym koncie…'),
+            tr('Wyłączono GramaDramę na tym koncie. Paczkę usuniesz poleceniem: sudo apt remove gramadrama')))
+        dialog.present(self)
 
     def open_log(self):
         path = checks.log_path()
