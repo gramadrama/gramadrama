@@ -19,7 +19,9 @@ The code keeps the historical setting name `live_bielik` for the model layer, bu
 the Bielik model.
 
 Checking uses the [languages chosen in the app](languages.md). Enchant needs the matching
-dictionaries, and LanguageTool needs support for the given language code. With one language, the whole text is
+dictionaries (on Ubuntu `hunspell-pl`, `hunspell-en-us`, `hunspell-de-de`), and LanguageTool needs support for the given
+language code. A language without its dictionary is named in **Writing**, with the command that installs it; the
+service opens a dictionary installed later within a minute, without a restart. With one language, the whole text is
 checked as that language. With two, the text is split into sentences; masking the remaining
 fragments keeps the error positions. Short and mixed sentences can be ambiguous.
 

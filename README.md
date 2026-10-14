@@ -15,9 +15,11 @@ in parentheses where they first appear. The macOS permission prompts stay in Pol
 
 ## Get started on Linux
 
-1. Get the repository and change into its directory:
+1. Get the repository and change into its directory. A fresh Ubuntu desktop has no `git`, and a system installed
+   in English has no Polish spelling dictionary (`hunspell-pl`):
 
    ```bash
+   sudo apt install git hunspell-pl
    git clone https://github.com/gramadrama/gramadrama.git
    cd gramadrama
    ```

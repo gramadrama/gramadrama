@@ -20,6 +20,17 @@ Underlines in GTK applications use AT-SPI (`gir1.2-atspi-2.0`).
 Spell checking needs Enchant 2 and the dictionaries of the chosen languages.
 Dictation needs a working microphone and `pw-record` from PipeWire.
 
+A fresh Ubuntu 26.04 desktop already has all of these except `git` and the Polish dictionary
+(checked on a clean installation in a virtual machine):
+
+```bash
+sudo apt install git hunspell-pl
+```
+
+For German add `hunspell-de-de`; the English one is there. While a text language has no dictionary, **Writing**
+(*Pisanie*) says so under checking while typing and copies the command that installs it; checking picks the
+dictionary up within a minute.
+
 Run from the root directory of the repository:
 
 ```bash
@@ -70,8 +81,8 @@ To uninstall:
 /usr/bin/python3 linux/install_engine.py uninstall
 ```
 
-The installer removes the copy of the app and the engine, the panel, the registered browser hosts and its own
-launch fixes. It restores the input sources. If the system engine description remains,
+The installer closes the app's window and removes the copy of the app and the engine, the panel, the registered
+browser hosts and its own launch fixes. It restores the input sources. If the system engine description remains,
 it prints the command to remove it from `/usr/share/ibus/component/gramadrama.xml`.
 
 Settings, your own prompts, the application list, local data and downloaded speech tools are kept.
@@ -191,7 +202,8 @@ The installer copies the files to `~/.local/share/gramadrama-engine/browser-exte
 in the supported browsers. In `chrome://extensions` turn on **Developer mode** (*Tryb dewelopera*), choose
 **Load unpacked** (*Załaduj rozpakowane*) and select the folder given by the app. After an update, reload the extension.
 Browsers installed as snap or Flatpak may not start a host from outside the sandbox.
-Compatibility and limitations: [browsers](docs/browser.md).
+Firefox, Ubuntu's default browser, has no GramaDrama extension: there the correction shortcut works through IBus, as in
+other applications (checked in a plain text area). Compatibility and limitations: [browsers](docs/browser.md).
 
 ## Dictation and checking while typing
 
