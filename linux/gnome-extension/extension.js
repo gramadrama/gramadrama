@@ -29,7 +29,7 @@ import {Hud, parseHud} from './hud.js';
 import {LiveBadge, parseLive} from './live.js';
 import {Underlines, intersect, parseMarks} from './underlines.js';
 import {Panel, Toast, PANEL_WIDTH, PADDING, TRANSLATE, parseView} from './panel.js';
-import {focusPair, isEngineProcess, isTestMode, launcherPath, parentPid, parseCmdline} from './policy.js';
+import {focusPair, isEngineProcess, isTestMode, launcherPath, launcherPaths, parentPid, parseCmdline} from './policy.js';
 
 const OBJECT_PATH = '/pl/gramadrama/Panel';
 const IFACE = 'pl.gramadrama.Panel1';
@@ -534,8 +534,9 @@ export default class GramaDramaExtension extends Extension {
 
     /**
      * The caller must be the installed engine as ibus-daemon starts it (policy.js): its command
-     * line ends with exactly `<user data dir>/gramadrama-engine/gramadrama-engine --ibus`, and its
-     * parent is this session's ibus-daemon. Everything is read asynchronously.
+     * line ends with exactly `<user data dir>/gramadrama-engine/gramadrama-engine --ibus` or the
+     * package's `/usr/lib/gramadrama/gramadrama-engine --ibus`, and its parent is this session's
+     * ibus-daemon. Everything is read asynchronously.
      */
     async _checkCaller(sender) {
         const [pid] = await dbusCall(Gio.DBus.session, 'org.freedesktop.DBus', '/org/freedesktop/DBus',
@@ -544,7 +545,7 @@ export default class GramaDramaExtension extends Extension {
         const [cmdline, stat] = await Promise.all([readFile(`/proc/${pid}/cmdline`, this._cancellable),
             readFile(`/proc/${pid}/stat`, this._cancellable)]);
         return isEngineProcess(parseCmdline(cmdline), parentPid(new TextDecoder().decode(stat)),
-            launcherPath(GLib.get_user_data_dir()), this._ibusDaemonPid());
+            launcherPaths(GLib.get_user_data_dir()), this._ibusDaemonPid());
     }
 
     /** The PID of the ibus-daemon GNOME Shell is connected to (peer credentials of its socket). */
@@ -1050,6 +1051,7 @@ export default class GramaDramaExtension extends Extension {
             ibusHooked: !!this._ps,
             ibusDaemonPid: this._ibusDaemonPid(),
             launcher: launcherPath(GLib.get_user_data_dir()),
+            launchers: launcherPaths(GLib.get_user_data_dir()),
             ibusFocus: {...this._ibusFocus},
             stageKeyFocus: keyFocus ? `${keyFocus.constructor.name}:${keyFocus.name ?? ''}` : null,
             grab: !!global.stage.get_grab_actor?.(),

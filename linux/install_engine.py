@@ -56,6 +56,7 @@ TARGET = DATA / 'gramadrama-engine'
 LAUNCHER = TARGET / 'gramadrama-engine'
 STAGED_XML = TARGET / 'gramadrama.xml'
 COMPONENT = Path('/usr/share/ibus/component/gramadrama.xml')
+SYSTEM_LAUNCHER = Path('/usr/lib/gramadrama/gramadrama-engine')  # the .deb package's engine (scripts/build-deb.sh)
 BACKUP = CONFIG / 'gramadrama' / 'engine-install-backup.json'
 IBUS_UNIT = 'org.freedesktop.IBus.session.GNOME.service'
 ENGINE = ('ibus', 'gramadrama')
@@ -606,6 +607,9 @@ def status():
 
 
 def install(layout=None):
+    if SYSTEM_LAUNCHER.exists():  # one IBus description, one engine: the package's file would be overwritten
+        sys.exit('GramaDrama jest zainstalowana z paczki (%s). Instalacja ze źródeł by się z nią gryzła: '
+                 'zostań przy paczce albo najpierw ją usuń (sudo apt remove gramadrama).' % SYSTEM_LAUNCHER.parent)
     if 'GNOME' not in os.environ.get('XDG_CURRENT_DESKTOP', ''):
         sys.exit('Potrzebna jest sesja GNOME.')
     stopped = stop_legacy_app()

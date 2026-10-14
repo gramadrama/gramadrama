@@ -588,6 +588,52 @@ class ServerTests(unittest.TestCase):
                          (ERROR, 'Wymaga uwagi: silnik, Bielik'))
 
 
+class PackageInstallTests(unittest.TestCase):
+    """The .deb package or the user's own copy: the IBus description (its <exec>) decides which engine is installed."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = self.root = Path(self.tmp.name)
+        for patcher in (mock.patch.dict(os.environ, {'XDG_DATA_HOME': str(root / 'data'), 'IBUS_COMPONENT_PATH': str(root / 'ibus')}),
+                        mock.patch.object(C, 'SYSTEM_DIR', root / 'usr-lib-gramadrama'),
+                        mock.patch.object(C, 'SYSTEM_EXTENSIONS', root / 'usr-share-extensions')):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        (root / 'ibus').mkdir()
+
+    def component(self, command):
+        (self.root / 'ibus' / 'gramadrama.xml').write_text(
+            '<?xml version="1.0"?><component><name>org.freedesktop.IBus.GramaDrama</name><exec>%s</exec></component>' % command)
+
+    def test_the_description_decides(self):
+        user = self.root / 'data' / 'gramadrama-engine'
+        self.assertIsNone(C.component_launcher())  # no description yet
+        self.assertEqual(C.engine_dir(), user)
+        self.component('/usr/bin/python3 %s --ibus' % (user / 'gramadrama-engine'))
+        self.assertEqual(C.component_launcher(), user / 'gramadrama-engine')
+        self.assertFalse(C.package_installed())
+        self.assertEqual(C.engine_dir(), user)
+        self.component('/usr/bin/python3 %s --ibus' % (C.SYSTEM_DIR / 'gramadrama-engine'))
+        self.assertTrue(C.package_installed())
+        self.assertEqual(C.engine_dir(), C.SYSTEM_DIR)  # the user's old copy, if any, is not what IBus starts
+        self.component('%s --ibus' % (C.SYSTEM_DIR / 'gramadrama-engine'))  # without the interpreter
+        self.assertTrue(C.package_installed())
+        self.component('/usr/bin/python3 %s2 --ibus' % (C.SYSTEM_DIR / 'gramadrama-engine'))
+        self.assertFalse(C.package_installed())
+        (self.root / 'ibus' / 'gramadrama.xml').write_text('<component><exec>')
+        self.assertIsNone(C.component_launcher())  # a broken description: not the package
+
+    def test_the_user_extension_wins(self):
+        user = self.root / 'data' / 'gnome-shell' / 'extensions' / C.EXTENSION_UUID
+        system = C.SYSTEM_EXTENSIONS / C.EXTENSION_UUID
+        self.assertEqual(C.extension_dir(), user)
+        system.mkdir(parents=True)
+        self.assertEqual(C.extension_dir(), system)
+        user.mkdir(parents=True)
+        self.assertEqual(C.extension_dir(), user)  # as GNOME Shell chooses
+
+
 class InstalledCopyTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

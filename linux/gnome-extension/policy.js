@@ -7,6 +7,14 @@ export function launcherPath(userDataDir) {
     return `${userDataDir.replace(/\/+$/, '')}/gramadrama-engine/gramadrama-engine`;
 }
 
+/** The engine launcher of the .deb package (scripts/build-deb.sh), in a directory only root can write to. */
+export const SYSTEM_LAUNCHER = '/usr/lib/gramadrama/gramadrama-engine';
+
+/** The launchers an IBus component may name: the user's own copy and the package's. */
+export function launcherPaths(userDataDir) {
+    return [launcherPath(userDataDir), SYSTEM_LAUNCHER];
+}
+
 /** argv from the bytes of /proc/PID/cmdline (NUL-separated and NUL-terminated). */
 export function parseCmdline(bytes) {
     const args = new TextDecoder().decode(bytes).split('\0');
@@ -24,13 +32,14 @@ export function parentPid(stat) {
 
 /**
  * The real engine: ibus-daemon starts `…python3 <launcher> --ibus` from the IBus component, so its
- * command line ends with exactly the installed launcher and `--ibus`, and its parent is the
- * session's ibus-daemon. A matching name elsewhere, extra arguments, another parent or an unknown
- * ibus-daemon are all refused.
+ * command line ends with exactly an installed launcher (launcherPaths, or one path) and `--ibus`, and its
+ * parent is the session's ibus-daemon. A matching name elsewhere, extra arguments, another parent or an
+ * unknown ibus-daemon are all refused.
  */
-export function isEngineProcess(argv, ppid, launcher, ibusDaemonPid) {
+export function isEngineProcess(argv, ppid, launchers, ibusDaemonPid) {
     const n = argv.length;
-    return n >= 2 && argv[n - 1] === '--ibus' && argv[n - 2] === launcher &&
+    const allowed = Array.isArray(launchers) ? launchers : [launchers];
+    return n >= 2 && argv[n - 1] === '--ibus' && allowed.includes(argv[n - 2]) &&
         Number.isInteger(ibusDaemonPid) && ibusDaemonPid > 1 && ppid === ibusDaemonPid;
 }
 

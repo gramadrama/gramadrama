@@ -353,6 +353,7 @@ class AppInstallTests(unittest.TestCase):
                 'register_scheme': mock.Mock(return_value=True),
                 'settings': mock.Mock(side_effect=AssertionError('live GSettings')),
                 'COMPONENT': self.root / 'ibus' / 'gramadrama.xml', 'BACKUP': apps_json.with_name('engine-install-backup.json'),
+                'SYSTEM_LAUNCHER': self.root / 'no-package' / 'gramadrama-engine',
                 'EXTENSION': self.root / 'data' / 'gnome-shell' / 'extensions' / I.EXTENSION_ID,
                 'EXTENSION_SOURCE': self.root / 'no-extension'}
         for name, value in live.items():
@@ -399,7 +400,8 @@ class ComponentReloadTests(unittest.TestCase):
         self.addCleanup(stack.close)
         paths = {'TARGET': root, 'STAGED_XML': root / 'staged.xml', 'COMPONENT': root / 'system.xml',
                  'INSTALL_INFO': root / 'install.json', 'BACKUP': root / 'backup.json',
-                 'LAUNCHER': root / 'gramadrama-engine', 'EXTENSION': root / 'no-extension'}
+                 'LAUNCHER': root / 'gramadrama-engine', 'EXTENSION': root / 'no-extension',
+                 'SYSTEM_LAUNCHER': root / 'no-package' / 'gramadrama-engine'}
         for name, value in paths.items():
             stack.enter_context(mock.patch.object(I, name, value))
         live = {'stop_legacy_app': None, 'install_app': None, 'register_browser_hosts': [],
@@ -535,4 +537,19 @@ class AppPidsTests(unittest.TestCase):
         with mock.patch.object(I.subprocess, 'run', return_value=mock.Mock(stdout='12 34\n')) as run:
             self.assertEqual(I.app_pids(), [12, 34])
         self.assertEqual(run.call_args[0][0], ['pgrep', '-f', '^/usr/bin/python3 %s' % I.APP_LAUNCHER])
+
+
+class PackageTests(unittest.TestCase):
+    def test_the_source_install_gives_way_to_the_package(self):
+        """One IBus description, one engine: with the .deb installed the source install changes nothing and says why."""
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            launcher = Path(tmp) / 'gramadrama-engine'
+            launcher.write_text('the package')
+            with mock.patch.object(I, 'SYSTEM_LAUNCHER', launcher), \
+                    mock.patch.object(I, 'copy_engine', side_effect=AssertionError('a file copied')), \
+                    self.assertRaises(SystemExit) as stopped:
+                I.install()
+        self.assertIn('sudo apt remove gramadrama', str(stopped.exception))
 

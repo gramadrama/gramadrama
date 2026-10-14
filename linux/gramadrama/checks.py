@@ -89,12 +89,48 @@ def data_home():
     return _xdg('XDG_DATA_HOME', Path.home() / '.local' / 'share')
 
 
+# The .deb package (scripts/build-deb.sh): the engine, the app and the browser host here, the panel among the system's
+# GNOME Shell extensions; a copy from install_engine.py lives in the user's data directory instead.
+SYSTEM_DIR = Path('/usr/lib/gramadrama')
+SYSTEM_EXTENSIONS = Path('/usr/share/gnome-shell/extensions')
+
+
+def component_file():
+    """The engine's IBus description (component XML) ibus-daemon reads, or None."""
+    dirs = [d for d in os.environ.get('IBUS_COMPONENT_PATH', '/usr/share/ibus/component').split(':') if d]
+    return next((Path(d) / 'gramadrama.xml' for d in dirs if (Path(d) / 'gramadrama.xml').exists()), None)
+
+
+def component_launcher(path=None):
+    """The engine launcher the IBus description makes ibus-daemon start (in its <exec>), or None."""
+    import xml.etree.ElementTree as ET
+    path = path or component_file()
+    if path is None:
+        return None
+    try:
+        command = ET.parse(path).getroot().findtext('.//exec') or ''
+        args = shlex.split(command)
+    except (OSError, ET.ParseError, ValueError):
+        return None
+    return next((Path(arg) for arg in args if arg.endswith('/gramadrama-engine')), None)
+
+
+def package_installed():
+    """GramaDrama from the package: IBus starts the engine in SYSTEM_DIR. A user's old copy left behind does not count:
+    the description decides which engine runs."""
+    return component_launcher() == SYSTEM_DIR / 'gramadrama-engine'
+
+
 def engine_dir():
-    return data_home() / 'gramadrama-engine'
+    """Where the installed engine is: the package's directory, or the user's copy (install_engine.py)."""
+    return SYSTEM_DIR if package_installed() else data_home() / 'gramadrama-engine'
 
 
 def extension_dir():
-    return data_home() / 'gnome-shell' / 'extensions' / EXTENSION_UUID
+    """The panel's files: the user's own extension directory wins, as in GNOME Shell; else the package's."""
+    user = data_home() / 'gnome-shell' / 'extensions' / EXTENSION_UUID
+    system = SYSTEM_EXTENSIONS / EXTENSION_UUID
+    return system if not user.exists() and system.exists() else user
 
 
 def config_home():
@@ -1299,9 +1335,8 @@ def launcher_of(pid):
 
 
 def component_state():
-    """The engine's IBus description (component XML) against the installer's staged copy."""
-    dirs = [d for d in os.environ.get('IBUS_COMPONENT_PATH', '/usr/share/ibus/component').split(':') if d]
-    found = next((Path(d) / 'gramadrama.xml' for d in dirs if (Path(d) / 'gramadrama.xml').exists()), None)
+    """The engine's IBus description (component XML) against the installer's staged copy (the package ships both)."""
+    found = component_file()
     staged = engine_dir() / 'gramadrama.xml'
     if found is None:
         return 'missing'

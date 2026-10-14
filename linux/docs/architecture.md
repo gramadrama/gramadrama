@@ -299,6 +299,7 @@ members only when they exist:
 | 16 | a failed correction's title, sentence and buttons (`problem`, the `problem:<action>` actions); Enter does its first button; `retrying` |
 | 18 | `note` in the live badge view: the „!” of Model only checking |
 | 19 | `Edit` goes only to the engine that showed the session, and names the session of the view being drawn (it was broadcast, and a report made while a new view was drawn named the previous session) |
+| 20 | the caller check also accepts the package's engine, `/usr/lib/gramadrama/gramadrama-engine` |
 
 A change to the contract bumps `version` in `metadata.json`, and the engine gates the new calls on
 it.
@@ -308,9 +309,10 @@ it.
 Every member except `Ping` is reserved for the installed engine as ibus-daemon starts it:
 
 - The sender's PID comes from `GetConnectionUnixProcessID`. Its `/proc/PID/cmdline` must end with
-  exactly two arguments: the installed launcher, `GLib.get_user_data_dir()` +
-  `/gramadrama-engine/gramadrama-engine` (what the installer writes into the IBus component), and
-  `--ibus`.
+  exactly two arguments: an installed launcher and `--ibus`. The launcher is either the user's copy,
+  `GLib.get_user_data_dir()` + `/gramadrama-engine/gramadrama-engine` (what `install_engine.py` writes into
+  the IBus component), or the package's `/usr/lib/gramadrama/gramadrama-engine`, in a directory only root
+  can write to.
 - Its parent (`/proc/PID/stat`) must be the session's ibus-daemon, whose PID is taken from the
   peer credentials of GNOME Shell's own IBus connection. If that PID is unknown, every caller is
   refused.

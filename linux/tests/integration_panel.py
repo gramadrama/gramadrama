@@ -1812,7 +1812,7 @@ def t_enable_failure(rig):
 
 
 POLICY_TEST_JS = r"""
-import {focusPair, isEngineProcess, isTestMode, launcherPath, parentPid, parseCmdline, windowId} from '%s';
+import {SYSTEM_LAUNCHER, focusPair, isEngineProcess, isTestMode, launcherPath, launcherPaths, parentPid, parseCmdline, windowId} from '%s';
 const failures = [];
 const ok = (cond, what) => { if (!cond) failures.push(what); };
 const pair = (args, want, what) => ok(JSON.stringify(focusPair(args)) === JSON.stringify(want), what);
@@ -1869,6 +1869,15 @@ ok(!isEngineProcess(['/usr/bin/python3', L, '--ibus', '--verbose'], 4242, L, 424
 ok(!isEngineProcess(['/usr/bin/python3', L], 4242, L, 4242), 'no --ibus');
 ok(!isEngineProcess(['/usr/bin/python3', `${L}2`, '--ibus'], 4242, L, 4242), 'another file');
 ok(!isEngineProcess(['--ibus'], 4242, L, 4242), 'too short');
+// the .deb package's launcher, in a directory only root can write to, besides the user's own copy
+const both = launcherPaths('/home/u/.local/share');
+ok(SYSTEM_LAUNCHER === '/usr/lib/gramadrama/gramadrama-engine' && both.length === 2 && both.includes(L), 'both launchers');
+ok(isEngineProcess(['/usr/bin/python3', SYSTEM_LAUNCHER, '--ibus'], 4242, both, 4242), 'the package engine');
+ok(isEngineProcess(['/usr/bin/python3', L, '--ibus'], 4242, both, 4242), 'the user copy, the package allowed too');
+ok(!isEngineProcess(['/usr/bin/python3', SYSTEM_LAUNCHER, '--ibus'], 4242, L, 4242), 'only the paths given');
+ok(!isEngineProcess(['/usr/bin/python3', `${SYSTEM_LAUNCHER}2`, '--ibus'], 4242, both, 4242), 'another file in the package dir');
+ok(!isEngineProcess(['/usr/bin/python3', `/tmp${SYSTEM_LAUNCHER}`, '--ibus'], 4242, both, 4242), 'a copy elsewhere');
+ok(!isEngineProcess(['/usr/bin/python3', SYSTEM_LAUNCHER, '--ibus'], 4243, both, 4242), 'the package engine, another parent');
 ok(parentPid('1234 (python3) S 42 1234 1234 0 -1 4194560') === 42, 'stat');
 ok(parentPid('1234 (a) b) (c) S 77 1 1') === 77, 'stat with ) and spaces in the name');
 ok(parentPid('garbage') === null, 'bad stat');
