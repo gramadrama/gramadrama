@@ -25,8 +25,9 @@ from .engine import fallback_ui, shortcuts
 
 OK, WARNING, ERROR, INFO, BUSY = 'ok', 'warning', 'error', 'info', 'busy'
 PROBLEMS = (ERROR, WARNING)
-ENGINE_NAME = 'gramadrama'
-ENGINE_SOURCE = ('ibus', ENGINE_NAME)
+# Every engine of ours: the source install's one, and the package's one per keyboard layout (install_engine.PACKAGE_ENGINES)
+ENGINE_NAMES = ('gramadrama', 'gramadrama-us', 'gramadrama-de')
+ENGINE_SOURCES = tuple(('ibus', name) for name in ENGINE_NAMES)
 EXTENSION_UUID = 'gramadrama@gramadrama.local'
 ENGINE_BUS = ('pl.gramadrama.Engine', '/pl/gramadrama/Engine', 'pl.gramadrama.Engine')
 PANEL_BUS = ('org.gnome.Shell', '/pl/gramadrama/Panel', 'pl.gramadrama.Panel1')
@@ -453,16 +454,16 @@ def source_check(sources, current, package=False):
     """sources: GNOME's input sources [(type, id)]; current: `ibus engine` (None: unknown); package: the .deb is installed
     (package_installed), whose fix is the account setup instead of the installer."""
     sources = [tuple(s) for s in sources]
-    if ENGINE_SOURCE not in sources:
+    if not any(source in ENGINE_SOURCES for source in sources):
         if package:
             return Check(ERROR, tr('GramaDrama nie jest jeszcze włączona na tym koncie.'), 'setup')
         return Check(ERROR, tr('Brak źródła GramaDrama wśród źródeł wprowadzania. Uruchom instalator.'),
                      'install')
-    if current == ENGINE_NAME:
+    if current in ENGINE_NAMES:
         return Check(OK, tr('GramaDrama — aktywne'))
     if current is None:
         return Check(WARNING, tr('Nie udało się odczytać aktywnego źródła (ibus engine).'))
-    if all(source == ENGINE_SOURCE for source in sources):
+    if all(source in ENGINE_SOURCES for source in sources):
         # There is no other configured source to switch from. GNOME may use plain XKB
         # temporarily in a password field, or when the selected engine cannot start.
         return Check(WARNING, tr('Źródło GramaDrama jest ustawione poprawnie, ale nie jest aktywne w IBus. Kliknij zwykłe pole tekstowe — w polu hasła to normalne. Jeśli problem pozostaje, silnik mógł się nie uruchomić. Uruchom wtedy instalator.'))
@@ -1433,7 +1434,7 @@ def probe_system(conn, app_dir):
     source = (install or {}).get('source') if installed_here else str(app_dir)
     return {
         'current': (current.strip() or None) if current is not None else None,
-        'registered': None if engines is None else ENGINE_NAME in engines.split(),
+        'registered': None if engines is None else bool(set(ENGINE_NAMES) & set(engines.split())),
         'status': status, 'origin': origin, 'stale': bool(stale),
         'extension': info[0] if info else {}, 'loaded': ping[0] if ping else None,
         'on_disk': extension_version_on_disk(), 'shell_started': process_start(shell) if shell else None,

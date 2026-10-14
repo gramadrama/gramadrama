@@ -65,7 +65,8 @@ SYSTEM_DESKTOP = Path('/usr/share/applications') / 'pl.gramadrama.Linux.desktop'
 SYSTEM_EXTENSION = Path('/usr/share/gnome-shell/extensions') / 'gramadrama@gramadrama.local'
 BACKUP = CONFIG / 'gramadrama' / 'engine-install-backup.json'
 IBUS_UNIT = 'org.freedesktop.IBus.session.GNOME.service'
-ENGINE = ('ibus', 'gramadrama')
+PACKAGE_ENGINES = {'pl': 'gramadrama', 'us': 'gramadrama-us', 'de': 'gramadrama-de'}  # layout -> engine (package)
+ENGINE_SOURCES = {('ibus', name) for name in PACKAGE_ENGINES.values()}  # every engine of ours, either install
 KEYBOARD_LAYOUTS = {'pl': ('pl', 'Polski (GramaDrama)'),
                     'us': ('en', 'English (GramaDrama)'),
                     'de': ('de', 'Deutsch (GramaDrama)')}
@@ -105,16 +106,16 @@ WHISPER_REPO = 'mobiuslabsgmbh/faster-whisper-large-v3-turbo'
 WHISPER = TOOLS / 'models' / 'faster-whisper-large-v3-turbo'
 
 
-def with_engine(sources, layout='pl'):
+def with_engine(sources, layout='pl', engine='gramadrama'):
     """GramaDrama first; the other sources keep their order (the plain layout stays as a fallback)."""
-    rest = [tuple(s) for s in sources if tuple(s) != ENGINE]
+    rest = [tuple(s) for s in sources if tuple(s) not in ENGINE_SOURCES]
     if not any(kind == 'xkb' for kind, _ in rest):
         rest.append(('xkb', layout))  # keep a plain layout available if the engine cannot start
-    return [ENGINE] + rest
+    return [('ibus', engine)] + rest
 
 
 def without_engine(sources, layout='pl'):
-    return [tuple(s) for s in sources if tuple(s) != ENGINE] or [('xkb', layout)]
+    return [tuple(s) for s in sources if tuple(s) not in ENGINE_SOURCES] or [('xkb', layout)]
 
 
 def component_xml(layout='pl'):
@@ -126,6 +127,25 @@ def component_xml(layout='pl'):
     return (template.replace('@EXEC@', command.replace('&', '&amp;').replace('<', '&lt;'))
             .replace('@LAYOUT@', layout).replace('@LANGUAGE@', language).replace('@LONGNAME@', name))
 
+
+def package_component_xml():
+    """The package's IBus description: one engine per layout of KEYBOARD_LAYOUTS (PACKAGE_ENGINES), all served by the
+    package's launcher. One description serves every account, so each account picks its engine (setup)."""
+    template = (SOURCE / 'data' / 'gramadrama.xml.in').read_text(encoding='utf-8')
+    start, end = template.index('    <engine>'), template.index('</engine>') + len('</engine>\n')
+    engines = ''
+    for layout, engine in PACKAGE_ENGINES.items():
+        language, name = KEYBOARD_LAYOUTS[layout]
+        engines += (template[start:end].replace('<name>gramadrama</name>', '<name>%s</name>' % engine)
+                    .replace('@LAYOUT@', layout).replace('@LANGUAGE@', language).replace('@LONGNAME@', name))
+    command = '/usr/bin/python3 %s --ibus' % shlex.quote(str(SYSTEM_LAUNCHER))
+    return template[:start].replace('@EXEC@', command) + engines + template[end:]
+
+
+def account_engine(sources):
+    """The package's engine for an account: the one with the layout the account types in (its first plain layout)."""
+    layout = next((name.split('+')[0] for kind, name in sources if kind == 'xkb'), 'pl')
+    return PACKAGE_ENGINES.get(layout, PACKAGE_ENGINES['us'])
 
 # ---- the live system (gi is imported lazily so the pure helpers stay testable anywhere) ----
 def settings(schema, path=None):
@@ -198,8 +218,8 @@ def ibus_cli(*args):
     return out.stdout if out.returncode == 0 else None
 
 
-def registered():
-    return 'gramadrama' in (ibus_cli('list-engine', '--name-only') or '').split()
+def registered(engine='gramadrama'):
+    return engine in (ibus_cli('list-engine', '--name-only') or '').split()
 
 
 def global_engine():
@@ -402,7 +422,7 @@ def desktop_exec(*argv):
     return ' '.join(quote(str(a)) for a in argv).replace('\\', '\\\\')
 
 
-def desktop_entry():
+def desktop_entry(launcher=None):
     return ('''[Desktop Entry]
 Type=Application
 Name=GramaDrama
@@ -415,7 +435,7 @@ Categories=Utility;TextTools;
 Keywords=korekta;gramatyka;pisownia;tłumaczenie;IBus;grammar;spelling;dictation;
 StartupNotify=true
 MimeType=%s;
-''' % (desktop_exec('/usr/bin/python3', APP_LAUNCHER) + ' %u', APP_ID, SCHEME_TYPE))
+''' % (desktop_exec('/usr/bin/python3', launcher or APP_LAUNCHER) + ' %u', APP_ID, SCHEME_TYPE))
 
 
 def without_scheme(text):
@@ -459,8 +479,8 @@ def unregister_scheme():
         MIMEAPPS.write_text(without_scheme(text), encoding='utf-8')
 
 
-def bin_script():
-    return '#!/bin/sh\nexec /usr/bin/python3 %s "$@"\n' % shlex.quote(str(APP_LAUNCHER))
+def bin_script(launcher=None):
+    return '#!/bin/sh\nexec /usr/bin/python3 %s "$@"\n' % shlex.quote(str(launcher or APP_LAUNCHER))
 
 
 def ours(path, *markers):
@@ -665,7 +685,7 @@ def install(layout=None):
     return 0
 
 
-def enable_on_account(layout, package=False):
+def enable_on_account(layout, package=False, engine='gramadrama'):
     """What install and setup share: the previous sources and shortcut saved (once), the old Ctrl+Alt+G shortcut out of
     the way, GramaDrama the first input source and active, the panel enabled (the user's copy refreshed first; the
     package's is the system's), the first client's leftovers removed. True when the panel needs the next login."""
@@ -683,10 +703,10 @@ def enable_on_account(layout, package=False):
             for pid in stale:
                 os.kill(pid, 15)
             wait(lambda: not set(stale) & set(engine_pids()), 5)
-    set_sources(with_engine(get_sources(), layout))
-    if not wait(lambda: global_engine() == 'gramadrama', 5):
-        ibus_cli('engine', 'gramadrama')  # GNOME normally activates the first source itself
-    if not wait(lambda: global_engine() == 'gramadrama', 10):
+    set_sources(with_engine(get_sources(), layout, engine))
+    if not wait(lambda: global_engine() == engine, 5):
+        ibus_cli('engine', engine)  # GNOME normally activates the first source itself
+    if not wait(lambda: global_engine() == engine, 10):
         print('Uwaga: GramaDrama nie jest jeszcze aktywna. Wybierz „%s” na górnym pasku.'
               % KEYBOARD_LAYOUTS.get(layout, (None, 'GramaDrama'))[1])
     if package:
@@ -706,15 +726,6 @@ def enable_on_account(layout, package=False):
     return panel_changed
 
 
-def component_layout():
-    """The keyboard layout of the installed IBus description (its <layout>), or None."""
-    import xml.etree.ElementTree as ET
-    try:
-        return (ET.parse(COMPONENT).getroot().findtext('.//layout') or '').strip() or None
-    except (OSError, ET.ParseError):
-        return None
-
-
 def package_engine_pids():
     """This user's engines started from the package (other users' run under their own accounts)."""
     out = subprocess.run(['pgrep', '-u', str(os.getuid()), '-f', '^/usr/bin/python3 %s' % SYSTEM_LAUNCHER],
@@ -730,17 +741,18 @@ def setup():
         sys.exit('Paczka GramaDramy nie jest zainstalowana (brak %s).' % SYSTEM_LAUNCHER)
     if 'GNOME' not in os.environ.get('XDG_CURRENT_DESKTOP', ''):
         sys.exit('Potrzebna jest sesja GNOME.')
-    layout = component_layout() or 'pl'
+    engine = account_engine(get_sources())
+    layout = next(layout for layout, name in PACKAGE_ENGINES.items() if name == engine)
     register_browser_hosts(SYSTEM_DIR / 'gramadrama-browser-host')
     if not register_scheme(package=True):
         print('Uwaga: nie udało się zarejestrować adresu gramadrama:// (powrót z logowania do serwera); '
               'przy logowaniu wklej adres, na który wróciła przeglądarka.')
-    if not registered():  # ibus-daemon read its descriptions before the package was installed
+    if not registered(engine):  # ibus-daemon read its descriptions before the package was installed
         print('Uruchamiam ponownie IBus, żeby wczytał GramaDramę (pisanie zatrzyma się na ~1 s)…')
         subprocess.run(['systemctl', '--user', 'restart', IBUS_UNIT], check=True)
-        if not wait(registered, 15):
+        if not wait(lambda: registered(engine), 15):
             sys.exit('IBus nie widzi silnika GramaDrama. Niczego więcej nie zmieniono.')
-    panel_changed = enable_on_account(layout, package=True)
+    panel_changed = enable_on_account(layout, package=True, engine=engine)
     print('Gotowe: GramaDrama jest włączona na tym koncie.')
     if panel_changed:
         print('Panel GramaDramy pojawi się po wylogowaniu i ponownym zalogowaniu. Do tego czasu wyniki są w zwykłym okienku IBus.')
@@ -754,7 +766,7 @@ def teardown():
     the settings and apps.json stay."""
     backup = json.loads(BACKUP.read_text()) if BACKUP.exists() else {}
     sources = [tuple(s) for s in backup.get('sources') or []]
-    set_sources(without_engine(sources or get_sources(), component_layout() or 'pl'))
+    set_sources(without_engine(sources or get_sources()))
     current = enabled_extensions()
     if EXTENSION_ID in current:
         set_enabled_extensions([uuid for uuid in current if uuid != EXTENSION_ID])

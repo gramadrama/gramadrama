@@ -570,7 +570,6 @@ class AccountTests(unittest.TestCase):
         (root / 'lib').mkdir()
         (root / 'lib' / 'gramadrama-engine').write_text('the package engine')
         (root / 'extension').mkdir()
-        (root / 'component.xml').write_text('<component><engines><engine><layout>us</layout></engine></engines></component>')
         paths = {'SYSTEM_LAUNCHER': root / 'lib' / 'gramadrama-engine', 'SYSTEM_DIR': root / 'lib',
                  'SYSTEM_EXTENSION': root / 'extension', 'COMPONENT': root / 'component.xml',
                  'BACKUP': root / 'config' / 'backup.json', 'EXTENSION': root / 'no-user-extension'}
@@ -583,7 +582,8 @@ class AccountTests(unittest.TestCase):
                 'enabled_extensions': mock.Mock(side_effect=lambda: list(self.enabled)),
                 'set_enabled_extensions': mock.Mock(side_effect=lambda uuids: setattr(self, 'enabled', list(uuids))),
                 'old_binding': mock.Mock(return_value=None), 'set_old_binding': mock.Mock(),
-                'registered': mock.Mock(return_value=True), 'global_engine': mock.Mock(return_value='gramadrama'),
+                'registered': mock.Mock(return_value=True),
+                'global_engine': mock.Mock(side_effect=lambda: next((n for k, n in self.sources if k == 'ibus'), None)),
                 'ibus_cli': mock.Mock(), 'wait': mock.Mock(side_effect=lambda predicate, seconds: predicate()),
                 'register_browser_hosts': mock.Mock(return_value=[]), 'register_scheme': mock.Mock(return_value=True),
                 'remove_legacy_copy': mock.Mock(return_value=False), 'remove_legacy_shortcut': mock.Mock(return_value=False),
@@ -608,18 +608,35 @@ class AccountTests(unittest.TestCase):
         self.live['register_browser_hosts'].assert_called_once_with(self.root / 'lib' / 'gramadrama-browser-host')
         self.live['register_scheme'].assert_called_once_with(package=True)
         self.run.assert_not_called()  # IBus knew the engine: no restart
-        self.assertEqual(self.sources, [('ibus', 'gramadrama'), ('xkb', 'gb')])  # the user's own layout stays the fallback
+        # a British layout: the package's US engine, the user's own layout stays as the fallback
+        self.assertEqual(self.sources, [('ibus', 'gramadrama-us'), ('xkb', 'gb')])
+        self.live['registered'].assert_called_with('gramadrama-us')
         self.assertEqual(self.enabled, ['other@example.com', I.EXTENSION_ID])
         self.assertIn('po wylogowaniu', self.out.getvalue())
         self.assertTrue(I.BACKUP.exists())
 
     def test_setup_restarts_an_ibus_that_does_not_know_the_engine(self):
         answers = iter([False, True])
-        self.live['registered'].side_effect = lambda: next(answers)
-        self.sources = []
+        self.live['registered'].side_effect = lambda engine: next(answers)
+        self.sources = [('xkb', 'de+nodeadkeys')]
         self.assertEqual(I.setup(), 0)
         self.run.assert_called_once_with(['systemctl', '--user', 'restart', I.IBUS_UNIT], check=True)
-        self.assertEqual(self.sources, [('ibus', 'gramadrama'), ('xkb', 'us')])  # the description's layout as the fallback
+        self.assertEqual(self.sources, [('ibus', 'gramadrama-de'), ('xkb', 'de+nodeadkeys')])
+
+    def test_one_description_one_engine_per_layout(self):
+        import xml.etree.ElementTree as ET
+        with mock_patch(I, 'SYSTEM_LAUNCHER', Path('/usr/lib/gramadrama/gramadrama-engine')):
+            root = ET.fromstring(I.package_component_xml())
+        self.assertEqual(root.findtext('exec'), '/usr/bin/python3 /usr/lib/gramadrama/gramadrama-engine --ibus')
+        self.assertEqual([(e.findtext('name'), e.findtext('layout')) for e in root.iter('engine')],
+                         [('gramadrama', 'pl'), ('gramadrama-us', 'us'), ('gramadrama-de', 'de')])
+        self.assertEqual(I.account_engine([('xkb', 'pl')]), 'gramadrama')
+        self.assertEqual(I.account_engine([('ibus', 'gramadrama'), ('xkb', 'fr')]), 'gramadrama-us')  # others: US
+        self.assertEqual(I.account_engine([]), 'gramadrama')
+        # one engine of ours at a time: switching engines replaces it
+        self.assertEqual(I.with_engine([('ibus', 'gramadrama'), ('xkb', 'de')], 'de', 'gramadrama-de'),
+                         [('ibus', 'gramadrama-de'), ('xkb', 'de')])
+        self.assertEqual(I.without_engine([('ibus', 'gramadrama-us'), ('xkb', 'us')]), [('xkb', 'us')])
 
     def test_teardown_restores_the_account(self):
         I.setup()
@@ -632,4 +649,9 @@ class AccountTests(unittest.TestCase):
         self.live['unregister_scheme'].assert_called_once_with()
         self.assertFalse(I.BACKUP.exists())
         self.assertIn('sudo apt remove gramadrama', self.out.getvalue())
+
+
+def mock_patch(target, name, value):
+    from unittest import mock
+    return mock.patch.object(target, name, value)
 

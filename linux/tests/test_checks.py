@@ -950,3 +950,9 @@ class PackageModeTests(unittest.TestCase):
         browser = C.browser_check({'browsers': {}}, [], '/x', ['Google Chrome'], package=True)
         self.assertEqual((browser.state, browser.action), (WARNING, 'setup'))
 
+    def test_every_engine_of_the_package_is_ours(self):
+        for name in ('gramadrama', 'gramadrama-us', 'gramadrama-de'):
+            with self.subTest(name=name):
+                self.assertEqual(C.source_check([('ibus', name), ('xkb', 'us')], name, package=True).state, OK)
+        self.assertEqual(C.source_check([('ibus', 'other'), ('xkb', 'us')], 'other', package=True).action, 'setup')
+

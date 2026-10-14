@@ -27,7 +27,9 @@ from .. import paths  # noqa: E402  (never core: install_engine.engine_digest)
 from . import (applist, backend, browser, browser_live, browser_text as BT, dictate, fallback_ui, keys, live,  # noqa: E402
                session as S, shortcuts, speech)
 
-ENGINE_NAME = 'gramadrama'
+# The engines of the package's IBus description, one per keyboard layout (install_engine.PACKAGE_ENGINES); the source
+# install has the first only. One process serves them all: only the keyboard layout GNOME applies differs.
+ENGINE_NAMES = ('gramadrama', 'gramadrama-us', 'gramadrama-de')
 BUS_NAME = 'org.freedesktop.IBus.GramaDrama'
 DIAG_NAME = 'pl.gramadrama.Engine'
 DIAG_PATH = '/pl/gramadrama/Engine'
@@ -1497,7 +1499,7 @@ class Factory:
         self.factory.connect('create-engine', self.create)
 
     def create(self, factory, name):
-        if name != ENGINE_NAME:
+        if name not in ENGINE_NAMES:
             return None
         self.n += 1
         path = '/org/freedesktop/IBus/Engine/GramaDrama/%d' % self.n
