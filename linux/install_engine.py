@@ -204,6 +204,12 @@ def engine_pids():
     return [int(p) for p in out.stdout.split()]
 
 
+def app_pids():
+    """The app's windows started from the installed copy."""
+    out = subprocess.run(['pgrep', '-f', '^/usr/bin/python3 %s' % APP_LAUNCHER], capture_output=True, text=True)
+    return [int(p) for p in out.stdout.split()]
+
+
 def process_start(pid):
     """When a process started, in seconds since the epoch (/proc), or None."""
     try:
@@ -683,6 +689,11 @@ def uninstall():
         set_old_binding(backup['binding'])
     for pid in engine_pids():
         os.kill(pid, 15)
+    windows = app_pids()
+    for pid in windows:  # an open window would go on running from the copy removed below
+        os.kill(pid, 15)
+    if windows:
+        print('Zamknięto okno GramaDramy.')
     unregister_scheme()
     unregister_browser_hosts()
     uninstall_app()

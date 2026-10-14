@@ -346,7 +346,8 @@ class AppInstallTests(unittest.TestCase):
         live = {'get_sources': mock.Mock(return_value=[('xkb', 'pl')]), 'set_sources': mock.Mock(),
                 'enabled_extensions': mock.Mock(return_value=[]), 'set_enabled_extensions': mock.Mock(),
                 'old_binding': mock.Mock(return_value=None), 'set_old_binding': mock.Mock(),
-                'engine_pids': mock.Mock(return_value=[]), 'registered': mock.Mock(return_value=True),
+                'engine_pids': mock.Mock(return_value=[]), 'app_pids': mock.Mock(return_value=[]),
+                'registered': mock.Mock(return_value=True),
                 'global_engine': mock.Mock(return_value='gramadrama'), 'ibus_cli': mock.Mock(return_value=None),
                 'stop_legacy_app': mock.Mock(return_value=None), 'remove_legacy_shortcut': mock.Mock(return_value=False),
                 'register_scheme': mock.Mock(return_value=True),
@@ -369,8 +370,11 @@ class AppInstallTests(unittest.TestCase):
         run.assert_called_once_with(['systemctl', '--user', 'restart', I.IBUS_UNIT], check=True)
         for path, text in files.items():
             self.assertEqual(path.read_text(), text)  # install never touches them
-        with mock.patch('os.kill', side_effect=AssertionError('a signal')), contextlib.redirect_stdout(io.StringIO()) as out:
+        I.app_pids.return_value = [4242]  # the app's window is open
+        with mock.patch('os.kill') as kill, contextlib.redirect_stdout(io.StringIO()) as out:
             self.assertEqual(I.uninstall(), 0)
+        kill.assert_called_once_with(4242, 15)
+        self.assertIn('Zamknięto okno GramaDramy.', out.getvalue())
         self.assertFalse((I.LOCAL_BIN / 'chatgpt').exists() or (I.APPLICATIONS / 'slack.desktop').exists())
         self.assertIn('Usunięto poprawkę uruchamiania: %s' % (I.LOCAL_BIN / 'chatgpt'), out.getvalue())
         for path in (I.LOCAL_BIN / 'mine', I.APPLICATIONS / 'com.anthropic.Claude.desktop', I.APPLICATIONS / 'notes.txt'):
@@ -523,3 +527,12 @@ class BrowserExtensionTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AppPidsTests(unittest.TestCase):
+    def test_only_the_installed_app(self):
+        from unittest import mock
+        with mock.patch.object(I.subprocess, 'run', return_value=mock.Mock(stdout='12 34\n')) as run:
+            self.assertEqual(I.app_pids(), [12, 34])
+        self.assertEqual(run.call_args[0][0], ['pgrep', '-f', '^/usr/bin/python3 %s' % I.APP_LAUNCHER])
+
