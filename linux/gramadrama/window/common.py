@@ -25,6 +25,7 @@ STATE_NAMES = {OK: 'Działa', WARNING: 'Uwaga', ERROR: 'Błąd', INFO: 'Informac
 # The fix a check offers (Check.action) and the label of its button.
 ACTIONS = {'enable_panel': 'Włącz', 'keyboard': 'Ustawienia', 'install': 'Kopiuj polecenie', 'log': 'Pokaż log',
            'try_model': 'Sprawdź', 'cancel_model': 'Przerwij', 'install_tools': 'Kopiuj polecenie',
+           'install_dictionaries': 'Kopiuj polecenie',
            'prompts_open': 'Otwórz folder', 'login': 'Zaloguj się…', 'logout': 'Wyloguj',
            'extension_folder': 'Otwórz folder', 'ollama_download': 'Pobierz Ollamę…'}
 # Fixes that are a new install's first step (Pierwsze kroki): their button is the suggested action

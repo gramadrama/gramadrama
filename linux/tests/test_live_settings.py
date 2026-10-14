@@ -110,6 +110,23 @@ class Row:
         self.callbacks.append(callback)
 
 
+class StatusRow(Row):
+    """window.common.StatusRow: a row with a check (the Słowniki row)."""
+
+    def __init__(self, title, window):
+        super().__init__(title=title)
+        self.check = None
+
+    def set_check(self, check):
+        self.check, self.subtitle = check, check.text
+
+    def get_visible(self):
+        return self.visible
+
+    def get_subtitle(self):
+        return self.subtitle
+
+
 class Toggles:
     """A segmented choice (window.common.toggle_group)."""
 
@@ -163,6 +180,10 @@ class LiveSwitchTests(unittest.TestCase):
     def setUp(self):
         self.addCleanup(i18n.set_language, i18n.get_language())
         i18n.set_language('pl')
+        self.missing = []  # the text languages without a dictionary, as checks.missing_dictionaries says
+        patcher = mock.patch.object(writing.checks, 'missing_dictionaries', lambda languages: list(self.missing))
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def build(self, settings):
         owner = SimpleNamespace(write_state=mock.Mock(), toast=mock.Mock(), saved=mock.Mock(), load_settings=lambda: settings,
@@ -171,7 +192,8 @@ class LiveSwitchTests(unittest.TestCase):
         owner.live_switched = lambda field, value: writing.WritingTab.live_switched(owner, field, value)
         with mock.patch.object(writing.Adw, 'SwitchRow', Row), mock.patch.object(writing.Adw, 'ActionRow', Row), \
                 mock.patch.object(writing.Adw, 'PreferencesGroup', PreferencesGroup), \
-                mock.patch.object(writing.Gtk, 'Image', Image), mock.patch.object(writing, 'toggle_group', Toggles):
+                mock.patch.object(writing.Gtk, 'Image', Image), mock.patch.object(writing, 'toggle_group', Toggles), \
+                mock.patch.object(writing, 'StatusRow', StatusRow):
             group = writing.WritingTab.build_live(owner, settings)
         return owner, group
 
@@ -179,9 +201,10 @@ class LiveSwitchTests(unittest.TestCase):
         owner, group = self.build(core.Settings(model='hf.co/google/gemma-4-12B-it-qat-q4_0-gguf:latest'))
         self.assertEqual(owner.checking.get_active_name(), 'standard')
         self.assertEqual(owner.checking_row.subtitle, 'Słownik na tym komputerze, potem LanguageTool i model.')
-        self.assertEqual([row.title for row in group.rows], ['Sprawdzaj podczas pisania', 'Sposób sprawdzania',
+        self.assertEqual([row.title for row in group.rows], ['Sprawdzaj podczas pisania', 'Sposób sprawdzania', 'Słowniki',
                                                              'Gramatyka i interpunkcja', 'Trudniejsze błędy',
                                                              'Podkreślenia pod słowami'])
+        self.assertFalse(owner.dictionaries_row.visible)  # every text language has its dictionary
         self.assertTrue(owner.live_rows['live_languagetool'].visible and owner.live_rows['live_bielik'].visible)
         self.assertEqual(owner.live_rows['live_bielik'].subtitle, 'Gemma-4-12B, po dłuższej przerwie.')
 
@@ -236,6 +259,20 @@ class LiveSwitchTests(unittest.TestCase):
             owner.live_rows['live_check'].set_active(True)
             self.assertTrue(owner.checking.sensitive)
             self.assertEqual(save.call_args_list, [mock.call('live_check', False), mock.call('live_check', True)])
+
+    def test_a_missing_dictionary(self):
+        """A text language without its spelling dictionary (hunspell-pl on an English system): the Słowniki row says so,
+        with the command; not while checking is off or in the model-only way, which uses no dictionary."""
+        self.missing = ['pl']
+        owner, _ = self.build(core.Settings())
+        self.assertTrue(owner.dictionaries_row.visible)
+        self.assertIn('Brak słownika: polski', owner.dictionaries_row.subtitle)
+        self.assertEqual(owner.dictionaries_row.check.action, 'install_dictionaries')
+        owner.checking.set_active_name('model')
+        self.assertFalse(owner.dictionaries_row.visible)
+        owner.checking.set_active_name('standard')
+        owner.live_rows['live_check'].set_active(False)
+        self.assertFalse(owner.dictionaries_row.visible)
 
     def test_english_texts(self):
         i18n.set_language('en')

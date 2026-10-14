@@ -68,7 +68,6 @@
   "Przerwano: zmieniono źródło wprowadzania.": "Cancelled: the input source changed.",
   "Silnik GramaDramy nie działa, więc wtyczka nie ma z kim się łączyć.": "The GramaDrama engine is not running, so the extension cannot connect.",
   "Skopiowano poprawkę do schowka.": "Correction copied to the clipboard.",
-  "Skrót działa, ale GramaDrama nie zna jeszcze pozycji kursora (tak jest po kliknięciu). Naciśnij strzałkę i ponów korektę.": "The shortcut works, but GramaDrama does not know the caret position yet (this can happen after a click). Press an arrow key and try again.",
   "Skrót działa. Model {what}…": "The shortcut works. The model {what}…",
   "Skrót nie dotarł do GramaDramy, choć źródło GramaDrama jest aktywne i żaden skrót GNOME go nie zajmuje. Szczegóły mogą być w logu silnika (menu → Otwórz log silnika).": "The shortcut did not reach GramaDrama, although its input source is active and no GNOME shortcut uses it. Check the engine log (menu → Open engine log).",
   "Skrót nie dotarł do GramaDramy. ": "The shortcut did not reach GramaDrama. ",
@@ -205,5 +204,10 @@
   "miejsce rozpoznawania mowy": "speech recognition location",
   "protokół serwera mowy": "speech server protocol",
   "Wybierz protokół serwera mowy: OpenAI albo whisper.cpp.": "Choose the speech server protocol: OpenAI or whisper.cpp.",
-  "to nie wygląda na gotowy serwer whisper.cpp": "this does not look like a ready whisper.cpp server"
+  "to nie wygląda na gotowy serwer whisper.cpp": "this does not look like a ready whisper.cpp server",
+  "Skrót działa, ale GramaDrama nie zna jeszcze pozycji kursora (tak jest po kliknięciu). Przesuń kursor strzałką (na końcu tekstu: w lewo) i ponów korektę.": "The shortcut works, but GramaDrama does not know the caret position yet (this can happen after a click). Move the caret with an arrow key (at the end of the text: Left) and try again.",
+  "polski": "Polish",
+  "angielski": "English",
+  "niemiecki": "German",
+  "Brak słownika: {value} — pisownia nie jest sprawdzana. Zainstaluj go poleceniem spod przycisku, a sprawdzanie użyje go w ciągu minuty.": "No dictionary: {value} — spelling is not checked. Install it with the command from the button, and checking will use it within a minute."
 }

@@ -12,6 +12,15 @@ LIBRARY = 'libenchant-2.so.2'
 WORD = re.compile(r"%s+(?:['’]%s+)*" % (L.LETTER, L.LETTER))
 
 
+
+def available(tag):
+    """Whether Enchant has a dictionary for tag (e.g. 'pl_PL'), asked anew each time (a package installed meanwhile counts);
+    False without Enchant."""
+    try:
+        return Speller.exists(tag)
+    except LookupError:
+        return False
+
 class Speller:
     """One dictionary, e.g. 'pl_PL'. Raises LookupError when Enchant or the dictionary is missing."""
 
@@ -38,6 +47,12 @@ class Speller:
             cls._broker = lib.enchant_broker_init()
             cls._lib = lib
         return cls._lib
+
+    @classmethod
+    def exists(cls, tag):
+        lib = cls._load()
+        lib.enchant_broker_dict_exists.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        return bool(lib.enchant_broker_dict_exists(cls._broker, tag.encode()))
 
     def __init__(self, tag):
         self.lib = self._load()

@@ -257,6 +257,7 @@ class LogTests(unittest.TestCase):
         state, text = C.try_event(ev('refused', at='hotkey', reason='stale'))
         self.assertEqual(state, WARNING)
         self.assertTrue(text.startswith('Skrót działa, ale'))
+        self.assertIn('na końcu tekstu: w lewo', text)  # Right does not move a caret at the end of the text
         self.assertEqual(C.try_event(ev('refused', at='hotkey', reason='no_text'))[0], ERROR)
         self.assertEqual(C.try_event(ev('start', mode='translate')), (BUSY, 'Skrót działa. Model tłumaczy…'))
         self.assertEqual(C.try_event(ev('result', unchanged=True))[0], OK)
@@ -836,3 +837,47 @@ class BrowserRowTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CleanInstallTests(unittest.TestCase):
+    """What a clean Ubuntu desktop lacks (the VM test of 2026-10-14): an NVIDIA card, a supported browser, a dictionary."""
+
+    def test_nvidia_gpu(self):
+        with tempfile.TemporaryDirectory() as root:
+            def device(name, vendor, kind):
+                folder = Path(root, name)
+                folder.mkdir()
+                (folder / 'vendor').write_text(vendor + '\n')
+                (folder / 'class').write_text(kind + '\n')
+            device('0000:00:02.0', '0x8086', '0x030000')  # an Intel graphics card
+            device('0000:01:00.1', '0x10de', '0x040300')  # the HDMI audio of an NVIDIA card is not the card
+            self.assertFalse(C.nvidia_gpu(root))
+            device('0000:01:00.0', '0x10de', '0x030000')
+            self.assertTrue(C.nvidia_gpu(root))
+        self.assertTrue(C.nvidia_gpu('/nonexistent-pci'))  # unknown: the local model is not hidden
+
+    def test_dictation_without_nvidia_offers_the_server(self):
+        check = C.dictation_check(True, False, [], gpu=False)
+        self.assertEqual((check.state, check.action), (WARNING, None))
+        self.assertIn('wymaga karty NVIDIA', check.text)
+        self.assertIn('w zakładce Usługi', check.text)
+        self.assertIn('„Serwer” powyżej', C.dictation_check(True, False, [], services=True, gpu=False).text)
+        self.assertEqual(C.dictation_check(True, False, [], gpu=True).action, 'install_tools')
+        self.assertEqual(C.dictation_check(True, True, [], gpu=False).state, OK)  # tools already there: they run
+
+    def test_browser_row_without_a_supported_browser(self):
+        check = C.browser_check({'browsers': {}}, [], '/x', present=[])
+        self.assertEqual((check.state, check.action), (INFO, None))
+        self.assertIn('W Firefoksie', check.text)
+        self.assertEqual(C.browser_check({'browsers': {}}, [], '/x', present=['Google Chrome']).state, WARNING)
+        self.assertEqual(C.browser_check({'browsers': {}}, [], '/x').state, WARNING)  # not known: as before
+
+    def test_missing_dictionaries(self):
+        have = {'en_US'}
+        self.assertEqual(C.missing_dictionaries(('pl', 'en', 'pl', 'xx'), lambda tag: tag in have), ['pl'])
+        self.assertEqual(C.missing_dictionaries(('en',), lambda tag: tag in have), [])
+        self.assertIsNone(C.dictionary_check([]))
+        check = C.dictionary_check(['pl', 'de'])
+        self.assertEqual((check.state, check.action), (WARNING, 'install_dictionaries'))
+        self.assertIn('polski, niemiecki', check.text)
+        self.assertEqual(C.dictionary_command(['pl', 'de']), 'sudo apt install hunspell-pl hunspell-de-de')

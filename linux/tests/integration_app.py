@@ -1608,6 +1608,10 @@ def t_browser(rig):
     s = rig.s
     extension = os.path.join(os.path.dirname(LINUX), 'browser', 'extension')
     version = json.load(open(os.path.join(extension, 'manifest.json')))['version']
+    configs = ('google-chrome', 'chromium', 'microsoft-edge', 'BraveSoftware/Brave-Browser', 'vivaldi')
+    if not any(os.path.isdir(os.path.join(s.env['XDG_CONFIG_HOME'], c)) for c in configs):
+        rig.refresh_quietly()  # no browser the extension supports (a fresh Ubuntu has Firefox only): nothing to fix
+        rig.wait_row('browser', 'info', 'Wtyczka działa w Chrome, Chromium, Edge, Brave i Vivaldi')
     os.makedirs(os.path.join(s.env['XDG_CONFIG_HOME'], 'google-chrome'), exist_ok=True)  # a Chrome that was run once
     chrome = None
     try:

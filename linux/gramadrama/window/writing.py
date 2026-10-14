@@ -8,7 +8,7 @@ from gi.repository import Adw, GLib, Gtk
 from .. import checks, core, dictionary
 from ..dictation import parse_vocabulary
 from ..i18n import tr
-from .common import show_text, toggle_group
+from .common import StatusRow, show_text, toggle_group
 
 TEXT_LANGUAGES = (('pl', 'Polski'), ('en', 'Angielski'), ('de', 'Niemiecki'))
 # The ways of checking while typing (Settings.live_model_only), as the Mac's "Sposób sprawdzania".
@@ -120,6 +120,10 @@ class WritingTab:
             'live_model_only', self.checking.get_active_name() == 'model'))
         self.checking_row.add_suffix(self.checking)
         group.add(self.checking_row)
+        # Only when a text language has no spelling dictionary on this computer (checks.dictionary_check)
+        self.dictionaries_row = StatusRow(tr('Słowniki'), self)
+        self.dictionaries_row.set_visible(False)
+        group.add(self.dictionaries_row)
         for field, title, _subtitle in LIVE_LAYERS:
             row = Adw.SwitchRow(title=tr(title), use_markup=False, active=getattr(settings, field) is not False)
             row.connect('notify::active', lambda row, _p, field=field: self.updating_live or self.live_switched(field, row.get_active()))
@@ -148,6 +152,10 @@ class WritingTab:
                                        if model_only else tr('Słownik na tym komputerze, potem LanguageTool i model.'))
         self.checking_icon.set_from_icon_name('applications-science-symbolic' if model_only else 'view-list-bullet-symbolic')
         self.checking.set_sensitive(on)
+        dictionaries = checks.dictionary_check(checks.missing_dictionaries(settings.languages)) if on and not model_only else None
+        self.dictionaries_row.set_visible(dictionaries is not None)
+        if dictionaries is not None:
+            self.dictionaries_row.set_check(dictionaries)
         for field, _title, subtitle in LIVE_LAYERS:
             row = self.live_rows[field]
             row.set_visible(not model_only)
@@ -170,6 +178,7 @@ class WritingTab:
     def live_state(self):
         """Tests: the switches and the way of checking as shown."""
         return {'checking': self.checking.get_active_name(), 'checking_sensitive': self.checking.get_sensitive(),
+                'dictionaries': self.dictionaries_row.get_subtitle() if self.dictionaries_row.get_visible() else None,
                 'rows': {field: {'active': row.get_active(), 'visible': row.get_visible(), 'sensitive': row.get_sensitive(),
                                  'subtitle': row.get_subtitle()} for field, row in self.live_rows.items()}}
 

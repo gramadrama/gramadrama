@@ -6,7 +6,7 @@ the services connect now (core.route: directly, or through the gateway away from
 they use. The model has a folded "Zaawansowane" part: the model's thinking and the prompt files."""
 import threading
 
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
 from .. import checks, core, oidc
 from ..checks import BUSY, ERROR, INFO, OK, Check
@@ -29,6 +29,30 @@ SPEECH_FIELDS = ('whisper_backend', 'whisper_url', 'whisper_api')
 def size(value):
     return GLib.format_size(value)
 
+
+
+def whole_names():
+    """The list of a choice whose names are long and alike (model names: "gemma-4-12B-it-qat-q4_0" and the like): each
+    name whole, where the default list cuts them to the same beginning, with the mark of the chosen one."""
+    def mark(item, _pspec=None):
+        if item.get_child() is not None:
+            item.get_child().get_last_child().set_opacity(1 if item.get_selected() else 0)
+
+    def setup(_factory, item):
+        box = Gtk.Box(spacing=6)
+        box.append(Gtk.Label(xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.NONE))
+        box.append(Gtk.Image(icon_name='object-select-symbolic'))
+        item.set_child(box)
+        item.connect('notify::selected', mark)
+
+    def bind(_factory, item):
+        item.get_child().get_first_child().set_label(item.get_item().get_string())
+        mark(item)
+
+    factory = Gtk.SignalListItemFactory()
+    factory.connect('setup', setup)
+    factory.connect('bind', bind)
+    return factory
 
 class ServicesTab:
     """The Usługi tab of the window (a mixin of window.main.Window)."""
@@ -70,6 +94,7 @@ class ServicesTab:
         self.model_row.add_prefix(self.model_status)
         self.model_list = Gtk.StringList()
         self.model_row.set_model(self.model_list)
+        self.model_row.set_list_factory(whole_names())
         self.model_row.connect('notify::selected', self.model_selected)
         self.llm_model_row = Adw.EntryRow(title=tr('Model (nazwa na serwerze)'), show_apply_button=True, use_markup=False,
                                           text=settings.model)

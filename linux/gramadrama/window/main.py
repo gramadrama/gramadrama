@@ -306,6 +306,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
     def tab_checks(self):
         """The checks of the rows of each tab that can say something is wrong."""
         writing = [Check(ERROR, '')] if self.settings_problems.keys() & {'primary_language', 'secondary_language'} else []
+        writing += [self.dictionaries_row.check] if self.dictionaries_row.get_visible() else []
         shortcut = [Check(ERROR, '')] if self.settings_problems.keys() & set(shortcuts.DEFAULTS) else []
         speech = [self.whisper_status_row.check] if self.whisper_status_row.get_visible() else []
         return {'start': [self.hotkey_row.check, self.source_row.check, self.engine_row.check, self.panel_row.check] + shortcut,
@@ -473,6 +474,10 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
                 self.toast(tr('Nie znaleziono Ustawień GNOME (gnome-control-center).'))
         elif action in ('install', 'install_tools'):
             command = checks.install_command(self.source, 'tools' if action == 'install_tools' else 'install')
+            self.get_clipboard().set(command)
+            self.toast(tr('Skopiowano: {value} — wklej w terminalu.', value=command))
+        elif action == 'install_dictionaries':
+            command = checks.dictionary_command(checks.missing_dictionaries(self.load_settings().languages))
             self.get_clipboard().set(command)
             self.toast(tr('Skopiowano: {value} — wklej w terminalu.', value=command))
         elif action == 'log':

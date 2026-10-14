@@ -544,3 +544,31 @@ class LanguageProfileTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DictionaryRetryTests(unittest.TestCase):
+    """A dictionary installed after the service started (hunspell-pl on an English system) is opened later, no restart."""
+
+    def test_a_dictionary_installed_later(self):
+        installed = {'en_US'}
+
+        class Speller:
+            def __init__(self, tag):
+                if tag not in installed:
+                    raise LookupError(tag)
+                self.tag = tag
+        with mock.patch('gramadrama.spell.Speller', Speller):
+            checker = S.Checker()
+            self.assertIsNone(checker.pl)
+            checker.retry_missing(now=100.0)
+            self.assertIsNone(checker.pl)
+            installed.add('pl_PL')
+            checker.retry_missing(now=100.0 + S.DICTIONARY_RETRY / 2)  # not so often
+            self.assertIsNone(checker.pl)
+            checker.retry_missing(now=100.0 + S.DICTIONARY_RETRY + 1)
+            self.assertEqual(checker.pl.tag, 'pl_PL')
+            self.assertEqual(checker.en.tag, 'en_US')
+        given = S.Checker({tag: None for tag in core.DICTIONARY_CODES.values()})
+        given.retry_missing(now=10 ** 9)  # spellers given by a test stay as they are
+        self.assertIsNone(given.pl)
+

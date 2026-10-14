@@ -351,7 +351,8 @@ class StartTab:
             return False
         source = checks.source_check(sources, result['current'])
         self.browser_folder = result.get('browser_folder', '')
-        self.browser_row.set_check(checks.browser_check(result['status'], result.get('browser_hosts', []), self.browser_folder))
+        self.browser_row.set_check(checks.browser_check(result['status'], result.get('browser_hosts', []), self.browser_folder,
+                                                        result.get('browsers_present')))
         self.source_state = source
         self.source, self.install = result['source'], result['install']
         self.version_row.set_subtitle(checks.app_version_text(self.install, APP_DIR))

@@ -80,5 +80,7 @@
   "mowa": "speech",
   "Ollama nie odpowiada ({error}).": "Ollama does not answer ({error}).",
   "Pobieranie przerwane — spróbuj jeszcze raz.": "The pull stopped — try again.",
-  "Brak modelu mowy (ok. 4 GB) — zainstaluj go albo wybierz „Serwer” powyżej.": "No speech model (about 4 GB) — install it or choose “Server” above."
+  "Brak modelu mowy (ok. 4 GB) — zainstaluj go albo wybierz „Serwer” powyżej.": "No speech model (about 4 GB) — install it or choose “Server” above.",
+  "Lokalny Whisper wymaga karty NVIDIA, a tu jej nie ma — wybierz „Serwer” powyżej.": "The local Whisper needs an NVIDIA graphics card, and there is none here — choose “Server” above.",
+  "Lokalny Whisper wymaga karty NVIDIA, a tu jej nie ma — wybierz serwer mowy w zakładce Usługi.": "The local Whisper needs an NVIDIA graphics card, and there is none here — choose a speech server in the Services tab."
 }

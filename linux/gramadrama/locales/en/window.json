@@ -168,5 +168,7 @@
   "W polu Wypróbuj poniżej: kursor strzałką i {value}.": "In the Try it field below: move the cursor with an arrow key and press {value}.",
   "Działają: źródło wprowadzania, silnik IBus i panel przy kursorze.": "Working: the input source, the IBus engine and the panel at the cursor.",
   "Dokończ to w części „Integracja z GNOME” poniżej.": "Finish this under “GNOME integration” below.",
-  "Jeszcze jeden krok: model językowy": "One more step: the language model"
+  "Jeszcze jeden krok: model językowy": "One more step: the language model",
+  "Wtyczka działa w Chrome, Chromium, Edge, Brave i Vivaldi — tu żadnej z nich nie ma. W Firefoksie skrót korekty działa bez niej, jak w innych aplikacjach.": "The extension works in Chrome, Chromium, Edge, Brave and Vivaldi — none of them is here. In Firefox the correction shortcut works without it, as in other apps.",
+  "Słowniki": "Dictionaries"
 }

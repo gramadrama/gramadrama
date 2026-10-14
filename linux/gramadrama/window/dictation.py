@@ -86,12 +86,15 @@ class DictationTab:
         installed = paths.speech_python().exists() and (paths.whisper_model() / 'model.bin').exists()
         server = core.speech_server(settings)
         on = self.dictation_switch.get_active()
-        check = checks.dictation_check(on, installed, self.events, server, settings.whisper_backend)
+        if getattr(self, 'nvidia', None) is None:
+            self.nvidia = checks.nvidia_gpu()  # the hardware does not change while the window is open
+        check = checks.dictation_check(on, installed, self.events, server, settings.whisper_backend, gpu=self.nvidia)
         if on and settings.whisper_uses_server and server and self.whisper_status_row.check.state in (BUSY, ERROR, WARNING):
             check = self.whisper_status_row.check
         # The fixes (the speech tools, the login) are offered in Usługi, which the row's button opens.
         self.dictation_row.set_check(Check(check.state, check.text))
-        self.whisper_local_row.set_check(checks.dictation_check(True, installed, self.events, '', 'local', services=True))
+        self.whisper_local_row.set_check(checks.dictation_check(True, installed, self.events, '', 'local', services=True,
+                                                                gpu=self.nvidia))
         for row in (self.dictation_key_row, self.language_row, self.cleanup_row):
             row.set_sensitive(on)
         self.write_state()

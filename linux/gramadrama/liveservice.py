@@ -48,6 +48,7 @@ BACKOFF = 60.0  # after a failed Bielik check
 CACHE = 20  # Bielik's answers, first in first out
 MARKS_INTERVAL = 0.4  # macOS re-reads the field this often: the underlines follow scrolling
 SETTINGS_SECONDS = 2.0
+DICTIONARY_RETRY = 30.0  # seconds between tries of a missing dictionary (Layers.retry_missing)
 _write = threading.Lock()
 
 
@@ -120,6 +121,7 @@ class Checker:
     def __init__(self, spellers=None):
         from . import spell
         self.spell = spell
+        self.retry_at = 0 if spellers is None else None  # a missing dictionary is tried again (None: given by a test)
         if spellers is None:
             spellers = {}
             for tag in core.DICTIONARY_CODES.values():
@@ -143,6 +145,7 @@ class Checker:
         list only when it opens the dictionary, so a list that someone else changed (a word removed in Pisanie, one added in
         a GNOME app) opens it again, in about 40 ms. The old one is not freed: a layer's thread may still be using it."""
         self.known = dictionary.Known(dictionary.user_words(current))
+        self.retry_missing()
         for code in core.SUPPORTED_LANGUAGES:
             speller = self.speller(code)
             if not isinstance(speller, self.spell.Speller):
@@ -155,6 +158,22 @@ class Checker:
             except LookupError:
                 continue
             self.lists[speller.tag] = signature
+            self.suggestions = {}
+
+    def retry_missing(self, now=None):
+        """A dictionary installed after the service started (checks.dictionary_check says how) is opened at most a
+        minute later, without a restart."""
+        now = time.monotonic() if now is None else now
+        if self.retry_at is None or now < self.retry_at:
+            return
+        self.retry_at = now + DICTIONARY_RETRY
+        for code in core.SUPPORTED_LANGUAGES:
+            if self.speller(code) is not None:
+                continue
+            try:
+                setattr(self, code, self.spell.Speller(core.DICTIONARY_CODES[code]))
+            except LookupError:
+                continue
             self.suggestions = {}
 
     def learn(self, word, language):

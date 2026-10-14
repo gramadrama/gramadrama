@@ -177,11 +177,28 @@ def install_command(source, command='install'):
     return '/usr/bin/python3 %s %s' % (shlex.quote(str(Path(source) / 'install_engine.py')), command)
 
 
-def dictation_check(enabled, installed, events, server='', backend='auto', services=False):
+def nvidia_gpu(root='/sys/bus/pci/devices'):
+    """Whether this computer has an NVIDIA graphics card (a PCI display controller of vendor 0x10de), with its driver or
+    not: the local Whisper needs one (docs/dictation.md). Unknown (no PCI list) counts as yes, so nothing is hidden."""
+    try:
+        devices = list(Path(root).iterdir())
+    except OSError:
+        return True
+    for device in devices:
+        try:
+            if ((device / 'vendor').read_text().strip() == '0x10de'
+                    and (device / 'class').read_text().strip().startswith('0x03')):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def dictation_check(enabled, installed, events, server='', backend='auto', services=False, gpu=True):
     """The Dyktowanie row (docs/dictation.md): off, a speech server (the recording goes there, which it says; server is its
     address, core.speech_server), the speech tools missing, or what the engine's log says about the speech model (its
     last 'speech_model' event; there is no text in it). services: the row of the Usługi tab itself, where the choice
-    of a server is right above it."""
+    of a server is right above it. gpu: nvidia_gpu(); without one the speech tools are not offered, a server is."""
     if not enabled:
         return Check(INFO, tr('Wyłączone — prawy Ctrl działa jak zwykle.'))
     if backend not in ('auto', 'local', 'server'):
@@ -191,6 +208,9 @@ def dictation_check(enabled, installed, events, server='', backend='auto', servi
     if backend != 'local' and server.strip():
         host = urllib.parse.urlsplit(server.strip()).netloc or server.strip()
         return Check(OK, tr('Rozpoznaje serwer mowy {host}.', host=host))
+    if not installed and not gpu:
+        return Check(WARNING, tr('Lokalny Whisper wymaga karty NVIDIA, a tu jej nie ma — wybierz „Serwer” powyżej.') if services
+                     else tr('Lokalny Whisper wymaga karty NVIDIA, a tu jej nie ma — wybierz serwer mowy w zakładce Usługi.'))
     if not installed:
         return Check(WARNING, tr('Brak modelu mowy (ok. 4 GB) — zainstaluj go albo wybierz „Serwer” powyżej.') if services
                      else tr('Brak modelu mowy (ok. 4 GB) — zainstaluj go albo wybierz serwer mowy w zakładce Usługi.'),
@@ -596,7 +616,7 @@ def try_event(event):
     if ev == 'refused':
         reason = event.get('reason')
         if event.get('at') == 'hotkey' and reason == 'stale':
-            return WARNING, (tr('Skrót działa, ale GramaDrama nie zna jeszcze pozycji kursora (tak jest po kliknięciu). Naciśnij strzałkę i ponów korektę.'))
+            return WARNING, (tr('Skrót działa, ale GramaDrama nie zna jeszcze pozycji kursora (tak jest po kliknięciu). Przesuń kursor strzałką (na końcu tekstu: w lewo) i ponów korektę.'))
         return (WARNING if reason in EXPECTED_REFUSALS else ERROR), fallback_ui.message(reason)
     if ev == 'start':
         what = tr('tłumaczy') if event.get('mode') == 'translate' else tr('poprawia tekst')
@@ -1032,10 +1052,45 @@ def route_check(settings, routes):
     return Check(OK, tr('Przez bramę: {value}; bezpośrednio: {value2}.', value=names['remote'], value2=names['home']))
 
 
-def browser_check(status, registered, folder):
+# The spelling dictionaries of the text languages (Hunspell, through Enchant) and their Ubuntu packages; a fresh English
+# system has the English one only.
+DICTIONARIES = {'pl': ('polski', 'hunspell-pl'), 'en': ('angielski', 'hunspell-en-us'), 'de': ('niemiecki', 'hunspell-de-de')}
+
+
+def missing_dictionaries(languages, available=None):
+    """The text languages (codes) whose spelling dictionary Enchant does not find: checking while typing does not check their
+    spelling (the live service tries again every minute, liveservice.Layers.refresh). available: spell.available."""
+    if available is None:
+        from .spell import available
+    return [code for code in dict.fromkeys(languages) if code in DICTIONARIES
+            and not available(core.DICTIONARY_CODES[code])]
+
+
+def dictionary_command(missing):
+    return 'sudo apt install ' + ' '.join(DICTIONARIES[code][1] for code in missing)
+
+
+def dictionary_check(missing):
+    """The Słowniki row of checking while typing: None (no row) while every text language has its dictionary."""
+    if not missing:
+        return None
+    names = ', '.join(tr(DICTIONARIES[code][0]) for code in missing)
+    return Check(WARNING, tr('Brak słownika: {value} — pisownia nie jest sprawdzana. Zainstaluj go poleceniem spod przycisku, '
+                             'a sprawdzanie użyje go w ciągu minuty.', value=names), 'install_dictionaries')
+
+
+def browsers_present():
+    """The browsers of browserhost.BROWSER_CONFIGS that have a configuration directory (were run once), as the installer
+    registers the host only there."""
+    from . import browserhost
+    return [name for name, relative in browserhost.BROWSER_CONFIGS if (config_home() / relative).is_dir()]
+
+
+def browser_check(status, registered, folder, present=None):
     """The row "Wtyczka" of the Przeglądarka group (the Mac's browserSection): the extensions connected to the engine (status is
     its Status JSON, None when it does not answer), else what is missing: a registered host, the extension loaded. folder:
-    where the extension to load is."""
+    where the extension to load is. present: browsers_present(); with none of them (Ubuntu comes with Firefox only) there
+    is nothing to fix, so the row only says where the extension works."""
     from . import browserhost
     connected = (status or {}).get('browsers') or {}
     if connected:
@@ -1044,6 +1099,9 @@ def browser_check(status, registered, folder):
         return Check(OK, tr('Połączona: ') + names + tr('. Stronę wyłączysz ikoną wtyczki.'))
     if status is None:
         return Check(INFO, tr('Silnik GramaDramy nie działa, więc wtyczka nie ma z kim się łączyć.'))
+    if not registered and present is not None and not present:
+        return Check(INFO, tr('Wtyczka działa w Chrome, Chromium, Edge, Brave i Vivaldi — tu żadnej z nich nie ma. W Firefoksie '
+                              'skrót korekty działa bez niej, jak w innych aplikacjach.'))
     if not registered:
         return Check(WARNING, tr('Nie połączona — uruchom instalator, a potem przeglądarkę (Chrome, Chromium, Edge albo Brave).'), 'install')
     return Check(INFO, tr('Nie połączona — przeglądarka zamknięta albo wtyczka niewgrana (chrome://extensions → Tryb dewelopera → „Załaduj rozpakowane”).'), 'extension_folder')
@@ -1333,5 +1391,6 @@ def probe_system(conn, app_dir):
         'installed': (engine_dir() / 'gramadrama-engine').exists(), 'component': component_state(),
         'install': install, 'source': source,
         'differs': bool(source) and copy_differs(source),
-        'browser_hosts': registered_browser_hosts(), 'browser_folder': str(browser_extension_dir(app_dir)),
+        'browser_hosts': registered_browser_hosts(), 'browsers_present': browsers_present(),
+        'browser_folder': str(browser_extension_dir(app_dir)),
     }
