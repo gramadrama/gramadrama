@@ -769,9 +769,10 @@ def setup():
     if not register_scheme(package=True):
         print('Uwaga: nie udało się zarejestrować adresu gramadrama:// (powrót z logowania do serwera); '
               'przy logowaniu wklej adres, na który wróciła przeglądarka.')
-    # ibus-daemon read its descriptions before the package was installed: it does not know the engine, or it starts
-    # the removed copy's
-    if replaced or not registered(engine):
+    # ibus-daemon reads the descriptions when it starts. Started before the package was installed, it does not know the
+    # engine, or it starts a copy from the installer by the same name (removed here, or uninstalled before without
+    # restarting IBus): nothing to tell from its engine list. Only the package's engine already running proves it right.
+    if replaced or not registered(engine) or not package_engine_pids():
         print('Uruchamiam ponownie IBus, żeby wczytał GramaDramę (pisanie zatrzyma się na ~1 s)…')
         subprocess.run(['systemctl', '--user', 'restart', IBUS_UNIT], check=True)
         if not wait(lambda: registered(engine), 15):

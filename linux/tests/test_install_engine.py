@@ -647,6 +647,13 @@ class AccountTests(unittest.TestCase):
         self.assertIn('kopię GramaDramy z instalatora', self.out.getvalue())
         self.assertIn('po wylogowaniu', self.out.getvalue())  # GNOME loads the package's panel at the next login
 
+    def test_setup_restarts_an_ibus_that_starts_an_uninstalled_copy(self):
+        """The copy from the installer was uninstalled before, and IBus was not restarted: it knows an engine of the
+        name, whose command starts the removed copy. The package's engine not running is all that tells."""
+        self.live['package_engine_pids'].return_value = []
+        self.assertEqual(I.setup(), 0)
+        self.run.assert_called_once_with(['systemctl', '--user', 'restart', I.IBUS_UNIT], check=True)
+
     def test_setup_without_a_copy_removes_nothing(self):
         self.assertEqual(I.setup(), 0)
         self.live['uninstall_app'].assert_not_called()
