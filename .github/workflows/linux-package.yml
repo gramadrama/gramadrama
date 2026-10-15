@@ -1,0 +1,80 @@
+name: Linux package
+
+# Builds the Debian package (linux/build_deb.py) on every change, checks that apt resolves its dependencies on the
+# target system, and for a version tag (v<VERSION>, made by scripts/release.sh) attaches it to that tag's release.
+# A release this workflow has to create stays a draft: a person publishes it.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the version of a build counts the commits
+      - name: Build the package
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            python3 linux/build_deb.py --release
+          else
+            python3 linux/build_deb.py
+          fi
+      - name: Show its control fields and files
+        run: |
+          dpkg-deb --info build/gramadrama_*_all.deb
+          dpkg-deb --contents build/gramadrama_*_all.deb
+      - name: Write the checksum
+        working-directory: build
+        run: sha256sum gramadrama_*_all.deb > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gramadrama-deb
+          path: |
+            build/gramadrama_*_all.deb
+            build/SHA256SUMS
+          if-no-files-found: error
+
+  dependencies:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container: ubuntu:26.04  # the target system; the runner itself is older
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gramadrama-deb
+      - name: Resolve the dependencies with apt (simulated, nothing is installed)
+        run: |
+          apt-get update
+          apt-get install --simulate ./gramadrama_*_all.deb
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [build, dependencies]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gramadrama-deb
+      - name: Attach the package to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 ||
+            gh release create "$TAG" --draft --verify-tag --notes-from-tag --title "GramaDrama ${TAG#v}"
+          gh release upload "$TAG" gramadrama_*_all.deb SHA256SUMS --clobber

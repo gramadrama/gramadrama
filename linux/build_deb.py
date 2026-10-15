@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """Build the Debian package of GramaDrama for Linux from this repository (Architecture: all, nothing to compile).
 
-    /usr/bin/python3 linux/build_deb.py [--out DIR]     → DIR/gramadrama_<version>_all.deb (default: build/)
+    /usr/bin/python3 linux/build_deb.py [--out DIR] [--release]   → DIR/gramadrama_<version>_all.deb (default: build/)
 
 The package installs what install_engine.py copies into a user's data directory into the system instead:
 /usr/lib/gramadrama (the engine, the app, the browser host and install_engine.py itself, for an account's setup and
@@ -120,13 +120,20 @@ def git(*args):
     return out.stdout.strip() if out.returncode == 0 else ''
 
 
-def version():
+def version(release=False):
     """(package version, VERSION, commit, dirty). The package version is VERSION with the number of commits and the commit,
     so a later build of the same VERSION sorts higher for apt: 0.5.2+git38.3cb73dc; +dirty while linux/ or browser/ have
-    uncommitted changes."""
+    uncommitted changes. release: VERSION alone, only from a clean tree whose commit has the tag v<VERSION>
+    (scripts/release.sh makes it), so a release and its package always name the same code."""
     base = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
     commit, count = git('rev-parse', '--short', 'HEAD'), git('rev-list', '--count', 'HEAD')
     dirty = bool(git('status', '--porcelain', '--untracked-files=no', '--', 'linux', 'browser', 'VERSION'))
+    if release:
+        if dirty:
+            sys.exit('Wydanie buduje się z czystego drzewa: linux/ albo browser/ mają niezapisane zmiany.')
+        if 'v' + base not in git('tag', '--points-at', 'HEAD').split():
+            sys.exit('Commit nie ma tagu v%s: wydanie buduje się z otagowanego commitu (scripts/release.sh).' % base)
+        return base, base, commit, False
     full = base + ('+git%s.%s' % (count, commit) if commit else '') + ('+dirty' if dirty else '')
     return full, base, commit, dirty
 
@@ -200,8 +207,8 @@ def control(root, full_version):
             'Description: %s\n') % (PACKAGE, full_version, MAINTAINER, size, DEPENDS, RECOMMENDS, SUGGESTS, DESCRIPTION)
 
 
-def build(out):
-    full_version, base, commit, dirty = version()
+def build(out, release=False):
+    full_version, base, commit, dirty = version(release)
     work = out / 'deb'
     if work.exists():
         shutil.rmtree(work)
@@ -223,11 +230,13 @@ def build(out):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--out', type=Path, default=ROOT / 'build', help='where the package goes (default: build/)')
+    parser.add_argument('--release', action='store_true',
+                        help='the version without the commit; only on the commit tagged v<VERSION>, with no changes')
     args = parser.parse_args()
     if not shutil.which('dpkg-deb'):
         sys.exit('Brak dpkg-deb (pakiet dpkg).')
     args.out.mkdir(parents=True, exist_ok=True)
-    print(build(args.out.resolve()))
+    print(build(args.out.resolve(), args.release))
     return 0
 
 

@@ -206,6 +206,25 @@ class VersionTests(unittest.TestCase):
         self.assertEqual(dirty[0], base + '+git38.3cb73dc+dirty')
         self.assertEqual(self.version_with({})[0], base)
 
+    def test_a_release_is_its_tagged_version_alone(self):
+        base = (B.ROOT / 'VERSION').read_text(encoding='utf-8').strip()
+        tagged = {'rev-parse': '3cb73dc', 'rev-list': '38', 'tag': 'latest v%s' % base}
+        with mock.patch.object(B, 'git', lambda *args: tagged.get(args[0], '')):
+            self.assertEqual(B.version(release=True), (base, base, '3cb73dc', False))
+        for answers, why in (({'rev-parse': '3cb73dc', 'tag': 'v0.0.1'}, 'tagu v%s' % base),
+                             (dict(tagged, status=' M linux/x.py'), 'niezapisane zmiany')):
+            with mock.patch.object(B, 'git', lambda *args, answers=answers: answers.get(args[0], '')):
+                with self.assertRaises(SystemExit) as stopped:
+                    B.version(release=True)
+            self.assertIn(why, str(stopped.exception))
+
+    @unittest.skipUnless(shutil.which('dpkg'), 'needs dpkg')
+    def test_a_release_sorts_above_the_builds_before_it_and_below_the_builds_after_it(self):
+        def newer(a, b):
+            return subprocess.run(['dpkg', '--compare-versions', a, 'gt', b]).returncode == 0
+        self.assertTrue(newer('0.6.0', '0.5.2+git41.1197f2c'))
+        self.assertTrue(newer('0.6.0+git45.0aaaaaa', '0.6.0'))
+
     @unittest.skipUnless(shutil.which('dpkg'), 'needs dpkg')
     def test_a_later_commit_sorts_higher_whatever_its_hash(self):
         later = subprocess.run(['dpkg', '--compare-versions', '0.5.2+git39.0000000', 'gt', '0.5.2+git38.fffffff'])
