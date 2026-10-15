@@ -10,7 +10,7 @@ The project lets you choose your own services and change the prompts; a ready-ma
 | G1. Rights and licence | GPL-3.0-or-later in `LICENSE`, dependencies in `THIRD_PARTY.md` | keep the list current when dependencies change |
 | G2. Repository privacy | public since 2026-10-14; clean history since 2026-10-12 (a reviewed export, images checked by eye); checks in CI and in local hooks | keep reviewing every new image, archive and attachment by eye |
 | G3. Independent backends | **deliberately postponed** | separate validation of at least three backends; does not block the current clean-up work |
-| G4. Self-service installation | installer and guide available | clean Ubuntu, test by someone outside the project, installation/update/removal |
+| G4. Self-service installation | a `.deb` package (built in CI, attached to a release from a version tag), the installer for development, the guide; both tested on a clean Ubuntu 26.04 in a virtual machine (2026-10-14/15) | test by someone outside the project, installation/update/removal |
 | G5. Editable prompts | **implemented on Linux and macOS** (the same files; variant benchmark on Linux only) | maintain the tests and documentation |
 | G6. Documentation and collaboration | documentation in English, licence list, changelog | instructions checked by a new user |
 | G7. Release quality | tests and CI running remotely (confirmed 2026-10-07) | two-week trial of a release candidate |
@@ -48,6 +48,10 @@ A person on a clean Ubuntu is to make a first correction using only the README. 
 an update, logging in again after a change to the GNOME extension, no server, and uninstalling.
 It must be described what uninstalling removes and which settings and downloaded models remain.
 We do not declare this trial finished without a recorded result and feedback from someone outside the project.
+
+The trial uses the package. Until the first release it is built from the repository (`scripts/build-deb.sh`);
+from a version tag on, the [Linux package workflow](../.github/workflows/linux-package.yml) attaches it to a draft
+release, which a person checks and publishes.
 
 ## G5. Prompts
 

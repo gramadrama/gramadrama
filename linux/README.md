@@ -12,7 +12,47 @@ the primary text language is Polish, and in English with any other primary langu
 
 The target environment is **Ubuntu 26.04, GNOME 50, Wayland**. The extension declares GNOME 50.
 Other GNOME versions, distributions and desktop environments have no confirmed support.
-A trial installation on a clean system with someone outside the project remains a condition of the first release.
+An installation by someone outside the project remains a condition of the first release.
+
+There are two ways to install, and they exclude each other:
+
+- **The package** (`.deb`) installs GramaDrama for the whole computer, and each account switches it on for itself.
+  Use it to use GramaDrama.
+- **The installer** in the repository copies everything into your own account. Use it to work on the code.
+
+### The package
+
+There is no published release yet, so build the package from the repository. A fresh Ubuntu desktop lacks only
+`git` for that:
+
+```bash
+sudo apt install git
+git clone https://github.com/gramadrama/gramadrama.git
+cd gramadrama
+scripts/build-deb.sh
+sudo apt install ./build/gramadrama_*_all.deb
+```
+
+apt installs what GramaDrama needs (Python 3, PyGObject, IBus, GTK 4, libadwaita, AT-SPI and Enchant 2), and with
+them the Polish and English spelling dictionaries and `pw-record` from PipeWire for dictation. For German add
+`hunspell-de-de`. The version of a build is `VERSION` with the number of commits and the commit, e.g.
+`0.5.2+git41.1197f2c`, so a later build replaces an earlier one.
+
+Start **GramaDrama** from your list of applications and click **Switch on for this account**
+(*Włącz na tym koncie*) in **Home → First steps** (*Start → Pierwsze kroki*). It makes GramaDrama the first input
+source, keeping your keyboard layout as a fallback, enables the panel, registers the browser hosts and the
+`gramadrama://` address. No `sudo` is needed. The input source follows the account's first keyboard layout:
+**Polski (GramaDrama)**, **English (GramaDrama)** (the US layout) or **Deutsch (GramaDrama)**; with any other
+layout it is the English one. Every account on the computer switches GramaDrama on for itself: apt cannot reach
+the accounts. Then log out and log in again (see [after installing](#after-installing)).
+
+If you installed GramaDrama with the installer before, uninstall that copy first, as described
+[below](#updating-and-uninstalling). While it is still installed, apt stops before changing anything and prints
+the command. Ubuntu may later report that stop as a problem with a system program; close the report.
+A copy left in another account is replaced when that account switches GramaDrama on, and the app says when it
+finds one.
+
+### The installer (development)
 
 You need Python 3, PyGObject, IBus, GTK 4 and libadwaita. On Ubuntu these are the packages
 `python3-gi`, `gir1.2-ibus-1.0`, `gir1.2-gtk-4.0` and `gir1.2-adw-1`.
@@ -41,6 +81,7 @@ On the first installation the program prints one `sudo install …` command, whi
 the engine description in `/usr/share/ibus/component`. Run it and repeat the installation.
 The installer copies the engine and the app to `~/.local/share/gramadrama-engine`, adds the GNOME panel,
 registers the app and sets the GramaDrama input source, keeping your usual layout as a fallback.
+It refuses while the package is installed.
 
 A new installation uses the Polish layout. To choose the US or the German one, add
 `--layout us` or `--layout de` respectively, e.g. `/usr/bin/python3 linux/install_engine.py install --layout de`.
@@ -48,6 +89,8 @@ The sources are called **Polski (GramaDrama)**, **English (GramaDrama)** or **De
 An update without this option keeps the previous layout. A change may again require the
 `sudo install …` command printed by the installer. [Text languages and the keyboard layout](docs/languages.md)
 are independent settings.
+
+### After installing
 
 **Log out and log in again** so that GNOME loads the extension. Until then the plain
 IBus panel is available. Start GramaDrama from your list of applications, open **Services** (*Usługi*) and choose the model.
@@ -62,7 +105,19 @@ in the app does not change the system keyboard layout.
 
 ### Updating and uninstalling
 
-After getting newer code, run `install` again. If the GNOME extension has changed, you need to
+**The package.** Build the newer version and install it with the same `sudo apt install` command, then log out and
+log in again, so that the engine and the panel run the new version. To uninstall, first choose
+**Switch GramaDrama off for this account…** (*Wyłącz GramaDramę na tym koncie…*) in the app's menu, on every account
+where it is on. That restores the input sources, takes the panel out of the enabled extensions and removes the
+browser hosts, the `gramadrama://` registration and the app's launch fixes. Then remove the package:
+
+```bash
+sudo apt remove gramadrama
+```
+
+An open GramaDrama window closes when the package is removed.
+
+**The installer.** After getting newer code, run `install` again. If the GNOME extension has changed, you need to
 log in again. Settings and your own prompts stay in the configuration directory.
 Check the installation state in the app or with:
 
@@ -82,10 +137,10 @@ To uninstall:
 ```
 
 The installer closes the app's window and removes the copy of the app and the engine, the panel, the registered
-browser hosts and its own launch fixes. It restores the input sources. If the system engine description remains,
-it prints the command to remove it from `/usr/share/ibus/component/gramadrama.xml`.
+browser hosts and its own launch fixes. It restores the input sources. If the system engine description it
+registered remains, it prints the command to remove it from `/usr/share/ibus/component/gramadrama.xml`.
 
-Settings, your own prompts, the application list, local data and downloaded speech tools are kept.
+Either way, settings, your own prompts, the application list, local data and downloaded speech tools are kept.
 Before removing all data, sign out of OIDC in the app. After uninstalling you can separately
 remove the GramaDrama directories from the configuration, cache and state directories, and `gramadrama-tools`
 from the data directory. By default these are `~/.config/gramadrama`, `~/.cache/gramadrama`,
@@ -216,7 +271,9 @@ The **Dictation** (*Dyktowanie*) tab only sets how you dictate (language and cle
 recognize names are in **Writing → Dictionary and rules**.
 The recognition engine is chosen in **Services → Speech recognition**: **This computer** or **Server**.
 The local path uses Whisper on an NVIDIA card; the tools are downloaded by
-`/usr/bin/python3 linux/install_engine.py tools`. It also downloads CUDA libraries under NVIDIA's proprietary
+`/usr/bin/python3 linux/install_engine.py tools`, or with the package
+`/usr/bin/python3 /usr/lib/gramadrama/install_engine.py tools` (the app copies the right one; the local tools have not
+been tested with the package yet). It also downloads CUDA libraries under NVIDIA's proprietary
 licence ([licence list](../THIRD_PARTY.md)). Without the tools and without a server, the key says
 „Brak modelu mowy” (*No speech model*) and opens that group in the app, ringed.
 For a server, choose the **OpenAI compatible** (*Zgodny z OpenAI*)

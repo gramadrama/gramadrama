@@ -100,7 +100,7 @@ GramaDrama uses LanguageTool for grammar rules and explanations, not as a condit
 
 Open **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*) and choose:
 
-- **This computer (Linux):** local Whisper. The `linux/install_engine.py tools` command downloads a separate
+- **This computer (Linux):** local Whisper. The `install_engine.py tools` command (the app copies it) downloads a separate
   environment, the CUDA libraries and the Whisper large-v3-turbo model. It needs `uv`, a compatible NVIDIA card,
   its driver and space for several GB of data.
 - **This Mac (macOS):** Whisper large-v3-turbo through WhisperKit on the Neural Engine. The model (about 1.6 GB)

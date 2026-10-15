@@ -46,6 +46,11 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
 - A browser extension, shared with macOS, for the text of fields on web pages, its position and replacement.
 - A settings window (Home, Writing, Dictation, Apps, Services, Privacy) that checks each component and says how
   to fix what is missing.
+- A Debian package for Ubuntu 26.04 (`scripts/build-deb.sh`): apt installs GramaDrama for the whole computer with
+  its dependencies, and each account switches it on from the app with one button (**Switch on for this account**)
+  and off again from its menu, without `sudo`. The input source follows the account's keyboard layout (Polish, US
+  or German). The package does not install over a copy from the repository's installer, which stays for
+  development. CI builds it on every change and attaches it to the release of a version tag.
 
 ### macOS
 

@@ -15,24 +15,28 @@ in parentheses where they first appear. The macOS permission prompts stay in Pol
 
 ## Get started on Linux
 
-1. Get the repository and change into its directory. A fresh Ubuntu desktop has no `git`, and a system installed
-   in English has no Polish spelling dictionary (`hunspell-pl`):
+1. Build the package and install it. There is no published release yet, and a fresh Ubuntu desktop lacks only
+   `git` for the build; apt installs everything else, the Polish and English dictionaries included:
 
    ```bash
-   sudo apt install git hunspell-pl
+   sudo apt install git
    git clone https://github.com/gramadrama/gramadrama.git
    cd gramadrama
+   scripts/build-deb.sh
+   sudo apt install ./build/gramadrama_*_all.deb
    ```
 
-2. Read the requirements and run the [installer](linux/README.md#installation).
+2. Start **GramaDrama** from your applications, click **Switch on for this account** (*Włącz na tym koncie*) in
+   **Home → First steps** (*Start → Pierwsze kroki*), then log out and log in again so that GNOME loads the panel.
 3. In **GramaDrama → Services** (*Usługi*) choose the model: Ollama on this computer, or a server
    with an address, a protocol and a model name (the same choice as on macOS).
    [Service setup](docs/self-hosting.md) covers the LLM, the optional LanguageTool and speech recognition.
 4. In **Home → Try it** (*Start → Wypróbuj*) type some text, press **Ctrl+Alt+G**, check the proposal
    and accept it with **Enter**.
 
-Installation, updates, removal and limitations are covered by the [Linux guide](linux/README.md).
-A test on a clean system and an installation by someone outside the project are still release conditions.
+Installation, updates, removal and limitations are covered by the [Linux guide](linux/README.md#installation),
+which also describes the installer for working on the code. The package was tested on a clean Ubuntu 26.04 in a
+virtual machine; an installation by someone outside the project is still a release condition.
 
 ## What to install
 
@@ -40,7 +44,7 @@ GramaDrama downloads and installs nothing on its own: every download below start
 
 Required:
 
-- **The app.** Linux: the [installer](linux/README.md#installation). macOS: there is no signed download yet, so build it
+- **The app.** Linux: the [package](linux/README.md#the-package). macOS: there is no signed download yet, so build it
   from this repository ([building for macOS](#building-for-macos-developers)); it needs macOS 14 or later, Apple's
   developer tools and the Accessibility permission.
 - **A language model.** [Ollama](https://ollama.com/download) on this computer, or a server with the Ollama protocol
@@ -57,7 +61,8 @@ Optional:
   on macOS both need the microphone permission:
   - **On this computer** (*Ten Mac*; on Linux *Ten komputer*): Whisper runs here, so its model is downloaded here. On
     macOS with **Download (1.6 GB)** (*Pobierz (1,6 GB)*) in that group or in **Dictation** (*Dyktowanie*); on Linux
-    with `linux/install_engine.py tools`, which needs an NVIDIA graphics card.
+    with the `install_engine.py tools` command, which the app copies from that group; it needs an NVIDIA graphics
+    card.
   - **On a speech server** (*Serwer*): Whisper, or another speech model, runs on a server you set up, and the model is
     installed there; nothing is downloaded on this computer. You enter the server's address and protocol
     ([speech recognition](docs/self-hosting.md#speech-recognition)).
@@ -171,6 +176,7 @@ compares the effect of a change: [prompts guide](linux/docs/prompts.md).
 - [Roadmap](ROADMAP.md) and [first release conditions](docs/open-source-plan.md).
 - [Changelog](CHANGELOG.md); Linux and macOS share the version number in `VERSION`.
 - [Running the Linux tests](linux/README.md#documentation-and-tests).
+- [Building the Linux package](linux/docs/architecture.md#package): `scripts/build-deb.sh`.
 - [Browser extension tests](browser/README.md#tests).
 - [Shared panel design](branding/PANEL.md).
 

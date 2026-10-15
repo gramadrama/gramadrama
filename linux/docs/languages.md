@@ -70,3 +70,7 @@ A new installation without the option uses `pl`; an update keeps the current lay
 Changing the layout requires an update of the IBus description. The installer may print
 a `sudo install …` command, after which the installation has to be run again.
 See the [installation guide](../README.md#installation).
+
+The [package](../README.md#the-package) registers all three sources for the whole computer. **Switch on for this
+account** (*Włącz na tym koncie*) picks the one with the account's first keyboard layout (`pl`, `us` or `de`;
+any other layout gets the US one).

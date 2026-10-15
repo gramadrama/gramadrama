@@ -74,7 +74,8 @@ The engine process never imports `core.py`.
 | `~/.config/gramadrama/` | `settings.json` (services, model, languages, shortcuts, switches), `apps.json` (apps and sites where GramaDrama is off, per-app default mode), `auth.json` (sign-in tokens), `prompts/` (prompt overrides) |
 | `~/.cache/gramadrama/` | `engine.log` (JSONL events, rotated to `engine.log.1` above 1 MiB), the route cache |
 | `~/.local/state/gramadrama/` | what the app remembers between runs |
-| `~/.local/share/gramadrama-engine/` | the installed copy of the engine, the app, the launchers and the browser extension; `install.json` |
+| `~/.local/share/gramadrama-engine/` | the installer's copy of the engine, the app, the launchers and the browser extension; `install.json` |
+| `/usr/lib/gramadrama/` | the same from the package, with `install_engine.py` for the account's setup |
 | `~/.local/share/gramadrama-tools/` | optional speech environment and Whisper model |
 
 Only absolute `XDG_*` values are honoured. Services and their settings are described in
@@ -702,7 +703,8 @@ destroys the actors on its own (at shutdown), callbacks stop touching them and t
 
 ## Installer
 
-`linux/install_engine.py` installs for the current user and needs a GNOME session. Run it with the
+`linux/install_engine.py` installs for the current user and needs a GNOME session; it refuses while the
+[package](#package) is installed. Run it with the
 system Python from the repository: `/usr/bin/python3 linux/install_engine.py <command>`.
 
 | Command | What it does |
@@ -745,13 +747,54 @@ extensions (the user's other extensions stay as they are) and deletes the extens
 old shortcut if the installer had cleared it, stops the engine, removes the scheme registration,
 the browser host manifests and app launchers that point to the copy, and the launch fixes the app
 wrote ([apps.md](apps.md)), then deletes the copy and the backup. It prints the `sudo rm` command
-for the IBus component. Settings, `apps.json`, sign-in tokens, prompts, cache, state and the speech
+for the IBus component when the component starts this copy. Settings, `apps.json`, sign-in tokens, prompts, cache, state and the speech
 tools stay.
 
 `tools` needs `uv`. It creates a Python 3.13 environment in `~/.local/share/gramadrama-tools/speech`
 with pinned faster-whisper, CTranslate2 and CUDA 12 libraries, downloads Whisper large-v3-turbo
 (about 4.3 GB in total) and runs a GPU self-test. It is needed only for the built-in Whisper on an
 NVIDIA GPU; a transcription server needs nothing local ([dictation.md](dictation.md)).
+
+## Package
+
+`linux/build_deb.py` (`scripts/build-deb.sh`) builds `build/gramadrama_<version>_all.deb` from the files git tracks;
+it needs only git and dpkg-deb. The version is `VERSION` with the number of commits and the commit
+(`0.5.2+git41.1197f2c`, `+dirty` with uncommitted changes in `linux/` or `browser/`), so apt takes a later build as
+newer whatever its hash. `--release` builds the version alone, only from a clean tree whose commit has the tag
+`v<VERSION>`. The [Linux package workflow](../../.github/workflows/linux-package.yml) builds it on every change,
+resolves its dependencies with apt in an Ubuntu 26.04 container, and attaches it with `SHA256SUMS` to the release
+of a version tag (a draft when the workflow has to create it).
+
+| Installed path | What |
+|---|---|
+| `/usr/lib/gramadrama/` | the `gramadrama` package, the three launchers, `install_engine.py`, `data/`, the icon, `browser-extension/`, `install.json` (version and commit) and `gramadrama.xml` (the IBus description, for `component_state`) |
+| `/usr/share/ibus/component/gramadrama.xml` | one description with three engines run by `/usr/bin/python3 /usr/lib/gramadrama/gramadrama-engine --ibus`: `gramadrama` (layout `pl`), `gramadrama-us` and `gramadrama-de` |
+| `/usr/share/gnome-shell/extensions/gramadrama@gramadrama.local/` | the panel |
+| `/usr/share/applications/pl.gramadrama.Linux.desktop`, the icon, `/usr/bin/gramadrama` | the app |
+
+One description serves every account, so it lists an engine per keyboard layout; the engine process serves
+all three names (GNOME applies the layout of the engine it activates, and ignores an engine without one).
+`checks.package_installed()` is true when the description IBus reads starts the package's launcher; the app then
+offers the account's setup instead of the installer, and the panel's [caller check](#caller-check) accepts
+that launcher.
+
+apt cannot reach the accounts, so `install_engine.py` has two commands that need no root, which the app runs:
+
+- `setup` (**Switch on for this account**): picks the engine of the account's first keyboard layout (any other
+  layout gets `gramadrama-us`), removes a copy from the installer left in the account (its engine, panel,
+  launchers and browser hosts; the window that runs the setup stays open), registers the browser hosts at the
+  package's host and the `gramadrama://` scheme, restarts IBus unless the package's engine already runs (an
+  ibus-daemon started earlier does not know the engine, or still starts a removed copy's), then does what
+  `install` does on the account: the backup, GramaDrama first among the input sources, the panel among the
+  enabled extensions.
+- `teardown` (**Switch GramaDrama off for this account…**): what `uninstall` restores on the account, without
+  deleting any of the package's files; it stops only this user's engine.
+
+The maintainer scripts: `preinst` stops the installation while the IBus description it would replace starts an
+installer's copy that still exists, and prints that copy's `uninstall` command (Ubuntu records the stop as a
+package problem); `postinst` byte-compiles the package and `prerm` removes the compiled files. `install` refuses
+while the package is installed, and `uninstall` no longer prints the `sudo rm` of a description that is not its
+own. The app of the package closes when apt removes its launcher.
 
 ## Tests
 

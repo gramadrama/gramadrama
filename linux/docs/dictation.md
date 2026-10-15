@@ -29,7 +29,7 @@ and recording stops by itself after 180 s. The indicator shows recording and the
 In **Services → Speech recognition** (*Usługi → Rozpoznawanie mowy*) choose where the recording is processed
 (the **Services…** (*Usługi…*) button of the **Dictation** (*Dyktowanie*) tab opens that group, ringed):
 
-- **This computer** (*Ten komputer*) runs a local faster-whisper. The `linux/install_engine.py tools` command
+- **This computer** (*Ten komputer*) runs a local faster-whisper. The `install_engine.py tools` command
   downloads a separate Python environment, the CUDA libraries and the Whisper large-v3-turbo model.
   This path needs a compatible NVIDIA graphics card and driver. Nothing is downloaded on its own: without the
   tools, holding the key shows „Brak modelu mowy” (*No speech model*) on the pill and, as on macOS, opens the app on

@@ -61,7 +61,8 @@ GramaDrama files. If the program's path changes, an existing fix has to be repai
 
 After the fix is saved, the target application has to be restarted. GNOME may remember the old `.desktop`
 entry in the app grid until you log in again; this also applies to undoing a fix.
-Installing a newer GramaDrama keeps the fixes, and `install_engine.py uninstall` removes them.
+Installing a newer GramaDrama keeps the fixes. `install_engine.py uninstall` removes them, and so does switching the
+package off for the account (**Switch GramaDrama off for this account…**).
 
 ## Tests
 

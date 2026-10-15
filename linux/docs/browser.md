@@ -49,6 +49,11 @@ extension ⇄ native messaging ⇄ gramadrama-browser-host ⇄ Unix socket ⇄ e
 
 `install_engine.py uninstall` removes the registered host files (only ours).
 
+With the [package](../README.md#the-package), **Switch on for this account** (*Włącz na tym koncie*) registers the
+host in the same browsers, pointing to `/usr/lib/gramadrama/gramadrama-browser-host`, and the folder to load is
+`/usr/lib/gramadrama/browser-extension`, updated with the package. **Switch GramaDrama off for this account…**
+(*Wyłącz GramaDramę na tym koncie…*) removes the host files again.
+
 ## Icon and popup
 
 The same as on the Mac. Lavender icon: GramaDrama works on this page. Grey with “off”: the site is disabled. Grey with
