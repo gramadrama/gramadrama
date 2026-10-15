@@ -106,7 +106,8 @@ in the app does not change the system keyboard layout.
 ### Updating and uninstalling
 
 **The package.** Build the newer version and install it with the same `sudo apt install` command, then log out and
-log in again, so that the engine and the panel run the new version. To uninstall, first choose
+log in again, so that the engine and the panel run the new version. Until then **Home** says that an older version
+of the engine is running. To uninstall, first choose
 **Switch GramaDrama off for this account…** (*Wyłącz GramaDramę na tym koncie…*) in the app's menu, on every account
 where it is on. That restores the input sources, takes the panel out of the enabled extensions and removes the
 browser hosts, the `gramadrama://` registration and the app's launch fixes. Then remove the package:

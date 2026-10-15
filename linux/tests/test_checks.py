@@ -975,6 +975,25 @@ class PackageModeTests(unittest.TestCase):
         enabled = C.panel_check({'state': 1, 'enabled': True}, '20', 20, None, None, package=True, account=False)
         self.assertEqual(enabled.state, OK)
 
+    def test_an_engine_started_before_an_upgrade_is_older_than_the_package(self):
+        """apt replaces install.json with every upgrade: its change time is when the package's code arrived. An engine
+        running since before then is the old code until the next login, and the row says so."""
+        with tempfile.TemporaryDirectory() as tmp:
+            lib = Path(tmp)
+            (lib / 'install.json').write_text(json.dumps({'version': '0.5.2', 'commit': '1197f2c', 'dirty': False}))
+            unpacked = (lib / 'install.json').stat().st_ctime
+            with mock.patch.object(C, 'SYSTEM_DIR', lib), mock.patch.object(C, 'engine_dir', return_value=lib):
+                info = C.install_info()
+            self.assertEqual(info['engine_changed_at'], unpacked)
+            self.assertEqual(datetime.datetime.fromisoformat(info['installed_at']).timestamp(), int(unpacked))
+            self.assertIn('zainstalowana', C.version_text(info))
+            # the installer's copy keeps its own times: only what install.json says
+            with mock.patch.object(C, 'engine_dir', return_value=lib):
+                self.assertNotIn('engine_changed_at', C.install_info())
+        stale = C.engine_check({'pid': 1}, True, True, 'current', info, 'installed', False, stale=True, package=True)
+        self.assertEqual(stale.state, WARNING)
+        self.assertIn('Wyloguj się i zaloguj ponownie', stale.text)
+
     def test_copied_commands_name_the_package_installer(self):
         """The app copies `install_engine.py tools` (and `install`): from the package it is the package's own."""
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(C, 'engine_dir', return_value=C.SYSTEM_DIR):

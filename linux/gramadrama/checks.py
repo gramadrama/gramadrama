@@ -179,12 +179,23 @@ def log_path():
 
 def install_info():
     """install.json written by install_engine.py: version, commit, dirty, installed_at, source,
-    engine_changed_at, panel_changed_at."""
+    engine_changed_at, panel_changed_at. The package's has the version and the commit only; apt's time comes from the
+    file itself: every installation or upgrade replaces it, so its change time is when the package was unpacked
+    (installed_at, engine_changed_at). An engine started before an upgrade then shows as older than the installed one
+    (probe_system's stale) until the next login."""
+    directory = engine_dir()
+    path = directory / 'install.json'
     try:
-        data = json.loads((engine_dir() / 'install.json').read_text(encoding='utf-8'))
+        data = json.loads(path.read_text(encoding='utf-8'))
+        unpacked = path.stat().st_ctime
     except (OSError, ValueError):
         return None
-    return data if isinstance(data, dict) else None
+    if not isinstance(data, dict):
+        return None
+    if directory == SYSTEM_DIR:
+        data.setdefault('engine_changed_at', unpacked)
+        data.setdefault('installed_at', datetime.datetime.fromtimestamp(unpacked).isoformat(timespec='seconds'))
+    return data
 
 
 def version_label(info):
