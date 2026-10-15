@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # the version of a build counts the commits
       - name: Build the package
@@ -36,7 +36,7 @@ jobs:
       - name: Write the checksum
         working-directory: build
         run: sha256sum gramadrama_*_all.deb > SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gramadrama-deb
           path: |
@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 10
     container: ubuntu:26.04  # the target system; the runner itself is older
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: gramadrama-deb
       - name: Resolve the dependencies with apt (simulated, nothing is installed)
@@ -66,7 +66,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: gramadrama-deb
       - name: Attach the package to the release

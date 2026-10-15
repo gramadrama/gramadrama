@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Test the privacy guard
         run: python3 -m unittest discover -s scripts/tests -v
       - name: Check repository contents
@@ -27,7 +27,7 @@ jobs:
       GSETTINGS_BACKEND: memory
       NO_AT_BRIDGE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system Python bindings and dictionaries
         run: |
           sudo apt-get update
@@ -45,7 +45,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build the macOS application and helpers
         run: swift build
       - name: Run Swift unit tests
