@@ -975,6 +975,18 @@ class PackageModeTests(unittest.TestCase):
         enabled = C.panel_check({'state': 1, 'enabled': True}, '20', 20, None, None, package=True, account=False)
         self.assertEqual(enabled.state, OK)
 
+    def test_copied_commands_name_the_package_installer(self):
+        """The app copies `install_engine.py tools` (and `install`): from the package it is the package's own."""
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(C, 'engine_dir', return_value=C.SYSTEM_DIR):
+            self.assertEqual(C.command_source({}, C.SYSTEM_DIR, package=True), str(C.SYSTEM_DIR))
+            self.assertEqual(C.install_command(C.command_source({}, C.SYSTEM_DIR, True), 'tools'),
+                             '/usr/bin/python3 /usr/lib/gramadrama/install_engine.py tools')
+            self.assertEqual(C.command_source({}, tmp, package=True), tmp)  # the app run from a repository
+        copy = Path('/home/user/.local/share/gramadrama-engine')
+        with mock.patch.object(C, 'engine_dir', return_value=copy):
+            self.assertEqual(C.command_source({'source': '/home/user/gramadrama/linux'}, copy, package=False),
+                             '/home/user/gramadrama/linux')
+
     def test_a_copy_from_the_installer_next_to_the_package(self):
         leftover = C.engine_check({'pid': 1}, True, True, 'current', {}, 'repository', False, package=True,
                                   user_copy=True)

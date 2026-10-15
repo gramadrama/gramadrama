@@ -215,6 +215,14 @@ def app_version_text(install, app_dir):
     return version_label(install) or tr('nieznana')
 
 
+def command_source(install, app_dir, package):
+    """Where the install_engine.py of the app's copied commands is: the repository the app runs from, the package's
+    directory, or the repository the user's copy was installed from (install.json)."""
+    if Path(app_dir).resolve() != engine_dir().resolve():
+        return str(app_dir)
+    return str(SYSTEM_DIR) if package else (install or {}).get('source')
+
+
 def install_command(source, command='install'):
     if not source:
         return '/usr/bin/python3 linux/install_engine.py %s' % command
@@ -1448,8 +1456,8 @@ def probe_system(conn, app_dir):
     info = dbus(conn, *EXTENSIONS_BUS, 'GetExtensionInfo', GLib.Variant('(s)', (EXTENSION_UUID,)), '(a{sv})')
     ping = dbus(conn, *PANEL_BUS, 'Ping')
     shell = owner_pid(conn, PANEL_BUS[0])
-    installed_here = Path(app_dir).resolve() == engine_dir().resolve()
-    source = (install or {}).get('source') if installed_here else str(app_dir)
+    package = package_installed()
+    source = command_source(install, app_dir, package)
     return {
         'current': (current.strip() or None) if current is not None else None,
         'registered': None if engines is None else bool(set(ENGINE_NAMES) & set(engines.split())),
@@ -1459,7 +1467,7 @@ def probe_system(conn, app_dir):
         'installed': (engine_dir() / 'gramadrama-engine').exists(), 'component': component_state(),
         'install': install, 'source': source,
         'differs': bool(source) and copy_differs(source),
-        'browser_hosts': registered_browser_hosts(), 'browsers_present': browsers_present(), 'package': package_installed(),
+        'browser_hosts': registered_browser_hosts(), 'browsers_present': browsers_present(), 'package': package,
         'user_copy': user_copy_present(),
         'browser_folder': str(browser_extension_dir(app_dir)),
     }
