@@ -1,8 +1,10 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -109,8 +111,84 @@ class PackageBuildTests(unittest.TestCase):
         subprocess.run(['dpkg-deb', '-e', str(self.deb), str(control)], check=True)
         listed = {'/' + line.split(None, 1)[1] for line in (control / 'md5sums').read_text().splitlines()}
         self.assertEqual(listed, self.files())
-        for script in ('postinst', 'prerm'):
+        for script in ('preinst', 'postinst', 'prerm'):
             self.assertTrue((control / script).stat().st_mode & 0o111, script)
+
+
+class PreinstTests(unittest.TestCase):
+    """The package does not go over a copy from the installer that is still there (its IBus description, written by
+    the installer's sudo step, would be replaced, and that account's own panel would refuse the package's engine)."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.component = self.root / 'component' / 'gramadrama.xml'
+        self.component.parent.mkdir()
+        self.copy = self.root / 'home' / '.local' / 'share' / 'gramadrama-engine'
+        self.copy.mkdir(parents=True)
+        (self.copy / 'gramadrama-engine').write_text('the copy\'s engine')
+        self.checkout = self.root / 'home' / 'gramadrama' / 'linux'
+        self.checkout.mkdir(parents=True)
+        (self.checkout / 'install_engine.py').write_text('')
+        (self.copy / 'install.json').write_text(json.dumps({'version': '0.5.2', 'source': str(self.checkout)}, indent=2))
+        with mock.patch.object(I, 'LAUNCHER', self.copy / 'gramadrama-engine'):
+            self.source_install = I.component_xml()
+
+    def preinst(self, argument='install'):
+        script = B.PREINST.replace('/usr/share/ibus/component/gramadrama.xml', str(self.component))
+        return subprocess.run(['sh', '-c', script, 'preinst', argument], capture_output=True, text=True)
+
+    def test_a_copy_from_the_installer_stops_the_install(self):
+        self.component.write_text(self.source_install)
+        for argument in ('install', 'upgrade'):
+            done = self.preinst(argument)
+            self.assertEqual(done.returncode, 1)
+            self.assertIn(str(self.copy), done.stderr)
+            self.assertIn('/usr/bin/python3 %s/install_engine.py uninstall' % self.checkout, done.stderr)
+            self.assertIn('Uninstall that copy first', done.stderr)
+
+    def test_without_the_checkout_the_command_is_the_generic_one(self):
+        self.component.write_text(self.source_install)
+        (self.copy / 'install.json').unlink()
+        done = self.preinst()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn('/usr/bin/python3 linux/install_engine.py uninstall', done.stderr)
+
+    def test_what_is_no_running_copy_lets_the_package_in(self):
+        self.assertEqual(self.preinst().returncode, 0)  # no description at all
+        self.component.write_text(I.package_component_xml())  # the package's own (an upgrade)
+        self.assertEqual(self.preinst('upgrade').returncode, 0)
+        self.component.write_text(self.source_install)
+        shutil.rmtree(self.copy)  # uninstalled, the description left behind: the package replaces it
+        done = self.preinst()
+        self.assertEqual((done.returncode, done.stderr), (0, ''))
+
+
+class RemovalTests(unittest.TestCase):
+    def spin(self, seconds, until=lambda: False):
+        from gi.repository import GLib
+        context, deadline = GLib.MainContext.default(), time.monotonic() + seconds
+        while time.monotonic() < deadline and not until():
+            context.iteration(False)
+            time.sleep(0.01)
+
+    def test_the_app_closes_when_apt_removes_it(self):
+        from gramadrama.app import watch_removal
+        with tempfile.TemporaryDirectory() as tmp:
+            launcher = Path(tmp, 'gramadrama-app')
+            launcher.write_text('#! old')
+            removed = []
+            monitor = watch_removal(launcher, lambda: removed.append(True), delay_ms=50)
+            self.addCleanup(monitor.cancel)
+            new = Path(tmp, 'gramadrama-app.dpkg-new')  # an upgrade: dpkg renames the new file over the old one
+            new.write_text('#! new')
+            os.rename(new, launcher)
+            self.spin(0.5)
+            self.assertEqual(removed, [])
+            launcher.unlink()  # apt remove
+            self.spin(3, lambda: removed)
+            self.assertEqual(removed, [True])
 
 
 class VersionTests(unittest.TestCase):

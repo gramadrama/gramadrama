@@ -214,5 +214,8 @@
   "Działa starsza wersja niż zainstalowana. Wyloguj się i zaloguj ponownie.": "An older version than the installed one is running. Log out and log in again.",
   "Brak plików z paczki — zainstaluj ją ponownie: sudo apt install --reinstall gramadrama.": "The package’s files are missing — install it again: sudo apt install --reinstall gramadrama.",
   "IBus nie wczytał silnika. Włącz GramaDramę na tym koncie (uruchomi IBus ponownie).": "IBus has not loaded the engine. Switch GramaDrama on for this account (it restarts IBus).",
-  "Nie połączona — włącz GramaDramę na tym koncie, a potem uruchom przeglądarkę.": "Not connected — switch GramaDrama on for this account, then start the browser."
+  "Nie połączona — włącz GramaDramę na tym koncie, a potem uruchom przeglądarkę.": "Not connected — switch GramaDrama on for this account, then start the browser.",
+  "Na tym koncie jest też kopia z instalatora (z repozytorium). Włącz GramaDramę na tym koncie: kopia zniknie, zostanie wersja z paczki.": "This account also has a copy from the installer (from the repository). Switch GramaDrama on for this account: the copy goes, the package’s version stays.",
+  "IBus wczyta silnik, gdy włączysz GramaDramę na tym koncie.": "IBus loads the engine once you switch GramaDrama on for this account.",
+  "Włączy się razem z GramaDramą na tym koncie, po ponownym zalogowaniu.": "Comes on with GramaDrama for this account, after you log in again."
 }

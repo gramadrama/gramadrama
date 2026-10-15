@@ -173,12 +173,13 @@
   "Słowniki": "Dictionaries",
   "Włącz na tym koncie": "Switch on for this account",
   "Włączam GramaDramę na tym koncie…": "Switching GramaDrama on for this account…",
-  "GramaDrama jest włączona na tym koncie. Panel pojawi się po wylogowaniu i ponownym zalogowaniu.": "GramaDrama is on for this account. The panel appears after you log out and log in again.",
+  "Włączono. Panel pojawi się po ponownym zalogowaniu.": "Switched on. The panel appears after you log in again.",
+  "GramaDrama jest włączona na tym koncie.": "GramaDrama is on for this account.",
   "Wyłącz GramaDramę na tym koncie…": "Switch GramaDrama off for this account…",
   "Wyłączyć GramaDramę na tym koncie?": "Switch GramaDrama off for this account?",
   "Źródło wprowadzania, panel, skrót, host przeglądarki i adres gramadrama:// wrócą do stanu sprzed włączenia. Ustawienia zostają. Potem paczkę usuniesz poleceniem: sudo apt remove gramadrama — wcześniej wyłącz GramaDramę tak samo na każdym koncie, na którym ją włączono.": "The input source, the panel, the shortcut, the browser host and the gramadrama:// address go back to how they were before. The settings stay. Then remove the package with: sudo apt remove gramadrama — first switch GramaDrama off in the same way on every account where it was switched on.",
   "Wyłączam GramaDramę na tym koncie…": "Switching GramaDrama off for this account…",
-  "Wyłączono GramaDramę na tym koncie. Paczkę usuniesz poleceniem: sudo apt remove gramadrama": "GramaDrama is off for this account. Remove the package with: sudo apt remove gramadrama",
+  "Wyłączono. Paczkę usuniesz: sudo apt remove gramadrama": "Switched off. Remove the package with: sudo apt remove gramadrama",
   "Nie udało się: {value}": "Failed: {value}",
   "Wyłącz": "Switch off"
 }

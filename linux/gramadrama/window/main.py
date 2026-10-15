@@ -478,9 +478,11 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
             command = checks.install_command(self.source, 'tools' if action == 'install_tools' else 'install')
             self.get_clipboard().set(command)
             self.toast(tr('Skopiowano: {value} — wklej w terminalu.', value=command))
-        elif action == 'setup':
-            self.run_account('setup', tr('Włączam GramaDramę na tym koncie…'), tr(
-                'GramaDrama jest włączona na tym koncie. Panel pojawi się po wylogowaniu i ponownym zalogowaniu.'))
+        elif action == 'setup':  # a toast holds one short line; the panel's row keeps saying what is left
+            relogin = self.panel_row.check.state != checks.OK
+            self.run_account('setup', tr('Włączam GramaDramę na tym koncie…'),
+                             tr('Włączono. Panel pojawi się po ponownym zalogowaniu.') if relogin
+                             else tr('GramaDrama jest włączona na tym koncie.'))
         elif action == 'install_dictionaries':
             command = checks.dictionary_command(checks.missing_dictionaries(self.load_settings().languages))
             self.get_clipboard().set(command)
@@ -539,7 +541,7 @@ class Window(StartTab, WritingTab, DictationTab, AppsTab, ServicesTab, PrivacyTa
         dialog.set_default_response('cancel')
         dialog.connect('response', lambda _d, response: response == 'teardown' and self.run_account(
             'teardown', tr('Wyłączam GramaDramę na tym koncie…'),
-            tr('Wyłączono GramaDramę na tym koncie. Paczkę usuniesz poleceniem: sudo apt remove gramadrama')))
+            tr('Wyłączono. Paczkę usuniesz: sudo apt remove gramadrama')))
         dialog.present(self)
 
     def open_log(self):

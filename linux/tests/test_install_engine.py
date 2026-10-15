@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import unittest
 import xml.etree.ElementTree as ET
@@ -376,13 +377,19 @@ class AppInstallTests(unittest.TestCase):
             self.assertEqual(I.uninstall(), 0)
         kill.assert_called_once_with(4242, 15)
         self.assertIn('Zamknięto okno GramaDramy.', out.getvalue())
+        self.assertIn('sudo rm %s' % I.COMPONENT, out.getvalue())  # the description starts this copy
         self.assertFalse((I.LOCAL_BIN / 'chatgpt').exists() or (I.APPLICATIONS / 'slack.desktop').exists())
         self.assertIn('Usunięto poprawkę uruchamiania: %s' % (I.LOCAL_BIN / 'chatgpt'), out.getvalue())
         for path in (I.LOCAL_BIN / 'mine', I.APPLICATIONS / 'com.anthropic.Claude.desktop', I.APPLICATIONS / 'notes.txt'):
             self.assertEqual(path.read_text(), files[path])
         self.assertEqual(json.loads(apps_json.read_text())['disabled'], ['org.gnome.Ptyxis.desktop'])  # the list stays
         self.assertFalse(I.TARGET.exists() or I.BIN.exists() or I.DESKTOP.exists() or I.BACKUP.exists())
-
+        # the package installed since: its description is not this copy's to remove
+        with mock_patch(I, 'SYSTEM_LAUNCHER', Path('/usr/lib/gramadrama/gramadrama-engine')):
+            I.COMPONENT.write_text(I.package_component_xml(), encoding='utf-8')
+        with mock.patch('os.kill'), contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(I.uninstall(), 0)
+        self.assertNotIn('sudo rm', out.getvalue())
 
 
 class ComponentReloadTests(unittest.TestCase):
@@ -572,7 +579,8 @@ class AccountTests(unittest.TestCase):
         (root / 'extension').mkdir()
         paths = {'SYSTEM_LAUNCHER': root / 'lib' / 'gramadrama-engine', 'SYSTEM_DIR': root / 'lib',
                  'SYSTEM_EXTENSION': root / 'extension', 'COMPONENT': root / 'component.xml',
-                 'BACKUP': root / 'config' / 'backup.json', 'EXTENSION': root / 'no-user-extension'}
+                 'BACKUP': root / 'config' / 'backup.json', 'EXTENSION': root / 'no-user-extension',
+                 'TARGET': root / 'no-user-copy'}
         for name, value in paths.items():
             stack.enter_context(mock.patch.object(I, name, value))
         self.sources = [('xkb', 'gb')]
@@ -589,7 +597,9 @@ class AccountTests(unittest.TestCase):
                 'remove_legacy_copy': mock.Mock(return_value=False), 'remove_legacy_shortcut': mock.Mock(return_value=False),
                 'copy_extension': mock.Mock(side_effect=AssertionError('the package has its own panel')),
                 'package_engine_pids': mock.Mock(return_value=[4242]), 'unregister_scheme': mock.Mock(),
-                'unregister_browser_hosts': mock.Mock(return_value=[]), 'remove_launch_fixes': mock.Mock(return_value=[])}
+                'unregister_browser_hosts': mock.Mock(return_value=[]), 'remove_launch_fixes': mock.Mock(return_value=[]),
+                'engine_pids': mock.Mock(return_value=[]), 'app_pids': mock.Mock(return_value=[]),
+                'uninstall_app': mock.Mock()}
         self.live = {name: stack.enter_context(mock.patch.object(I, name, value)) for name, value in live.items()}
         self.run = stack.enter_context(mock.patch.object(I.subprocess, 'run'))
         self.kill = stack.enter_context(mock.patch.object(I.os, 'kill'))
@@ -614,6 +624,34 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(self.enabled, ['other@example.com', I.EXTENSION_ID])
         self.assertIn('po wylogowaniu', self.out.getvalue())
         self.assertTrue(I.BACKUP.exists())
+
+    def test_setup_replaces_a_copy_from_the_installer(self):
+        """The account was installed from the repository before: GNOME would load that copy's panel instead of the
+        package's (and it may refuse the package's engine), and the application grid would open that copy's app."""
+        copy, extension = self.root / 'user-copy', self.root / 'user-extension'
+        for directory in (copy / 'gramadrama', extension):
+            directory.mkdir(parents=True)
+        (copy / 'gramadrama-engine').write_text('the copy\'s engine')
+        (extension / 'metadata.json').write_text('{"version": 19}')
+        self.live['engine_pids'].return_value = [111]
+        self.live['app_pids'].return_value = [222, os.getppid()]  # another window of the copy, and the one running setup
+        with mock_patch(I, 'TARGET', copy), mock_patch(I, 'EXTENSION', extension):
+            self.assertEqual(I.setup(), 0)
+        self.assertFalse(copy.exists() or extension.exists())
+        self.assertEqual(sorted(call.args for call in self.kill.call_args_list), [(111, 15), (222, 15)])
+        self.live['uninstall_app'].assert_called_once_with()
+        self.live['unregister_browser_hosts'].assert_called_once_with()  # the copy's hosts, before the package's
+        self.live['register_browser_hosts'].assert_called_once_with(self.root / 'lib' / 'gramadrama-browser-host')
+        # IBus knew an engine of that name, started from the copy: restarted all the same
+        self.run.assert_called_once_with(['systemctl', '--user', 'restart', I.IBUS_UNIT], check=True)
+        self.assertIn('kopię GramaDramy z instalatora', self.out.getvalue())
+        self.assertIn('po wylogowaniu', self.out.getvalue())  # GNOME loads the package's panel at the next login
+
+    def test_setup_without_a_copy_removes_nothing(self):
+        self.assertEqual(I.setup(), 0)
+        self.live['uninstall_app'].assert_not_called()
+        self.live['unregister_browser_hosts'].assert_not_called()
+        self.kill.assert_not_called()
 
     def test_setup_restarts_an_ibus_that_does_not_know_the_engine(self):
         answers = iter([False, True])

@@ -42,8 +42,44 @@ DESCRIPTION = '''text correction, translation and dictation in GNOME application
  .
  After installing, start GramaDrama and switch it on for your account, then log
  out and in once so that GNOME loads the panel.'''
-# The maintainer scripts. __pycache__ is made at configure time and removed before dpkg removes the files, so no
-# directory of the package is left behind; IBus reads the new description at the next login (or the account's setup).
+# The maintainer scripts. preinst: a copy from the installer (install_engine.py install, from the repository) wrote the
+# IBus description by hand; the package would replace it, and that account's own panel, which GNOME prefers to the
+# package's, would refuse the package's engine. The package waits until the copy is uninstalled. A description whose
+# engine is gone (a copy uninstalled before) is replaced. postinst and prerm: __pycache__ is made at configure time and
+# removed before dpkg removes the files, so no directory of the package is left behind; IBus reads the new description
+# at the next login (or the account's setup).
+PREINST = r'''#!/bin/sh
+set -e
+component=/usr/share/ibus/component/gramadrama.xml
+if [ "$1" = install ] || [ "$1" = upgrade ]; then
+    if [ -f "$component" ] && ! grep -q '/usr/lib/gramadrama/gramadrama-engine' "$component"; then
+        launcher=$(sed -n 's:.*<exec>/usr/bin/python3 \(.*\) --ibus</exec>.*:\1:p' "$component" | tr -d "'")
+        if [ -n "$launcher" ] && [ -e "$launcher" ]; then
+            copy=$(dirname "$launcher")
+            source=$(sed -n 's/.*"source": *"\([^"]*\)".*/\1/p' "$copy/install.json" 2>/dev/null || true)
+            if [ -n "$source" ] && [ -e "$source/install_engine.py" ]; then
+                command="/usr/bin/python3 $source/install_engine.py uninstall"
+            else
+                command="/usr/bin/python3 linux/install_engine.py uninstall"
+            fi
+            cat >&2 <<EOF
+
+GramaDrama jest już zainstalowana z repozytorium (instalatorem): $copy
+Najpierw odinstaluj tę kopię w terminalu sesji GNOME jej konta, potem zainstaluj paczkę ponownie:
+
+  $command
+
+GramaDrama is already installed from the repository (by its installer): $copy
+Uninstall that copy first, in a terminal of that account's GNOME session (the command above),
+then install the package again.
+
+EOF
+            exit 1
+        fi
+    fi
+fi
+exit 0
+'''
 POSTINST = '''#!/bin/sh
 set -e
 if [ "$1" = configure ]; then
@@ -173,6 +209,7 @@ def build(out):
     files = stage(root, full_version, base, commit, dirty)
     debian = root / 'DEBIAN'
     write(debian / 'control', control(root, full_version))
+    write(debian / 'preinst', PREINST, 0o755)
     write(debian / 'postinst', POSTINST, 0o755)
     write(debian / 'prerm', PRERM, 0o755)
     sums = ''.join('%s  %s\n' % (hashlib.md5((root / f).read_bytes()).hexdigest(), f) for f in files)

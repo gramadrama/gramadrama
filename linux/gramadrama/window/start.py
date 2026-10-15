@@ -99,8 +99,11 @@ class StartTab:
         self.first_steps.set_description(tr('Potem {value} poprawia tekst w każdej aplikacji.', value=shortcut))
         self.first_try_row.set_check(Check(INFO, tr('W polu Wypróbuj poniżej: kursor strzałką i {value}.', value=shortcut)))
         gnome = [self.source_row.check, self.engine_row.check, self.panel_row.check]
+        setup = next((check for check in gnome if check.action == 'setup'), None)
         if any(check.state == BUSY for check in gnome):
             self.first_gnome_row.set_check(Check(BUSY, tr('Sprawdzam…')))
+        elif setup is not None:  # the package: one button switches it all on for this account
+            self.first_gnome_row.set_check(Check(setup.state, setup.text, 'setup'))
         elif all(check.state == OK for check in gnome):
             self.first_gnome_row.set_check(Check(OK, tr('Działają: źródło wprowadzania, silnik IBus i panel przy kursorze.')))
         else:
@@ -369,12 +372,13 @@ class StartTab:
                 self.set_try(INFO, tr('Teraz powinno działać — użyj ponownie skrótu korekty.'))
         self.hotkey_row.set_check(checks.hotkey_check(self.conflicts, self.hotkey_verified))
         self.source_row.set_check(source)
+        account = source.action != 'setup'  # the package: on for this account (one setup button until then)
         self.engine_row.set_check(checks.engine_check(
             result['status'], result['registered'], result['installed'], result['component'], result['install'],
-            result['origin'], result['differs'], result['stale'], package))
+            result['origin'], result['differs'], result['stale'], package, account, result.get('user_copy', False)))
         self.panel_row.set_check(checks.panel_check(
             result['extension'], result['loaded'], result['on_disk'],
-            (result['install'] or {}).get('panel_changed_at'), result['shell_started'], user_disabled, package))
+            (result['install'] or {}).get('panel_changed_at'), result['shell_started'], user_disabled, package, account))
         self.update_summary()
         return False
 

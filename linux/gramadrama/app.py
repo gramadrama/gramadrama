@@ -11,12 +11,12 @@ import gi
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw, Gdk, Gio, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from . import oidc  # noqa: E402
+from . import checks, oidc  # noqa: E402
 from .window.apps_tab import (APP_ICONS, FLATPAK_HELP, GENERIC_APP_ICON, AppRow, app_icon, arranged,  # noqa: E402,F401
                               icon_name)
-from .window.common import APP_ID, CSS, WEBSITE, LogWatcher  # noqa: E402,F401
+from .window.common import APP_DIR, APP_ID, CSS, WEBSITE, LogWatcher  # noqa: E402,F401
 from .window.main import POINTS, TABS, Window  # noqa: E402
 
 
@@ -26,6 +26,7 @@ class Application(Adw.Application):
         # new `gramadrama-app URL`, which this running one gets, whole, as its command line
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.window = None
+        self.removal = None
 
     def do_startup(self):
         Adw.Application.do_startup(self)
@@ -42,6 +43,8 @@ class Application(Adw.Application):
         for number, (name, _, _) in enumerate(TABS, 1):
             self.set_accels_for_action('win.tab-' + name, ['<Alt>%d' % number])
         self.set_accels_for_action('window.close', ['<Control>w'])
+        if APP_DIR == checks.SYSTEM_DIR:  # the package's app closes when apt removes it
+            self.removal = watch_removal(APP_DIR / 'gramadrama-app', self.quit)
 
     def do_activate(self):
         if self.window is None or self.window.closed:
@@ -59,6 +62,26 @@ class Application(Adw.Application):
                 self.window.point_to('login')
                 self.window.run_action('login')
         return 0
+
+
+def watch_removal(launcher, on_removed, delay_ms=1000):
+    """Removing the package (apt remove) deletes the launcher this app runs from: on_removed then, so no window goes on
+    running from deleted files. An upgrade replaces the file, which is there again when it is looked at a moment later.
+    Returns the monitor, to keep."""
+    pending = []
+
+    def look():
+        pending.clear()
+        if not launcher.exists():
+            on_removed()
+        return False
+
+    def changed(*_):
+        if not pending:
+            pending.append(GLib.timeout_add(delay_ms, look))
+    monitor = Gio.File.new_for_path(str(launcher)).monitor_file(Gio.FileMonitorFlags.NONE, None)
+    monitor.connect('changed', changed)
+    return monitor
 
 
 def wanted(argument):

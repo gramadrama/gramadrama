@@ -733,6 +733,25 @@ def package_engine_pids():
     return [int(p) for p in out.stdout.split()]
 
 
+def remove_user_copy():
+    """The package's setup on an account installed from the repository before (install): that copy's engine, panel and
+    launchers go, so that GNOME loads the package's panel (it prefers the user's, which may refuse the package's engine)
+    and the application grid opens the package's app. The backup of the sources, the settings and the downloaded tools
+    stay. True when there was a copy."""
+    if not (TARGET.exists() or EXTENSION.exists()):
+        return False
+    caller = os.getppid()  # the window that runs this setup stays open, whichever copy it came from
+    for pid in engine_pids() + [pid for pid in app_pids() if pid != caller]:
+        os.kill(pid, 15)
+    if EXTENSION.exists():
+        shutil.rmtree(EXTENSION)
+    unregister_browser_hosts()  # the copy's hosts; setup registers the package's after this
+    uninstall_app()
+    if TARGET.exists():
+        shutil.rmtree(TARGET)
+    return True
+
+
 def setup():
     """The package (.deb): GramaDrama on this account. The package installed the files and the IBus description; this does
     the rest, which only the user can (their GSettings, their browsers' hosts, their default for gramadrama://). The app's
@@ -743,16 +762,21 @@ def setup():
         sys.exit('Potrzebna jest sesja GNOME.')
     engine = account_engine(get_sources())
     layout = next(layout for layout, name in PACKAGE_ENGINES.items() if name == engine)
+    replaced = remove_user_copy()
+    if replaced:
+        print('Usunięto z tego konta kopię GramaDramy z instalatora (z repozytorium); ustawienia zostają.')
     register_browser_hosts(SYSTEM_DIR / 'gramadrama-browser-host')
     if not register_scheme(package=True):
         print('Uwaga: nie udało się zarejestrować adresu gramadrama:// (powrót z logowania do serwera); '
               'przy logowaniu wklej adres, na który wróciła przeglądarka.')
-    if not registered(engine):  # ibus-daemon read its descriptions before the package was installed
+    # ibus-daemon read its descriptions before the package was installed: it does not know the engine, or it starts
+    # the removed copy's
+    if replaced or not registered(engine):
         print('Uruchamiam ponownie IBus, żeby wczytał GramaDramę (pisanie zatrzyma się na ~1 s)…')
         subprocess.run(['systemctl', '--user', 'restart', IBUS_UNIT], check=True)
         if not wait(lambda: registered(engine), 15):
             sys.exit('IBus nie widzi silnika GramaDrama. Niczego więcej nie zmieniono.')
-    panel_changed = enable_on_account(layout, package=True, engine=engine)
+    panel_changed = enable_on_account(layout, package=True, engine=engine) or replaced
     print('Gotowe: GramaDrama jest włączona na tym koncie.')
     if panel_changed:
         print('Panel GramaDramy pojawi się po wylogowaniu i ponownym zalogowaniu. Do tego czasu wyniki są w zwykłym okienku IBus.')
@@ -809,7 +833,8 @@ def uninstall():
         shutil.rmtree(TARGET)
     BACKUP.unlink(missing_ok=True)
     print('Przywrócono źródła wprowadzania: %s' % get_sources())
-    if COMPONENT.exists():
+    if COMPONENT.exists() and str(LAUNCHER) in COMPONENT.read_text(encoding='utf-8', errors='replace'):
+        # only this copy's description: one that starts the package's engine (or another account's) is not ours to remove
         print('Aby usunąć też opis silnika z IBus, uruchom:\n\n  sudo rm %s\n' % COMPONENT)
         print('i zrestartuj IBus: systemctl --user restart %s' % IBUS_UNIT)
     return 0

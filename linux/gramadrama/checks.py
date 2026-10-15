@@ -116,6 +116,13 @@ def component_launcher(path=None):
     return next((Path(arg) for arg in args if arg.endswith('/gramadrama-engine')), None)
 
 
+def user_copy_present():
+    """This account has a copy from the installer (install_engine.py install): its engine or its panel in the user's data
+    directory. Next to the package it is a leftover: GNOME prefers the user's panel, which may refuse the package's engine."""
+    return ((data_home() / 'gramadrama-engine' / 'gramadrama-engine').exists()
+            or (data_home() / 'gnome-shell' / 'extensions' / EXTENSION_UUID).exists())
+
+
 def package_installed():
     """GramaDrama from the package: IBus starts the engine in SYSTEM_DIR. A user's old copy left behind does not count:
     the description decides which engine runs."""
@@ -494,14 +501,20 @@ def version_text(info, now=None):
     return text
 
 
-def engine_check(status, registered, installed, component, info, origin, differs, stale=False, package=False):
+def engine_check(status, registered, installed, component, info, origin, differs, stale=False, package=False, account=True,
+                 user_copy=False):
     """status: the engine's Status() or None when it is not running; registered: IBus lists the
     engine (None: the ibus CLI did not answer); installed: the copy in ~/.local/share/gramadrama-engine
     exists; component: 'current', 'outdated', 'missing' or 'unknown' (the description IBus reads);
     info: install_info(); origin: 'installed', 'repository' or None (where the running engine was
     started from); differs: the installed copy differs from its repository; stale: the running
     engine started before the installer last changed its code; package: the .deb is installed (no installer to run:
-    the account setup, a new login or apt)."""
+    the account setup, a new login or apt); account: GramaDrama is on for this account (package only; the setup's
+    button is on the input source's row until then); user_copy: this account also has a copy from the installer
+    (user_copy_present), which the package's setup removes."""
+    if package and user_copy:
+        return Check(WARNING, tr('Na tym koncie jest też kopia z instalatora (z repozytorium). Włącz GramaDramę na tym koncie: '
+                                 'kopia zniknie, zostanie wersja z paczki.'), 'setup')
     if status is not None:
         if status.get('test'):
             return Check(WARNING, tr('Działa w trybie testowym (GRAMADRAMA_ENGINE_TEST=1) — {value}.', value=tr('tylko z serwerem na 127.0.0.1') if status.get('backend') == 'real' else tr('poprawki nie trafiają do modelu')))
@@ -521,6 +534,8 @@ def engine_check(status, registered, installed, component, info, origin, differs
         if registered is False and package:
             if component == 'missing':
                 return Check(ERROR, tr('Brak plików z paczki — zainstaluj ją ponownie: sudo apt install --reinstall gramadrama.'))
+            if not account:
+                return Check(INFO, tr('IBus wczyta silnik, gdy włączysz GramaDramę na tym koncie.'))
             return Check(ERROR, tr('IBus nie wczytał silnika. Włącz GramaDramę na tym koncie (uruchomi IBus ponownie).'), 'setup')
         if registered is False:
             if component == 'missing':
@@ -539,12 +554,15 @@ def engine_check(status, registered, installed, component, info, origin, differs
 EXT_ACTIVE, EXT_INACTIVE, EXT_ERROR, EXT_OUT_OF_DATE, EXT_INITIALIZED = 1, 2, 3, 4, 6
 
 
-def panel_check(info, loaded, on_disk, changed_at, shell_started, user_disabled=False, package=False):
+def panel_check(info, loaded, on_disk, changed_at, shell_started, user_disabled=False, package=False, account=True):
     """info: GetExtensionInfo of the panel ({} when GNOME does not know it); loaded: the version
     its Ping reports (None: no answer); on_disk: the version in the installed metadata.json (None:
     not installed); changed_at: when the installer last changed the panel's files; shell_started:
     when GNOME Shell started (it looks for extensions and loads their code only then);
-    user_disabled: org.gnome.shell disable-user-extensions."""
+    user_disabled: org.gnome.shell disable-user-extensions; package, account: as for engine_check (the package's panel
+    is enabled by the account's setup)."""
+    if package and not account and on_disk is not None and not (info or {}).get('enabled'):
+        return Check(INFO, tr('Włączy się razem z GramaDramą na tym koncie, po ponownym zalogowaniu.'))
     if not info:
         if on_disk is not None:  # copied during this session: GNOME has not seen it yet
             return Check(WARNING, tr('Zainstalowany — wczyta się po wylogowaniu i ponownym zalogowaniu.'))
@@ -1442,5 +1460,6 @@ def probe_system(conn, app_dir):
         'install': install, 'source': source,
         'differs': bool(source) and copy_differs(source),
         'browser_hosts': registered_browser_hosts(), 'browsers_present': browsers_present(), 'package': package_installed(),
+        'user_copy': user_copy_present(),
         'browser_folder': str(browser_extension_dir(app_dir)),
     }

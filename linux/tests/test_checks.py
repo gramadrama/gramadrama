@@ -956,3 +956,35 @@ class PackageModeTests(unittest.TestCase):
                 self.assertEqual(C.source_check([('ibus', name), ('xkb', 'us')], name, package=True).state, OK)
         self.assertEqual(C.source_check([('ibus', 'other'), ('xkb', 'us')], 'other', package=True).action, 'setup')
 
+    def test_before_the_setup_one_button_and_no_promise_of_a_panel(self):
+        """Not on for this account yet: the engine and the panel wait for the setup, whose button is the input
+        source's; the panel does not load at the next login before that."""
+        engine = C.engine_check(None, False, True, 'current', {}, None, False, package=True, account=False)
+        self.assertEqual((engine.state, engine.action), (INFO, None))
+        missing = C.engine_check(None, False, True, 'missing', {}, None, False, package=True, account=False)
+        self.assertIn('--reinstall', missing.text)  # files missing is still the error it is
+        unknown = C.panel_check({}, None, 20, None, None, package=True, account=False)  # GNOME has not seen it yet
+        off = C.panel_check({'state': 2, 'enabled': False}, None, 20, None, None, package=True, account=False)
+        for panel in (unknown, off):
+            self.assertEqual((panel.state, panel.action), (INFO, None))
+            self.assertIn('na tym koncie', panel.text)
+        self.assertNotIn('wczyta się po', unknown.text)
+        # once on: the panel as before (enabled now, GNOME loads it at the next login)
+        after = C.panel_check({}, None, 20, None, None, package=True, account=True)
+        self.assertIn('wczyta się po wylogowaniu', after.text)
+        enabled = C.panel_check({'state': 1, 'enabled': True}, '20', 20, None, None, package=True, account=False)
+        self.assertEqual(enabled.state, OK)
+
+    def test_a_copy_from_the_installer_next_to_the_package(self):
+        leftover = C.engine_check({'pid': 1}, True, True, 'current', {}, 'repository', False, package=True,
+                                  user_copy=True)
+        self.assertEqual((leftover.state, leftover.action), (WARNING, 'setup'))
+        self.assertIn('kopia z instalatora', leftover.text)
+        alone = C.engine_check({'pid': 1}, True, True, 'current', {}, 'installed', False, user_copy=True)
+        self.assertNotEqual(alone.action, 'setup')  # the source install itself: its own copy is no leftover
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict('os.environ', {'XDG_DATA_HOME': tmp}):
+            self.assertFalse(C.user_copy_present())
+            panel = Path(tmp, 'gnome-shell', 'extensions', C.EXTENSION_UUID)
+            panel.mkdir(parents=True)
+            self.assertTrue(C.user_copy_present())
+
