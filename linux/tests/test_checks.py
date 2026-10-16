@@ -732,11 +732,14 @@ class InstalledCopyTests(unittest.TestCase):
             settings, _ = C.read_settings()
             self.assertEqual((settings.languagetool_url, settings.model), ('nie-adres', 'm'))  # shown to be corrected
             path.write_text('{"llm_url": "http://h:1", "llm_api": "openai", "languagetool_url": "http://h:2", "model": "m", "extra": 1}')
-            self.assertEqual(C.read_settings(), (core.Settings(llm_url='http://h:1', languagetool_url='http://h:2', model='m'), {}))
+            # a file without live_model_only was written while the layers were the default: it keeps them
+            self.assertEqual(C.read_settings(), (core.Settings(llm_url='http://h:1', languagetool_url='http://h:2', model='m',
+                                                               live_model_only=False), {}))
             # before 2026-10 the model server was ollama_url and spoke Ollama's own API
             path.write_text('{"ollama_url": "http://h:1", "languagetool_url": "http://h:2", "model": "m"}')
             self.assertEqual(C.read_settings(), (core.Settings(llm_url='http://h:1', llm_api='ollama',
-                                                                languagetool_url='http://h:2', model='m'), {}))
+                                                                languagetool_url='http://h:2', model='m',
+                                                                live_model_only=False), {}))
 
     def test_texts_for_refused_settings(self):
         whole = C.settings_check({C.FILE: '/x/settings.json nie jest poprawnym plikiem JSON'})
@@ -777,12 +780,12 @@ class InstalledCopyTests(unittest.TestCase):
             self.assertIsNone(error)
             self.assertEqual(backup.read_text(), broken)  # kept for the user
             self.assertEqual(json.loads(path.read_text()), dict(dataclasses.asdict(core.Settings()), llm_url='http://o:2',
-                                                                languagetool_url='http://lt:1'))
+                                                                languagetool_url='http://lt:1', live_model_only=False))
             self.assertEqual(C.read_settings()[1], {})
             # a refused text value that is not the one being saved: it goes back to its default
             path.write_text('{"model": 5, "languagetool_url": "nie-adres", "llm_url": "http://o:2"}')
             self.assertIsNone(C.save_setting('llm_url', 'http://o:3')[0])
-            self.assertEqual(C.read_settings(), (core.Settings(llm_url='http://o:3'), {}))  # the refused ones: defaults
+            self.assertEqual(C.read_settings(), (core.Settings(llm_url='http://o:3', live_model_only=False), {}))  # the refused ones: defaults
             # the model alone can repair the file too
             path.write_text('{"model": 7}')
             self.assertIsNone(C.save_setting('model', 'bielik')[0])

@@ -57,6 +57,12 @@ def setting(name, default=True):
     return value if isinstance(value, bool) else default
 
 
+def model_only():
+    """live_model_only as core.Settings reads it: settings written without it keep the layers, a new install
+    (no settings) checks with the model alone."""
+    return setting('live_model_only', not _data())
+
+
 def remote_url():
     """The saved server address, also retained while the built-in Whisper is selected."""
     value = _data().get('whisper_url')

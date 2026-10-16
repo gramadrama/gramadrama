@@ -353,6 +353,8 @@ def read_settings():
     data = core.Settings.migrated(data)  # before 2026-10: ollama_url, Ollama's own API
     problems = {k: field_problem(k, data[k]) for k in fields if k in data}
     settings = core.Settings(**{k: v for k, v in data.items() if k in fields and _shown(k, v)})
+    if data and not isinstance(data['live_model_only'], bool):
+        settings.live_model_only = False  # as the live service reads it: only true checks with the model alone
     if not any(problems.get(field) for field in shortcuts.DEFAULTS):
         if shortcuts.parse(settings.correction_shortcut) == shortcuts.parse(settings.translation_shortcut):
             problems.update({field: tr(shortcuts.DUPLICATE) for field in shortcuts.DEFAULTS})

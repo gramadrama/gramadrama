@@ -1,8 +1,8 @@
 """Pisanie (WritingTab.swift on the Mac): only how GramaDrama checks text. The languages of the text (Linux: one or two of
-Polish, English and German), checking while typing (docs/live-check.md), with one choice of the way it checks,
-standard or model only, instead of switches that switch each other, and the user's dictionary with the rules turned off
-(dictionary.py; Linux only for now). Servers and models are in Usługi; the mode of the correction shortcut for an app is in
-Aplikacje."""
+Polish, English and German), checking while typing (docs/live-check.md), with one choice of the way it checks, the model
+only (the default) or layered, instead of switches that switch each other, and the user's dictionary with the rules
+turned off (dictionary.py; Linux only for now). Servers and models are in Usługi; the mode of the correction shortcut
+for an app is in Aplikacje."""
 from gi.repository import Adw, GLib, Gtk
 
 from .. import checks, core, dictionary
@@ -11,9 +11,10 @@ from ..i18n import tr
 from .common import StatusRow, show_text, toggle_group
 
 TEXT_LANGUAGES = (('pl', 'Polski'), ('en', 'Angielski'), ('de', 'Niemiecki'))
-# The ways of checking while typing (Settings.live_model_only), as the Mac's "Sposób sprawdzania".
-CHECKING = (('standard', 'Standardowy'), ('model', 'Tylko model'))
-# The switches of the standard way: (field, title, subtitle); {model} is the model's name.
+# The ways of checking while typing (Settings.live_model_only), as the Mac's "Sposób sprawdzania"; the default first (the
+# Mac's is still the layered one, which it calls Standardowy).
+CHECKING = (('model', 'Tylko model'), ('standard', 'Warstwowy'))
+# The switches of the layered way: (field, title, subtitle); {model} is the model's name.
 LIVE_LAYERS = (('live_languagetool', 'Gramatyka i interpunkcja', 'LanguageTool, po chwili bez pisania.'),
                ('live_bielik', 'Trudniejsze błędy', '{model}, po dłuższej przerwie.'))
 MAX_WORDS_SHOWN = 100  # the latest words added to the dictionary in its list; Enchant's lists may hold many more
@@ -140,7 +141,7 @@ class WritingTab:
         return group
 
     def refresh_live(self, settings=None):
-        """The rows follow the switch and the way of checking: the layers of the standard way only with it, nothing while
+        """The rows follow the switch and the way of checking: the layers of the layered way only with it, nothing while
         checking is off. The model's name is the one chosen in Usługi."""
         settings = settings or self.load_settings()
         on = self.live_rows['live_check'].get_active()
@@ -148,9 +149,9 @@ class WritingTab:
         name = model_name(settings)
         self.live_rows['live_check'].set_subtitle(tr('We wszystkich aplikacjach poza wyłączonymi.') if on else
                                                   tr('Wyłączone — błędy tylko po skrócie korekty.'))
-        self.checking_row.set_subtitle(tr('Eksperymentalne: tylko {value}. Wolniej niż słownik i LanguageTool.', value=name)
+        self.checking_row.set_subtitle(tr('Tekst sprawdza {value} po krótkiej przerwie w pisaniu.', value=name)
                                        if model_only else tr('Słownik na tym komputerze, potem LanguageTool i model.'))
-        self.checking_icon.set_from_icon_name('applications-science-symbolic' if model_only else 'view-list-bullet-symbolic')
+        self.checking_icon.set_from_icon_name('tools-check-spelling-symbolic' if model_only else 'view-list-bullet-symbolic')
         self.checking.set_sensitive(on)
         dictionaries = checks.dictionary_check(checks.missing_dictionaries(settings.languages)) if on and not model_only else None
         self.dictionaries_row.set_visible(dictionaries is not None)

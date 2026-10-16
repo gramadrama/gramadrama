@@ -593,7 +593,7 @@ class PurityTests(unittest.TestCase):
 
 
 class SettingsWhyTests(unittest.TestCase):
-    """backend._settings_why: on a new install (no model for Ollama on this computer) whether Ollama is missing, does
+    """backend.settings_why: on a new install (no model for Ollama on this computer) whether Ollama is missing, does
     not answer or answers (engine/problems.py: what the panel says to do first)."""
 
     def settings(self, **fields):
@@ -604,7 +604,7 @@ class SettingsWhyTests(unittest.TestCase):
 
     def why(self, settings, installed=False):
         with mock.patch('gramadrama.checks.ollama_installed', return_value=installed):
-            return backend._settings_why(core, settings)
+            return backend.settings_why(core, settings)
 
     def test_ollama_missing_or_not_answering(self):
         settings = self.settings(llm_local_url='http://127.0.0.1:%d' % closed_port())

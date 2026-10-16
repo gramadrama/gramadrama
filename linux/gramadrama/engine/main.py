@@ -752,10 +752,10 @@ class App:
         self.live.send(command, start=command.get('cmd') in ('text', 'learn'))
 
     def start_correction(self, engine, effect):
-        """Experimental Popraw uses the live service's exact result. Called only off the key path."""
+        """Popraw with Model only checking uses the live service's exact result. Called only off the key path."""
         if (effect.mode != 'fix' or not engine.backend.real or engine.backend.reply is not None
                 or (backend.test_hooks() and os.environ.get('GRAMADRAMA_DEBUG_REPLY') is not None)
-                or not speech.setting('live_check', LIVE_DEFAULT) or not speech.setting('live_model_only', False)):
+                or not speech.setting('live_check', LIVE_DEFAULT) or not speech.model_only()):
             return False
         self.correction_serial += 1
         rid = self.correction_serial

@@ -513,6 +513,34 @@ class ModelOnlyTests(unittest.TestCase):
         self.assertNotIn('note', self.issues()[-1])
         self.assertEqual(S.unchecked_note(2), 'Zdania: 2 bez sprawdzenia — model zwrócił niepewną odpowiedź.')
 
+    def test_without_a_model_every_field_says_checking_waits_for_one(self):
+        # the default way of a new install, before a model is set: the badge's „!” instead of silence
+        waiting = 'Sprawdzanie czeka na model (aplikacja GramaDrama › Usługi).'
+        with mock.patch.object(S, 'backend', return_value=None):
+            self.check('To domm.')
+            last = self.issues()[-1]
+            self.assertEqual((last['issues'], last.get('note'), last['checking']), ([], waiting, False))
+            self.assertEqual(self.calls, [])
+            self.monitor.text_changed(2, 'Inny tekst.', None)
+            self.monitor._layer2(self.monitor.version, 2, 'Inny tekst.')
+            self.assertEqual(self.issues()[-1].get('note'), waiting)
+        self.current = dataclasses.replace(self.current, model='other-test-model')  # chosen in Usługi
+        self.monitor.refresh_settings(self.current)
+        self.assertNotIn('note', self.issues()[-1])
+
+    def test_a_correction_without_a_model_says_what_to_set_up(self):
+        # the panel's cause with its Usługi button (engine/problems.py), as the ordinary correction, not a retry
+        self.current = dataclasses.replace(self.current, model='', languagetool_url='nie-adres')
+        with mock.patch.object(S, 'backend', return_value=None), \
+                mock.patch('gramadrama.engine.backend.settings_why', return_value='no_model') as why:
+            reply = self.correction(8, 'To domm.')
+        self.assertEqual((reply['kind'], reply['why']), ('error', 'no_model'))
+        self.assertEqual(reply['message'], 'Ustawienia: Wybierz model (aplikacja GramaDrama › Usługi).')
+        self.assertEqual(why.call_args.args[1].languagetool_url, '')  # LanguageTool plays no part in this way
+        self.current = dataclasses.replace(self.current, model='test-model')
+        with mock.patch.object(S, 'backend', return_value=None):  # the settings are complete: nothing to set up
+            self.assertEqual(self.correction(9, 'To domm.')['why'], 'no_backend')
+
     def test_the_standard_mode_has_no_note(self):
         self.current = dataclasses.replace(self.current, live_model_only=False, live_bielik=True)
         self.monitor.refresh_settings(self.current)

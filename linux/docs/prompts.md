@@ -74,8 +74,8 @@ German is chosen in the language settings; there is no need to replace the `pl` 
 On Linux a correction is told how to spell the words of your [dictionary](live-check.md#dictionary-and-rules)
 that its text uses: a line `Spell these names and terms exactly like this: …` comes before the last user message,
 after the examples, so the part of the request the model server keeps cached stays the same. Only words that are
-already in the text are named, up to 20; a translation gets none, because it may translate them. The experimental
-model-only checking adds the same kind of line, in Polish, before its fragment. The dictation cleanup has always
+already in the text are named, up to 20; a translation gets none, because it may translate them. Model-only
+checking adds the same kind of line, in Polish, before its fragment. The dictation cleanup has always
 had the own words in its system prompt; it now gets the words added to the dictionary too.
 These lines are not pieces of the prompt files. macOS does not add them yet.
 

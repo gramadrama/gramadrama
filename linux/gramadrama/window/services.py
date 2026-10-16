@@ -138,7 +138,8 @@ class ServicesTab:
 
     # ---- LanguageTool ----
     def build_languagetool(self, settings):
-        group = Adw.PreferencesGroup(title='LanguageTool', description=tr('Gramatyka podczas pisania i uzasadnienia zmian; opcjonalny.'))
+        group = Adw.PreferencesGroup(title='LanguageTool', description=tr(
+            'Opcjonalny: gramatyka podczas pisania i uzasadnienia zmian. Nieużywany, gdy w Pisaniu wybrano „Tylko model”.'))
         self.lt_where = LocationRow(lambda name: self.location_selected('languagetool_location', name))
         self.lt_local_entry = AddressRow(tr('Adres LanguageTool'), settings.languagetool_local_url,
                                          lambda row: self.apply_address(row, 'languagetool_local_url'), default=core.LOCAL_LANGUAGETOOL)

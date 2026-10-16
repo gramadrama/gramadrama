@@ -289,10 +289,11 @@ Details: [dictation](docs/dictation.md).
   <img src="docs/app/app-dictation-light.png" width="320" alt="Dictation: the key, the speech language and the cleanup by the model">
 </picture>
 
-While you type, the local dictionary checks spelling, and after a pause LanguageTool
-and the model can join in. **Writing → Checking** (*Pisanie → Sposób sprawdzania*) is either **Standard** (*Standardowy*;
-the layers can be turned off separately) or the experimental **Model only** (*Tylko model*), which uses only the model
-chosen in **Services**, without LanguageTool and the local dictionary; **Standard** is the default.
+While you type, the model chosen in **Services** checks the text after a short pause. **Writing → Checking**
+(*Pisanie → Sposób sprawdzania*) is either **Model only** (*Tylko model*), the default, without LanguageTool and the
+local dictionary, or **Layered** (*Warstwowy*): the local dictionary checks spelling at once, and after a pause
+LanguageTool and the model join in; these layers can be turned off separately. Settings saved by an earlier version
+keep the layered way.
 The badge shows the number of errors, and a suggestion corrects
 the chosen word. GTK applications with AT-SPI accessibility and browsers with the extension also get underlines;
 without word geometry the badge is available. See [live checking](docs/live-check.md).

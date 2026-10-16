@@ -493,7 +493,7 @@ class LanguageProfileTests(unittest.TestCase):
         self.assertEqual(checker.quick(L.LiveText('ze to jest', ('en',))), [])
 
     def test_switching_languages_clears_issues_and_cancels_pending_work(self):
-        with mock.patch.object(S, 'settings', return_value=core.Settings()), mock.patch.object(S, 'emit'):
+        with mock.patch.object(S, 'settings', return_value=core.Settings(live_model_only=False)), mock.patch.object(S, 'emit'):
             monitor = S.Monitor(S.Checker({}))
             monitor.text_changed(1, 'Test', None)
             monitor.quick = [L.Issue(0, 4, 'Test', '', ('test',), 'słownik', 'SPELLING_PL')]
@@ -507,7 +507,7 @@ class LanguageProfileTests(unittest.TestCase):
         self.assertEqual((monitor.quick, monitor.lt, monitor.bielik, monitor.cache), ([], [], [], {}))
 
     def test_model_cache_is_per_language_profile_and_english_model_issues_are_kept(self):
-        selected = [core.Settings(llm_url='http://127.0.0.1:11434', model='test-model',
+        selected = [core.Settings(llm_url='http://127.0.0.1:11434', model='test-model', live_model_only=False,
                                   primary_language='en', secondary_language='')]
         server = mock.Mock()
         server.correct.return_value = 'This is a test.'
@@ -524,7 +524,7 @@ class LanguageProfileTests(unittest.TestCase):
 
     def test_result_of_old_language_profile_is_discarded_after_settings_change(self):
         for layer in ('model', 'languagetool'):
-            selected = [core.Settings(llm_url='http://127.0.0.1:11434', model='test-model',
+            selected = [core.Settings(llm_url='http://127.0.0.1:11434', model='test-model', live_model_only=False,
                                       languagetool_url='http://127.0.0.1:8010')]
             server = mock.Mock()
             checker = mock.Mock()

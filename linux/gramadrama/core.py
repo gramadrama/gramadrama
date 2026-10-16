@@ -619,11 +619,12 @@ class Settings:
     dictation_language: str = 'pl'  # 'pl' (with English words), 'en' or 'auto' (Whisper detects it)
     dictation_cleanup: str = 'off'  # the model's cleanup: 'auto' (gdy trzeba), 'always' or 'off'
     dictation_vocabulary: str = ''  # own words, comma separated: the Whisper prompt and the model's spelling list
-    # Live checking (docs/live-check.md), with the macOS defaults: on, with LanguageTool and the model.
+    # Live checking (docs/live-check.md): on, with the selected model alone. The layered way (the dictionary, LanguageTool,
+    # then the model) is a choice in Pisanie; it is still the default on macOS and of settings written before (migrated).
     live_check: bool = True
-    live_model_only: bool = False  # Linux experiment: the selected model replaces the other live layers
-    live_languagetool: bool = True  # after a short pause: the field's text to the server
-    live_bielik: bool = True  # after a longer pause: up to 1500 characters to the model
+    live_model_only: bool = True  # the selected model replaces the layers below
+    live_languagetool: bool = True  # layered: after a short pause, the field's text to the server
+    live_bielik: bool = True  # layered: after a longer pause, up to 1500 characters to the model
     primary_language: str = 'pl'
     secondary_language: str = 'en'  # empty: a single language, no translation/Shift alternation
     correction_shortcut: str = 'Ctrl+Alt+G'
@@ -652,11 +653,14 @@ class Settings:
         """The content of a settings.json as the fields of today. Before 2026-10 the model server was ollama_url, and spoke
         Ollama's own API. The remote addresses of before the Usługi tab (llm_remote_url, languagetool_remote_url, 2026-10-06)
         are the gateway's paths now and are not read; the location of a service ('auto') follows its address until it is
-        chosen (located)."""
+        chosen (located). Settings without live_model_only were written while the layers were the default, and keep them;
+        no settings at all ({}) are a new install's."""
         data = dict(data)
         if 'ollama_url' in data and 'llm_url' not in data:
             data['llm_url'] = data['ollama_url']
             data.setdefault('llm_api', 'ollama')
+        if data and 'live_model_only' not in data:
+            data['live_model_only'] = False
         return data
 
     @classmethod

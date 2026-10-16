@@ -97,6 +97,24 @@ def paused_note(current):
     return tr('{model} nie odpowiada — sprawdzanie wstrzymane na minutę.', model=core.display_name(current.model))
 
 
+def waiting_note():
+    """Model only without a model to ask (a new install, an address that is no address): why nothing is checked. The
+    badge's click opens Popraw, whose panel says what is missing (settings_error) with its Usługi button."""
+    return tr('Sprawdzanie czeka na model (aplikacja GramaDrama › Usługi).')
+
+
+def settings_error(current):
+    """Why Model only cannot correct when there is no backend(): the cause the ordinary correction gives
+    (engine/backend.py), so the panel offers Usługi instead of a retry that cannot help."""
+    from .engine import backend as engine_backend
+    current = dataclasses.replace(current, languagetool_url='', languagetool_local_url='')  # as backend(): no LT here
+    try:
+        current.validate()
+    except ValueError as exc:
+        return core.BackendError(tr('Ustawienia: %s') % exc, kind=engine_backend.settings_why(core, current))
+    return core.BackendError(tr(engine_backend.FAILED), kind='no_backend')
+
+
 def unchecked_note(rejected):
     """Model only: how many sentences got an unusable answer (model_live.REJECTED) and stay unchecked; None for none."""
     if not rejected:
@@ -473,7 +491,7 @@ class Monitor:
                 server = backend(dataclasses.replace(current, llm_think='off',
                                                      languagetool_url='', languagetool_local_url=''))
                 if server is None:
-                    raise core.BackendError(tr(engine_backend.FAILED), kind='no_backend')
+                    raise settings_error(current)
                 words = dictionary.user_words(current)
                 result = self.fragments.check(request.text, lambda fragment, event: model_live.correct_fragment(
                     server, fragment, event, words=words), request.identity, request.cancel)
@@ -802,15 +820,16 @@ class Monitor:
             self._send()
 
     def _model_only(self, version, field, text, current):
-        if not core.model_server(current)[0] or not text.strip() or '\ufffc' in text:
+        if not text.strip() or '\ufffc' in text:
             return
         if time.monotonic() < self.backoff_until:
             self._noted(version, paused_note(current))  # every field in the pause says why it shows nothing (macOS)
             return
         # This route has no dependency on LT, including validation of its unused address.
-        server = backend(dataclasses.replace(current, llm_think='off',
-                                             languagetool_url='', languagetool_local_url=''))
+        server = backend(dataclasses.replace(current, llm_think='off', languagetool_url='',
+                                             languagetool_local_url='')) if core.model_server(current)[0] else None
         if server is None:
+            self._noted(version, waiting_note())  # the default way of a new install, before a model is set
             return
         cancel = threading.Event()
         identity = profile(current)

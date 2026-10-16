@@ -6,46 +6,29 @@ Underlines appear in applications that expose word geometry and in the browser w
 A result edited in the correction panel is checked by the same spelling and rule layers, without the model
 (the text came from it); the panel itself then shows the underlines and fixes.
 
-## Standard layered mode
+## Model only — the default
 
-| Layer | When | Where it runs |
-|---|---|---|
-| Spelling | after the text changes | local Enchant dictionaries |
-| Grammar rules | after about 0.8 s without typing | the configured LanguageTool |
-| Model correction | after a longer pause, about 3 s | the configured language model |
+**Writing → Checking** (*Pisanie → Sposób sprawdzania*) chooses how the text is checked. On Linux the default is
+**Model only** (*Tylko model*; `live_model_only: true`): the model chosen in the **Services** (*Usługi*) tab checks the
+text alone, e.g. a configured Gemma; GramaDrama does not download or choose a model itself. The other choice is
+**Layered** (*Warstwowy*), with the local dictionary, LanguageTool and the model, described [below](#layered-mode).
+Settings saved before Model only became the default (they have no `live_model_only`) keep the layered way, and so
+does macOS, where it is called *Standardowy* and is still the default. The choice requires **Check while typing**
+(*Sprawdzaj podczas pisania*) to be on.
 
-Each server layer can be turned off separately. Turning off live checking stops all of it.
-The code keeps the historical setting name `live_bielik` for the model layer, but it does not require
-the Bielik model.
+Until a model is set, the badge of every field is a brick circle with „!”, and its list says „Sprawdzanie czeka na
+model (aplikacja GramaDrama › Usługi).” (*Checking waits for a model…*). Clicking the badge opens **Correct**, whose
+panel says what is missing, with a button that opens **Services**.
 
-Checking uses the [languages chosen in the app](languages.md). Enchant needs the matching
-dictionaries (on Ubuntu `hunspell-pl`, `hunspell-en-us`, `hunspell-de-de`), and LanguageTool needs support for the given
-language code. A language without its dictionary is named in **Writing**, with the command that installs it; the
-service opens a dictionary installed later within a minute, without a restart. With one language, the whole text is
-checked as that language. With two, the text is split into sentences; masking the remaining
-fragments keeps the error positions. Short and mixed sentences can be ambiguous.
-
-Links, email addresses, mentions, code and recognised names are filtered out to limit false alarms.
-The word being typed is not reported straight away. While you edit, the positions of known errors are
-shifted, and results that no longer match the new text are discarded. Suggestions from overlapping
-layers are merged.
-
-## Model only — experimental mode
-
-In **Writing → Checking** (*Pisanie → Sposób sprawdzania*), choosing **Model only** (*Tylko model*; as on macOS)
-replaces the layers above during live checking; the rows of those layers disappear. The default is **Standard**
-(*Standardowy*; `live_model_only: false`), and the choice requires **Check while typing** (*Sprawdzaj podczas pisania*)
-to be on. The mode uses the model chosen in the **Services** (*Usługi*) tab, e.g. a configured Gemma; it does not
-download or choose a model itself.
 In this mode the text is not checked by LanguageTool or the local dictionary.
-The switches of those layers keep their values for the return to the standard mode.
+The switches of those layers keep their values for the layered mode.
 With checking on in this mode, the **Correct** shortcut and clicking the badge
 use the same minimal correction as the underlines. Finished results for fragments
 are reused; if a check of the same text is running, the panel waits for its
 result instead of sending a second request. A new or changed fragment has to be checked.
 This mode uses its own minimal-correction instruction, also in the **Correct** panel.
 Custom prompts for ordinary correction, translation and the style modes remain available
-in their usual paths; turning the experiment off restores the ordinary **Correct**.
+in their usual paths; choosing **Layered** restores the ordinary **Correct**.
 
 After about 0.8 s without a change to the text, the service splits the checked area into fragments of up to 320 characters.
 The area still has a limit of 6000 characters; IBus or the browser may provide a smaller window
@@ -68,7 +51,34 @@ With no issues the badge is then a brick circle with „!”. A correction with 
 such an answer, with the panel's message. The 0.8 s pause sets when checking starts, not when the underlines appear:
 the result depends on the server, the model, the length of the text and whether the cache is hit.
 The model can miss an error or propose an unnecessary change, and splitting into fragments limits the context.
-Suggestions need to be reviewed before they are applied. The mode is an experiment in the Linux client.
+A misspelt word is underlined only with the model's answer, not at once as by the dictionary of the layered way.
+Suggestions need to be reviewed before they are applied.
+
+## Layered mode
+
+With **Layered** (*Warstwowy*) chosen in **Writing → Checking**, three layers check the text:
+
+| Layer | When | Where it runs |
+|---|---|---|
+| Spelling | after the text changes | local Enchant dictionaries |
+| Grammar rules | after about 0.8 s without typing | the configured LanguageTool |
+| Model correction | after a longer pause, about 3 s | the configured language model |
+
+Each server layer can be turned off separately. Turning off live checking stops all of it.
+The code keeps the historical setting name `live_bielik` for the model layer, but it does not require
+the Bielik model.
+
+Checking uses the [languages chosen in the app](languages.md). Enchant needs the matching
+dictionaries (on Ubuntu `hunspell-pl`, `hunspell-en-us`, `hunspell-de-de`), and LanguageTool needs support for the given
+language code. A language without its dictionary is named in **Writing**, with the command that installs it; the
+service opens a dictionary installed later within a minute, without a restart. With one language, the whole text is
+checked as that language. With two, the text is split into sentences; masking the remaining
+fragments keeps the error positions. Short and mixed sentences can be ambiguous.
+
+Links, email addresses, mentions, code and recognised names are filtered out to limit false alarms.
+The word being typed is not reported straight away. While you edit, the positions of known errors are
+shifted, and results that no longer match the new text are discarded. Suggestions from overlapping
+layers are merged.
 
 ## Reading and replacing text
 
@@ -154,9 +164,9 @@ The process messages are JSON: text, clear, ignore, learn a word, turn a rule of
 | Setting | Default | Meaning |
 |---|---|---|
 | `live_check` | true | checking while typing |
-| `live_model_only` | false | experimental live checking with the configured model only |
-| `live_languagetool` | true | sending to LanguageTool |
-| `live_bielik` | true | sending to the model |
+| `live_model_only` | true | checking with the configured model only; false: layered (settings saved without the field) |
+| `live_languagetool` | true | layered: sending to LanguageTool |
+| `live_bielik` | true | layered: sending to the model |
 | `live_underlines` | true | underlines where geometry is available |
 
 ## Privacy and verification

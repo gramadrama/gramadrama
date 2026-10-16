@@ -33,7 +33,7 @@ class Problem:
 
 TABLE = {
     # 1 · something must be set up. A new install has no model server of its own (docs/open-source-plan.md): these three
-    # are told apart by backend._settings_why when no model is chosen for Ollama on this computer.
+    # are told apart by backend.settings_why when no model is chosen for Ollama on this computer.
     'no_ollama': Problem(1, 'Nie ma jeszcze modelu językowego',
                          'Ollama nie jest zainstalowana na tym komputerze. Zainstaluj ją albo podaj adres serwera — oba '
                          'sposoby są w zakładce Usługi.', (SERVICES,)),

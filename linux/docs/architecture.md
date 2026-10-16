@@ -202,7 +202,7 @@ A correction in an IBus field, with the default shortcuts:
    API), streams partials at most ten times a second and, except for translations, asks
    LanguageTool for the reasons of the changes in parallel. The result is post-processed, diffed
    (`segments`), turned into a change list (`changes`, at most 30) and sent at once; LanguageTool's
-   reasons may follow as a separate `changes` message. With the experimental model-only live mode,
+   reasons may follow as a separate `changes` message. With model-only live checking (the default),
    Correct uses the live service's model path and its cache instead.
 4. Every partial and the result become a view sent with `Show`. Once the panel (or, without it,
    the IBus popup) is on screen, the session is modal: Enter, Esc, Ctrl+1…6 and the other session

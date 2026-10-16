@@ -22,9 +22,11 @@ class ModelOnlySettingsTests(unittest.TestCase):
         patch.start()
         self.addCleanup(patch.stop)
 
-    def test_new_and_existing_installations_require_explicit_opt_in(self):
-        self.assertIs(core.Settings().live_model_only, False)
-        self.assertIs(core.Settings.load().live_model_only, False)
+    def test_a_new_install_checks_with_the_model_and_an_existing_one_keeps_the_layers(self):
+        self.assertIs(core.Settings().live_model_only, True)
+        self.assertIs(core.Settings.load().live_model_only, True)  # no settings yet
+        self.assertIs(checks.read_settings()[0].live_model_only, True)
+        # written while the layers were the default
         self.path.write_text(json.dumps({'live_check': True, 'live_languagetool': False,
                                          'live_bielik': True, 'model': 'example-model'}))
         loaded = core.Settings.load()
@@ -32,6 +34,7 @@ class ModelOnlySettingsTests(unittest.TestCase):
         self.assertIs(loaded.live_languagetool, False)
         self.assertIs(loaded.live_bielik, True)
         self.assertEqual(loaded.model, 'example-model')
+        self.assertIs(checks.read_settings()[0].live_model_only, False)
         self.assertNotIn('live_model_only', json.loads(self.path.read_text()))
 
     def test_opt_in_round_trip_preserves_other_settings(self):
@@ -197,13 +200,22 @@ class LiveSwitchTests(unittest.TestCase):
             group = writing.WritingTab.build_live(owner, settings)
         return owner, group
 
-    def test_the_standard_way_is_the_default_with_its_layers(self):
+    def test_the_model_only_way_is_the_default(self):
         owner, group = self.build(core.Settings(model='hf.co/google/gemma-4-12B-it-qat-q4_0-gguf:latest'))
-        self.assertEqual(owner.checking.get_active_name(), 'standard')
-        self.assertEqual(owner.checking_row.subtitle, 'Słownik na tym komputerze, potem LanguageTool i model.')
+        self.assertEqual(writing.CHECKING[0][0], 'model')  # shown first
+        self.assertEqual(owner.checking.get_active_name(), 'model')
+        self.assertEqual(owner.checking_row.subtitle, 'Tekst sprawdza Gemma-4-12B po krótkiej przerwie w pisaniu.')
         self.assertEqual([row.title for row in group.rows], ['Sprawdzaj podczas pisania', 'Sposób sprawdzania', 'Słowniki',
                                                              'Gramatyka i interpunkcja', 'Trudniejsze błędy',
                                                              'Podkreślenia pod słowami'])
+        self.assertFalse(owner.live_rows['live_languagetool'].visible or owner.live_rows['live_bielik'].visible)
+        owner, _ = self.build(core.Settings())
+        self.assertEqual(owner.checking_row.subtitle, 'Tekst sprawdza model po krótkiej przerwie w pisaniu.')  # none chosen
+
+    def test_the_layered_way_shows_its_layers(self):
+        owner, _ = self.build(core.Settings(live_model_only=False, model='hf.co/google/gemma-4-12B-it-qat-q4_0-gguf:latest'))
+        self.assertEqual(owner.checking.get_active_name(), 'standard')
+        self.assertEqual(owner.checking_row.subtitle, 'Słownik na tym komputerze, potem LanguageTool i model.')
         self.assertFalse(owner.dictionaries_row.visible)  # every text language has its dictionary
         self.assertTrue(owner.live_rows['live_languagetool'].visible and owner.live_rows['live_bielik'].visible)
         self.assertEqual(owner.live_rows['live_bielik'].subtitle, 'Gemma-4-12B, po dłuższej przerwie.')
@@ -211,7 +223,7 @@ class LiveSwitchTests(unittest.TestCase):
     def test_model_only_hides_the_layers_and_names_the_model(self):
         owner, _ = self.build(core.Settings(live_model_only=True, model='qwen3:8b'))
         self.assertEqual(owner.checking.get_active_name(), 'model')
-        self.assertIn('Eksperymentalne: tylko Qwen3:8b.', owner.checking_row.subtitle)
+        self.assertEqual(owner.checking_row.subtitle, 'Tekst sprawdza Qwen3:8b po krótkiej przerwie w pisaniu.')
         self.assertFalse(owner.live_rows['live_languagetool'].visible or owner.live_rows['live_bielik'].visible)
 
     def test_sensitivity_and_visibility_follow_the_switch_and_the_way_without_changing_values(self):
@@ -232,7 +244,7 @@ class LiveSwitchTests(unittest.TestCase):
                     save.assert_not_called()
 
     def test_the_way_saves_only_its_field_and_keeps_the_layers(self):
-        settings = core.Settings(live_languagetool=False, live_bielik=True)
+        settings = core.Settings(live_model_only=False, live_languagetool=False, live_bielik=True)
         owner, _ = self.build(settings)
         with mock.patch.object(checks, 'save_setting', return_value=(None, None)) as save:
             owner.checking.set_active_name('model')
@@ -264,7 +276,8 @@ class LiveSwitchTests(unittest.TestCase):
         """A text language without its spelling dictionary (hunspell-pl on an English system): the Słowniki row says so,
         with the command; not while checking is off or in the model-only way, which uses no dictionary."""
         self.missing = ['pl']
-        owner, _ = self.build(core.Settings())
+        self.assertFalse(self.build(core.Settings())[0].dictionaries_row.visible)  # the default way: the model alone
+        owner, _ = self.build(core.Settings(live_model_only=False))
         self.assertTrue(owner.dictionaries_row.visible)
         self.assertIn('Brak słownika: polski', owner.dictionaries_row.subtitle)
         self.assertEqual(owner.dictionaries_row.check.action, 'install_dictionaries')
@@ -278,7 +291,7 @@ class LiveSwitchTests(unittest.TestCase):
         i18n.set_language('en')
         owner, _ = self.build(core.Settings(live_model_only=True, model='qwen3:8b'))
         self.assertEqual(owner.checking_row.title, 'Checking')
-        self.assertIn('Experimental: only Qwen3:8b.', owner.checking_row.subtitle)
+        self.assertEqual(owner.checking_row.subtitle, 'Checked by Qwen3:8b after a short pause in typing.')
 
 
 if __name__ == '__main__':

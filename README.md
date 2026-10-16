@@ -130,9 +130,9 @@ Ollama); any model the app can reach works. Without LanguageTool:
 
 - correcting and translating work the same, but the list of changes has no explanations, which come from
   LanguageTool's rules;
-- checking while typing uses the system's spelling dictionary at once and the model after a pause of about 3 s
-  (texts up to 1500 characters) instead of grammar rules after 0.8 s; the experimental **Model only** mode
-  (*Tylko model*) leaves the model alone.
+- checking while typing needs no LanguageTool on Linux, where the model checks the text alone by default (**Model
+  only**, *Tylko model*). In the layered way, the default on macOS, it uses the system's spelling dictionary at once and
+  the model after a pause of about 3 s (texts up to 1500 characters) instead of grammar rules after 0.8 s.
 
 Dictation is optional as well, and recognition runs one of two ways. The recommended speech model on both is Whisper
 large-v3-turbo.

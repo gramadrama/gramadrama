@@ -5,7 +5,7 @@ import pathlib
 import tempfile
 import unittest
 from unittest import mock
-from gramadrama import paths
+from gramadrama import core, paths
 from gramadrama.engine import speech
 
 
@@ -36,6 +36,18 @@ class Settings(unittest.TestCase):
             with self.subTest(content=content):
                 self.write(content)
                 self.assertEqual(speech.remote_url(), want)
+
+    def test_the_way_of_checking_as_the_live_service_reads_it(self):
+        """live_model_only for the correction shortcut: a new install checks with the model alone, settings written
+        without the field keep the layers, and only true is the model alone (core.Settings, liveservice)."""
+        self.assertIs(speech.model_only(), True)  # no settings yet
+        self.assertIs(core.Settings.load().live_model_only, True)
+        for content, want in (({'live_check': True}, False), ({'live_model_only': True}, True),
+                              ({'live_model_only': False}, False), ({'live_model_only': 'true'}, False)):
+            with self.subTest(content=content):
+                self.write(content)
+                self.assertIs(speech.model_only(), want)
+                self.assertIs(core.Settings.load().live_model_only is True, want)
 
     def test_dictation_can_run_with_an_address_or_with_the_tools(self):
         self.write({})

@@ -316,7 +316,7 @@ def _seconds(start):
     return text.replace('.', ',') if _ui_language == 'pl' else text
 
 
-def _settings_why(core, settings):
+def settings_why(core, settings):
     """The cause's code of a settings check that failed (engine/problems.py). No model chosen for Ollama on this computer
     is how a new install starts (docs/open-source-plan.md): whether Ollama is missing, installed but not answering, or
     answering ('no_ollama', 'ollama_down', 'no_model') says what to do first. Anything else: 'settings'."""
@@ -350,7 +350,7 @@ def _real(job):
     try:
         settings.validate()
     except ValueError as exc:  # core's messages are Polish; urllib's port error is not
-        _emit(kind='error', message=tr('Ustawienia: %s') % exc, why=_settings_why(core, settings))
+        _emit(kind='error', message=tr('Ustawienia: %s') % exc, why=settings_why(core, settings))
         return
     languages = settings.languages
     if mode == 'translate' and len(languages) < 2:

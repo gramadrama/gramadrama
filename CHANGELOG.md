@@ -18,8 +18,10 @@ on the application and on how it exposes text; see the [Linux guide](linux/READM
 - Editing the result in the panel before it goes in, just by typing or clicking in it: undo one change, keep a word
   and add it to the dictionary, copy, cut and paste; the edited result is checked again.
 - An IBus engine and a GNOME Shell extension that read and replace text in supported fields without the clipboard.
-- Checking while typing: local dictionary, LanguageTool and the model, with a badge, a list of suggestions,
-  underlines in supported fields and a user dictionary. Model-only checking is experimental.
+- Checking while typing with a badge, a list of suggestions, underlines in supported fields and a user dictionary.
+  By default the model checks the text alone, after a short pause; until a model is set, the badge says so. The
+  layered way (local dictionary, LanguageTool and the model) is a choice in Writing, and settings saved by an earlier
+  version keep it. macOS still defaults to the layered way.
 - Dictation while holding the right Ctrl: local Whisper, or a server with the OpenAI or whisper.cpp
   transcription API. The microphone opens at the key-down, and the indicator says when it is actually
   hearing, so the first words are not lost while a suspended USB microphone wakes. Without a speech model the key
