@@ -103,13 +103,20 @@ struct ResultField: NSViewRepresentable {
         }
     }
 
+    /// Wysokość z osobnego układu tekstu, nie z pola: świeże pole ma jeszcze szerokość 0 (kontener idzie za nią),
+    /// więc wychodziła jedna linia, okno panelu zostawało niższe i wynik dłuższy niż linia był ucięty.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSScrollView, context: Context) -> CGSize? {
-        guard let textView = nsView.documentView as? NSTextView, let layoutManager = textView.layoutManager,
-              let container = textView.textContainer else { return nil }
+        guard let textView = nsView.documentView as? NSTextView else { return nil }
         let width = proposal.width ?? 468
-        container.containerSize = NSSize(width: width, height: .greatestFiniteMagnitude)
+        let font = textView.font ?? .systemFont(ofSize: NSFont.systemFontSize)
+        let storage = NSTextStorage(string: textView.string, attributes: [.font: font])
+        let layoutManager = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: width, height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        layoutManager.addTextContainer(container)
+        storage.addLayoutManager(layoutManager)
         layoutManager.ensureLayout(for: container)
-        let line = ceil(layoutManager.defaultLineHeight(for: textView.font ?? .systemFont(ofSize: NSFont.systemFontSize)))
+        let line = ceil(layoutManager.defaultLineHeight(for: font))
         let height = ceil(layoutManager.usedRect(for: container).height)
         return CGSize(width: width, height: min(max(height, line), maxHeight))
     }
