@@ -2078,6 +2078,13 @@ def t_docs_shots(rig):
         s.tap('ret')
         rig.wait_try('ok', english('Zastosowano. Skrót, silnik i serwer działają.'))
         check(rig.state()['try']['buffer'] == DOCS_FIXED, 'the field holds the correction', rig.state()['try']['buffer'])
+        # The settings written above have no live_model_only: an earlier version's, which keep the layered way. The
+        # pictures show a new install's default, Model only, chosen as a user would; Try it above used the ordinary
+        # correction, whose panel the picture shows.
+        rig.toggle('checking', 0)
+        wait_until(lambda: rig.saved_settings().get('live_model_only') is True, 5, what='Model only saved')
+        wait_until(lambda: rig.state()['live']['checking'] == 'model'
+                   and not rig.state()['live']['rows']['live_languagetool']['visible'], 5, what='the layers hidden')
         rig.action('focus-try')
         s.pointer_to(WIDTH + 400, HEIGHT - 40)
         wait_until(lambda: not any(rig.state()['attention'].values()), 20, what='no tab marked')
