@@ -12,6 +12,7 @@ if [[ -z ${GRAMADRAMA_CAFFEINATED:-} ]] && command -v caffeinate >/dev/null; the
   GRAMADRAMA_CAFFEINATED=1 exec caffeinate -di "${0:A}" "$@"
 fi
 cd "$(dirname "$0")/.."
+source scripts/swift-env.sh
 
 LEVEL=3
 for arg in "$@"; do

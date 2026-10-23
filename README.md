@@ -187,6 +187,8 @@ The Linux version is in `linux/gramadrama`; shared test cases are in `tests/` an
 ### Building for macOS (developers)
 
 You need macOS 14 or later and Apple's developer tools with Swift package support.
+With the Command Line Tools 27 alone, without Xcode, the scripts build with the macOS 26 SDK that the tools
+also install: they lack the SwiftUI macro plugin that the macOS 27 SDK needs.
 These commands get the repository and install a local build of the app and the input method:
 
 ```bash

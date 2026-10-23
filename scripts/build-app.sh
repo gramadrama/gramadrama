@@ -2,6 +2,7 @@
 # Buduje GramaDrama.app i instaluje w ~/Applications.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/swift-env.sh
 
 # Wersja wspólna z Linuksem: plik VERSION (podbija ją scripts/release.sh).
 VERSION=${VERSION:-$(<VERSION)}
