@@ -777,7 +777,8 @@ enum TextBridge {
     }
 
     /// Jak `focusedElement(in:)`, ale synchronicznie — tylko na kolejce AX (czeka do ~1,2 s na drzewo AX).
-    nonisolated static func focusedElementBlocking(pid: pid_t) -> AXUIElement? {
+    /// `waitForTree: false` (sprawdzanie na żywo) nie czeka na drzewo WebKit — brak pola sprawdzi następny tick.
+    nonisolated static func focusedElementBlocking(pid: pid_t, waitForTree: Bool = true) -> AXUIElement? {
         let axApp = AXUIElementCreateApplication(pid)
         var justEnabled = false
         if !accessibilityPIDs.withLock({ $0.manual.contains(pid) }) {
@@ -795,7 +796,8 @@ enum TextBridge {
         // Zawieszona aplikacja: każda kolejna próba to znowu pełny limit czasu.
         guard error != .cannotComplete else { return nil }
         // WebKit (Outlook, Mail) — podobnie jak Electron — buduje drzewo AX dopiero po pierwszym zapytaniu.
-        for _ in 0..<12 where element == nil {
+        // Na żywo nie czekamy: w aplikacji bez pola z fokusem każdy tick zajmowałby kolejkę AX na 0,6 s.
+        for _ in 0..<12 where waitForTree && element == nil {
             usleep(50_000)
             (element, error) = focusedElementResult(of: axApp)
             if error == .cannotComplete { return nil }

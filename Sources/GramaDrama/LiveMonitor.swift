@@ -296,7 +296,7 @@ final class LiveMonitor {
             // Wszystkie wywołania AX na kolejce AX — zawieszona aplikacja nie zatrzyma głównego wątku.
             let started = Date()
             let read = await AXQueue.run { () -> Snapshot? in
-                guard let field = TextBridge.focusedElementBlocking(pid: app.processIdentifier) else { return nil }
+                guard let field = TextBridge.focusedElementBlocking(pid: app.processIdentifier, waitForTree: false) else { return nil }
                 // Aplikacja odpowiada z limitem czasu (zawieszona) — kolejne wywołania czekałyby po 1 s każde,
                 // a w kolejce AX może czekać ⌥⌘G. Spróbujemy przy następnym ticku.
                 guard Date().timeIntervalSince(started) < AXQueue.slowThreshold else { return nil }
@@ -351,10 +351,19 @@ final class LiveMonitor {
         update(snapshot)
     }
 
+    /// Kiedy ostatnio zapisaliśmy `ax_slow` dla kroku i aplikacji. Wolna aplikacja jest wolna przy każdym ticku,
+    /// a log po 1 MB się obraca i gubi starsze zdarzenia (lista „Aplikacje”) — wystarczy jeden wpis na minutę.
+    private static var slowLogged: [String: Date] = [:]
+
     private static func logIfSlow(_ step: String, since started: Date, app: NSRunningApplication?) {
-        let elapsed = Date().timeIntervalSince(started)
+        let now = Date()
+        let elapsed = now.timeIntervalSince(started)
         guard elapsed >= AXQueue.slowThreshold else { return }
-        EventLog.write("ax_slow", ["step": step, "ms": Int(elapsed * 1000), "app": app?.bundleIdentifier ?? ""])
+        let bundleID = app?.bundleIdentifier ?? ""
+        let key = "\(step) \(bundleID)"
+        if let last = slowLogged[key], now.timeIntervalSince(last) < 60 { return }
+        slowLogged[key] = now
+        EventLog.write("ax_slow", ["step": step, "ms": Int(elapsed * 1000), "app": bundleID])
     }
 
     private struct Snapshot {
