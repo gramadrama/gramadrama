@@ -56,8 +56,9 @@ package enum ImeScope: String, Equatable, Sendable {
         }
 
         // Odpowiedź w mailu: nowa wiadomość od początku do cytatu (granicę wyznacza cytat, nie koniec pola).
-        if fromStart, let message = ReplyBoundary.newMessageRange(in: window), caret <= message.location + message.length {
-            add(message, .newMessage)
+        // Pola z cytatem nie bierzemy w całości: pusta odpowiedź albo kursor w cytacie — akapit albo odmowa.
+        if fromStart, let reply = ReplyBoundary.split(in: window) {
+            if caret <= reply.quote { add(reply.message, .newMessage) }
         } else if fromStart, toEnd, wholeFieldWhenComplete {
             add(NSRange(location: 0, length: ns.length), .wholeField)
         }

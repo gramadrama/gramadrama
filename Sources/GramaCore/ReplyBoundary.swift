@@ -48,15 +48,23 @@ package enum ReplyBoundary {
         return nil
     }
 
-    /// Nowa wiadomość (od początku do cytatu), bez końcowych pustych linii. nil, gdy nie ma cytatu.
-    package static func newMessageRange(in text: String) -> NSRange? {
-        guard let boundary = find(in: text), boundary > 0 else { return nil }
+    /// Odpowiedź nad cytatem: `message` od początku do cytatu, bez końcowych pustych linii (pusty, gdy nad
+    /// cytatem nic nie napisano), i `quote` — początek cytatu. nil, gdy cytatu nie ma.
+    /// Kursor należy do nowej wiadomości aż do `quote`: także za spacją i w pustej linii pod tekstem.
+    package static func split(in text: String) -> (message: NSRange, quote: Int)? {
+        guard let boundary = find(in: text) else { return nil }
         let ns = text as NSString
         var end = boundary
         while end > 0, let scalar = UnicodeScalar(ns.character(at: end - 1)),
               CharacterSet.whitespacesAndNewlines.contains(scalar) {
             end -= 1
         }
-        return end > 0 ? NSRange(location: 0, length: end) : nil
+        return (NSRange(location: 0, length: end), boundary)
+    }
+
+    /// Nowa wiadomość (od początku do cytatu), bez końcowych pustych linii. nil, gdy nie ma cytatu albo nad nim nic nie ma.
+    package static func newMessageRange(in text: String) -> NSRange? {
+        guard let message = split(in: text)?.message, message.length > 0 else { return nil }
+        return message
     }
 }

@@ -236,11 +236,12 @@ enum TextBridge {
         guard !copyTimedOut else { throw CaptureError.nothingFound }
         if let value = string(element, kAXValueAttribute), let caret = selectedRange(element), caret.length == 0 {
             let ns = value as NSString
-            let newMessage = ReplyBoundary.newMessageRange(in: value)
-            if newMessage != nil || ns.length > maxChars {
+            let reply = ReplyBoundary.split(in: value)
+            if reply != nil || ns.length > maxChars {
                 var candidates: [(NSRange, CapturedText.Scope)] = []
-                if let newMessage, caret.location <= newMessage.location + newMessage.length {
-                    candidates.append((newMessage, .newMessage))
+                // Pusta odpowiedź nad cytatem kończy się odmową, nie ⌘A całego wątku.
+                if let reply, reply.message.length > 0, caret.location <= reply.quote {
+                    candidates.append((reply.message, .newMessage))
                 }
                 let paragraph = TextEdits.paragraphRange(in: value, caret: caret.location)
                 if !ns.substring(with: paragraph).isBlank, !candidates.contains(where: { $0.0 == paragraph }) {

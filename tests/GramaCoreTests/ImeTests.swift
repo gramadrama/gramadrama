@@ -63,6 +63,32 @@ struct ImeScopeTests {
         #expect(try first(r) == ("Cześć Aniu,\nwysyłam poprawki.", .newMessage))
     }
 
+    /// Nowy Outlook: odpowiedź nad nagłówkiem From/Date/To/Cc/Subject, oddzielona pustymi liniami.
+    private let quote = "\n\nFrom: Anna Nowak <anna@example.com>\nDate: Wednesday, October 28, 2026 10:15\n"
+        + "To: Tomasz <tomasz@example.com>\nCc: Zespół <team@example.com>\nSubject: Re: Raport\n\nHej, prześlesz raport?"
+
+    @Test func outlookReplyCaretAfterTrailingWhitespace() throws {
+        // Kursor za spacją albo w pustej linii pod tekstem to wciąż nowa wiadomość, nie cały wątek.
+        for typed in ["Cześć,\nwysyłam raport. ", "Cześć,\nwysyłam raport.\n", "Cześć,\nwysyłam raport.\u{00A0}"] {
+            let r = reply(before: typed, after: quote)
+            #expect(try first(r, whole: true) == ("Cześć,\nwysyłam raport.", .newMessage))
+        }
+    }
+
+    @Test func emptyOutlookReplyNeverTakesTheThread() throws {
+        #expect(throws: ImeScope.Refusal.emptyParagraph) {
+            try ImeScope.candidates(reply(before: "", after: quote), wholeFieldWhenComplete: true)
+        }
+    }
+
+    @Test func caretInTheQuoteTakesOnlyItsParagraph() throws {
+        let body = "Dzięki." + quote
+        let caret = (body as NSString).range(of: "prześlesz").location
+        let ns = body as NSString
+        let r = reply(before: ns.substring(to: caret), after: ns.substring(from: caret))
+        #expect(try first(r, whole: true) == ("Hej, prześlesz raport?", .paragraph))
+    }
+
     @Test func mailWithoutQuoteIsTheWholeMessage() throws {
         let r = reply(before: "Cześć,\nwysyłam raport", after: ".\nPozdrawiam")
         #expect(try first(r, whole: true) == ("Cześć,\nwysyłam raport.\nPozdrawiam", .wholeField))
