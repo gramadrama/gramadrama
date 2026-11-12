@@ -268,6 +268,80 @@ class LanguageTests(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 0.5)
 
 
+class RedirectTests(unittest.TestCase):
+    """A server that redirects: the request goes on, the key goes only as far as the server it was typed for."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.seen = []  # (port, path, Authorization) of every request that was answered with 200
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                port = self.server.server_port
+                if port == cls.home.server_port and self.path in ('/v1/models', '/v1/moved'):
+                    self.send_response(302)
+                    self.send_header('Location', 'http://127.0.0.1:%d/v1/models' % cls.away.server_port
+                                     if self.path == '/v1/models' else '/v1/here')
+                    self.end_headers()
+                    return
+                cls.seen.append((port, self.path, self.headers.get('Authorization')))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"data": []}')
+
+            def log_message(self, *_):
+                pass
+        cls.home, cls.away = (ThreadingHTTPServer(('127.0.0.1', 0), Handler) for _ in range(2))
+        cls.threads = [threading.Thread(target=server.serve_forever, daemon=True) for server in (cls.home, cls.away)]
+        for thread in cls.threads:
+            thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        for server in (cls.home, cls.away):
+            server.shutdown()
+            server.server_close()
+        for thread in cls.threads:
+            thread.join()
+
+    def setUp(self):
+        self.seen.clear()
+        self.url = 'http://127.0.0.1:%d/v1' % self.home.server_port
+
+    def test_the_key_does_not_follow_a_redirect_to_another_server(self):
+        backend = Backend(Settings(llm_url=self.url, model='m'))
+        with backend.request(self.url + '/models', key='sk-typed') as response:
+            self.assertEqual(json.load(response), {'data': []})  # the redirect itself is followed, as before
+        self.assertEqual(self.seen, [(self.away.server_port, '/v1/models', None)])
+
+    def test_the_key_follows_a_redirect_on_the_same_server(self):
+        backend = Backend(Settings(llm_url=self.url, model='m'))
+        backend.request(self.url + '/moved', key='sk-typed').close()
+        self.assertEqual(self.seen, [(self.home.server_port, '/v1/here', 'Bearer sk-typed')])
+
+    def test_the_window_probes_keep_the_key_too(self):
+        import urllib.request
+        for path, expected in (('/models', (self.away.server_port, '/v1/models', None)),
+                               ('/moved', (self.home.server_port, '/v1/here', 'Bearer sk-typed'))):
+            with self.subTest(path=path):
+                self.seen.clear()
+                request = urllib.request.Request(self.url + path, headers={'Authorization': 'Bearer sk-typed'})
+                core.opener_for(self.url).open(request, timeout=5).close()
+                self.assertEqual(self.seen, [expected])
+
+    def test_same_server(self):
+        for url, other, same in (('https://example.com/v1', 'https://example.com/other', True),
+                                 ('https://example.com/v1', 'https://EXAMPLE.com:443/v1/', True),
+                                 ('http://example.com/v1', 'https://example.com/v1', True),  # the usual move to https
+                                 ('http://example.com:8080/v1', 'https://example.com:8443/v1', False),
+                                 ('https://example.com/v1', 'http://example.com/v1', False),  # never down from https
+                                 ('https://example.com/v1', 'https://example.org/v1', False),
+                                 ('https://example.com/v1', 'https://example.com:8443/v1', False),
+                                 ('https://example.com/v1', 'https://example.com:x/v1', False)):
+            with self.subTest(url=url, other=other):
+                self.assertEqual(core.same_server(url, other), same)
+
+
 class StreamTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

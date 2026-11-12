@@ -266,16 +266,43 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def same_server(url, other):
+    """True when other is on the server of url: the same host and port, or the same host moved from http to https on
+    the usual ports. Anything else is another server, which a key typed for this one is not for."""
+    try:
+        a, b = urllib.parse.urlsplit(url), urllib.parse.urlsplit(other)
+        ports = [part.port or {'http': 80, 'https': 443}.get(part.scheme) for part in (a, b)]
+    except ValueError:
+        return False
+    if not a.hostname or a.hostname.lower() != (b.hostname or '').lower():
+        return False
+    if a.scheme == b.scheme:
+        return ports[0] == ports[1]
+    return (a.scheme, b.scheme) == ('http', 'https') and ports == [80, 443]
+
+
+class _KeyStays(urllib.request.HTTPRedirectHandler):
+    """A redirect is followed, but the Authorization header (the key the user typed, the login's token) stays with the
+    server it was sent to: a redirect to another server (same_server) gets the request without it."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        request = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if request is not None and not same_server(req.full_url, newurl):
+            request.remove_header('Authorization')
+        return request
+
+
 _OPENERS = {}
 
 
 def opener_for(url, redirects=True):
     """The urllib opener for url: a LAN host is never behind an HTTP proxy of the environment, one on the internet is
-    (see lan_host). Shared by the model server and the speech service; redirects=False for the speech server."""
+    (see lan_host). Shared by the model server and the speech service; redirects=False for the speech server.
+    A redirect that is followed never carries the key to another server (_KeyStays)."""
     lan = lan_host(urllib.parse.urlsplit(url).hostname)
     key = (lan, redirects)
     if key not in _OPENERS:
-        handlers = ([urllib.request.ProxyHandler({})] if lan else []) + ([] if redirects else [_NoRedirect()])
+        handlers = ([urllib.request.ProxyHandler({})] if lan else []) + [_KeyStays() if redirects else _NoRedirect()]
         _OPENERS[key] = urllib.request.build_opener(*handlers)
     return _OPENERS[key]
 
@@ -1161,8 +1188,9 @@ class Backend:
         self.tokens_per_second = 0.0
         self.think_refused = False  # the server said think=false is not for this model: not sent again by this Backend
         # A server on the LAN is never reached through an HTTP proxy of the environment; one on the internet is.
-        self.lan_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        self.net_opener = urllib.request.build_opener()
+        # Neither takes the key along when the server redirects to another one.
+        self.lan_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _KeyStays())
+        self.net_opener = urllib.request.build_opener(_KeyStays())
 
     def request(self, url, data=None, timeout=90, form=False, key='', service='llm'):
         """url: with the service's own address (service_base); routed() sends it through the gateway away from home.

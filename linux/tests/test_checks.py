@@ -766,6 +766,27 @@ class InstalledCopyTests(unittest.TestCase):
             self.assertEqual(C.read_settings()[0].llm_think, 'model')  # the refused value was not written
             self.assertNotIn('llm_think', C.FIELD_NAMES)  # the engine never refuses it: no "will not correct" row
 
+    def test_a_key_stays_with_its_server_when_the_address_changes(self):
+        config = Path(self.tmp.name) / 'config'
+        with mock.patch.dict(os.environ, {'XDG_CONFIG_HOME': str(config)}):
+            def saved():
+                settings = C.read_settings()[0]
+                return settings.llm_url, settings.llm_key, settings.whisper_key
+            self.assertIsNone(C.save_setting('llm_key', 'sk-model')[0])  # typed before any address: it stays
+            self.assertEqual(C.save_address('llm_url', 'https://example.com/v1'), (None, None, False))
+            self.assertEqual(C.save_address('llm_url', 'http://EXAMPLE.com:8080/openai/v1'), (None, None, False))  # the same host
+            self.assertEqual(saved(), ('http://EXAMPLE.com:8080/openai/v1', 'sk-model', ''))
+            error, _, key_removed = C.save_address('llm_url', 'nie-adres')
+            self.assertEqual((error[:5], key_removed), ('Podaj', False))  # refused: nothing is written, the key neither
+            self.assertEqual(saved(), ('http://EXAMPLE.com:8080/openai/v1', 'sk-model', ''))
+            self.assertIsNone(C.save_setting('whisper_key', 'sk-speech')[0])
+            self.assertEqual(C.save_address('llm_url', 'https://example.org/v1'), (None, None, True))  # another host
+            self.assertEqual(saved(), ('https://example.org/v1', '', 'sk-speech'))  # in one write, and only that server's key
+            self.assertIsNone(C.save_settings({'whisper_url': 'https://example.com'})[0])
+            self.assertEqual(C.save_address('whisper_url', ''), (None, None, True))  # no server now: nor its key later
+            self.assertEqual(saved(), ('https://example.org/v1', '', ''))
+            self.assertEqual(C.save_address('languagetool_url', 'https://example.org'), (None, None, False))  # it has no key
+
     def test_saving_repairs_a_broken_file_and_keeps_it(self):
         config = Path(self.tmp.name) / 'config'
         with mock.patch.dict(os.environ, {'XDG_CONFIG_HOME': str(config)}):

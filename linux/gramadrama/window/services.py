@@ -408,7 +408,7 @@ class ServicesTab:
 
     def apply_address(self, row, field):
         value = row.value()
-        error, backup = checks.save_setting(field, value)
+        error, backup, key_removed = checks.save_address(field, value)
         if error:
             row.add_css_class('error')
             self.toast(error)
@@ -417,6 +417,8 @@ class ServicesTab:
         row.saved = ''  # the entry shows what the file says now
         row.set_saved(value)
         self.saved(tr('nowego adresu'), backup)
+        if key_removed:  # before services_changed: its checks ask the new address, and not with the old server's key
+            self.toast(tr('Usunięto klucz API poprzedniego serwera. Jeśli nowy go wymaga, wpisz jego klucz.'))
         self.services_changed()
 
     def choice_selected(self, row, choices, field, what):

@@ -378,6 +378,31 @@ def save_setting(field, value):
     return save_settings({field: value})
 
 
+SERVER_KEYS = {'llm_url': 'llm_key', 'whisper_url': 'whisper_key'}  # the key typed for the server at that address
+
+
+def _host(address):
+    try:
+        return (urllib.parse.urlsplit(address.strip()).hostname or '').lower()
+    except ValueError:
+        return ''
+
+
+def save_address(field, value):
+    """Save a server's address; returns (error, backup, key_removed). The key saved for the server at the old address
+    goes in the same write when the new address names another host or none: it was typed for that server, and the
+    checks that follow the change would send it to the new one. (A key typed before any address stays.)"""
+    values = {field: value}
+    key = SERVER_KEYS.get(field)
+    if key:
+        settings = read_settings()[0]
+        old = getattr(settings, field)
+        if getattr(settings, key) and old.strip() and not (_host(old) and _host(old) == _host(value)):
+            values[key] = ''
+    error, backup = save_settings(values)
+    return error, backup, not error and len(values) > 1
+
+
 def save_settings(values):
     """Save related values atomically, preserving unrelated valid settings and backing up a broken file."""
     settings, problems = read_settings()

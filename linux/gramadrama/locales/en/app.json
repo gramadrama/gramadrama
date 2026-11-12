@@ -107,6 +107,7 @@
   "myślenia modelu": "the model reasoning setting",
   "Zapisano klucz API.": "API key saved.",
   "Usunięto klucz API.": "API key removed.",
+  "Usunięto klucz API poprzedniego serwera. Jeśli nowy go wymaga, wpisz jego klucz.": "The previous server's API key was removed. If the new one needs a key, enter it.",
   "nowego ustawienia": "the new setting",
   "tych słów": "this vocabulary",
   "modelu": "the model",

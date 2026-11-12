@@ -155,7 +155,8 @@ has the same layout: **Where** (*Gdzie*) with **This computer** (*Ten komputer*)
 the address, the status and **Check** (*Sprawdź*).
 There is no project server: a new installation uses services on this computer at their default
 addresses, which can be changed (the address must point to this computer). A server also has a protocol
-and an optional API key.
+and an optional API key. The key belongs to the server it was entered for: changing the address to another
+host removes it, and when the model server redirects to another host, the request goes on without the key.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/app/app-connection-dark.png">
