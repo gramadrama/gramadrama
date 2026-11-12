@@ -67,6 +67,23 @@ class MacCases(unittest.TestCase):
         self.assertTrue(all(i.source == 'Bielik' and i.rule == 'BIELIK' and i.kind == 'style'
                             for i in L.bielik_issues('testuje cos', 'Testuję coś')))
 
+    def test_bielik_inserted_word(self):
+        """A word the model added: the suggestion put in place of its word gives the model's sentence, so the new
+        word keeps its space ("Cieszę się", never "Cieszęsię") and an opening quote goes to the word after it."""
+        def found(a, b):
+            return ' | '.join('%s→%s' % (i.word, i.suggestions[0]) for i in L.bielik_issues(a, b))
+        self.assertEqual(found('Cieszę bardzo.', 'Cieszę się bardzo.'), 'Cieszę→Cieszę się')
+        self.assertEqual(found('Idę do sklepu kupię chleb.', 'Idę do sklepu i kupię chleb.'), 'sklepu→sklepu i')
+        self.assertEqual(found('Film Rejs jest dobry', 'Film „Rejs” jest dobry'), 'Rejs→„Rejs | Rejs→Rejs”')
+        self.assertEqual(found('  bardzo', 'Nie bardzo'), '')  # no word before it and spaces in its place: left alone
+        for original, corrected in (('Cieszę bardzo.', 'Cieszę się bardzo.'), ('I going home.', 'I am going home.'),
+                                    ('Cieszę.', 'Cieszę się.'), ('bardzo.', 'Cieszę się bardzo.'),
+                                    ('To jest dom', 'To nie jest dom'), ('(bardzo)', '(nie bardzo)'),
+                                    ('Cieszę\nbardzo', 'Cieszę\nsię bardzo'), ('wiem że działa', 'wiem, że działa')):
+            (issue,) = L.bielik_issues(original, corrected)
+            self.assertEqual(original[issue.start:issue.end], issue.word)
+            self.assertEqual(original[:issue.start] + issue.suggestions[0] + original[issue.end:], corrected)
+
     def test_ranked(self):
         self.assertEqual(L.ranked(['Dziki', 'Dzięki', 'Dzieli'], 'Dzieki'), ['Dzięki', 'Dziki', 'Dzieli'])
         self.assertEqual(L.ranked(['część', 'cześć'], 'Czesc'), ['Część', 'Cześć'])

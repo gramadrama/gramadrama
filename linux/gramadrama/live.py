@@ -289,9 +289,33 @@ def locate(original, near, text, reach=200):
 
 
 # ---- Bielik's answer as issues ---------------------------------------------------------------------------
+def _pinned(original, start, end, new):
+    """(a, b, suggestion) for new put in place of original[start:end], which is empty or only spaces: the word the
+    insertion is shown on, and that word with the insertion. Putting the suggestion in place of the word gives the
+    model's text, spaces included: the word before ("wiem" → "wiem,", "Cieszę" → "Cieszę się") when the spaces
+    after it stay as they are, else the word after ("Rejs" → "„Rejs"). (0, 0, '') when there is no word."""
+    b = start
+    while b > 0 and original[b - 1].isspace():
+        b -= 1
+    a = b
+    while a > 0 and not original[a - 1].isspace():
+        a -= 1
+    after = end
+    while after < len(original) and not original[after].isspace():
+        after += 1
+    body = new.rstrip()
+    before = original[a:start] + body
+    if b > a and new[len(body):] == original[b:end]:
+        return a, b, before
+    if after > end and start == end:
+        return end, after, new.lstrip() + original[end:after]
+    return (a, b, before) if b > a else (0, 0, '')
+
+
 def bielik_issues(original, corrected):
     """Each change of the word diff is one issue on the original. Unlike the panel, every unchanged part
-    ends a change, so "testuje cos" gives two. An insertion (a comma) is pinned to the word before it."""
+    ends a change, so "testuje cos" gives two. An insertion (a comma, a missing word) is pinned to a word
+    next to it (_pinned)."""
     issues, offset, start, old, new = [], 0, 0, '', ''
 
     def flush():
@@ -302,21 +326,12 @@ def bielik_issues(original, corrected):
                 a += 1
             while b > a and original[b - 1].isspace():
                 b -= 1
-            insertion = a == b
-            if insertion:
-                a = min(a, len(original))
-                while a > 0 and original[a - 1].isspace():
-                    a -= 1
-                b = a
-                while a > 0 and not original[a - 1].isspace():
-                    a -= 1
-                if a == b:
-                    while b < len(original) and not original[b].isspace():
-                        b += 1
+            suggestion = new.strip()
+            if a == b:
+                a, b, suggestion = _pinned(original, start, start + len(old), new)
             if b > a:
                 word = original[a:b]
                 span = (core._utf16(original[:start]), max(core._utf16(original[:start + len(old)]), core._utf16(original[:start]) + 1))
-                suggestion = (word + new.strip() if a < start else new.strip() + ' ' + word) if insertion else new.strip()
                 issues.append(Issue(a, b, word, core._reason(old, new, span, ()), (suggestion,) if suggestion else (),
                                     'Bielik', 'BIELIK'))
         old = new = ''
