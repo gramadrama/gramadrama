@@ -197,6 +197,20 @@ class DictationFlow(FreshIds):
         self.assertEqual(d.event({'ev': 'result', 'id': 1, 'text': 'Tekst.', 'log': {}}, busy=True)[0],
                          dictate.message('busy', copy='Tekst.'))
 
+    def test_the_key_in_another_field_while_processing_does_not_take_the_text(self):
+        ctx = field()
+        d, _ = self.start(ctx)
+        d.key(R, True)  # processing
+        ctx.focus_out()
+        ctx.focus_in('gnome-shell')  # another field
+        d.key(R, False, 'other.desktop')
+        self.assertEqual(d.armed(2, True, True, False), [dictate.message('busy_dictation')])
+        d.key(R, True)
+        effects = d.event({'ev': 'result', 'id': 1, 'text': 'Tekst.', 'log': {}})
+        self.assertEqual(effects[0], dictate.message('appChanged', copy='Tekst.'))
+        self.assertEqual(effects[1].data, {'outcome': 'appChanged', 'app': 'app.desktop'})
+        self.assertFalse([e for e in effects if isinstance(e, Insert)])
+
     def test_a_result_is_written_once_and_never_again(self):
         # macOS's rule for every write: after it was sent, nothing writes a second time. A second result with
         # the same id, a late one after the service was given up on, and one of an older dictation write nothing.

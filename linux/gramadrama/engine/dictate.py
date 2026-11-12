@@ -203,7 +203,8 @@ class Dictation:
             if self.hold.state == IDLE:
                 if not may_start:
                     return []
-                self.target = (self.ctx.focus_gen, app)
+                if self.phase == IDLE:  # a dictation still going keeps its field: this press is only told "busy"
+                    self.target = (self.ctx.focus_gen, app)
             effects = self._act(self.hold.key_down())
             return effects + self._act(self.hold.shift()) if shift else effects
         if release:
