@@ -987,7 +987,7 @@ class Engine(IBus.EngineSimple):
             elif kind is dictate.Speech:
                 self.app.speech_command(self, e.cmd, e.id, e.alternate)
             elif kind is dictate.Hud:
-                self._hud(e.view)
+                self._hud(e.view, e.plain)
             elif kind is dictate.Insert:
                 self.commit_text(IBus.Text.new_from_string(e.text))
             elif kind is dictate.Note:
@@ -1061,14 +1061,15 @@ class Engine(IBus.EngineSimple):
                                           self.app.dictating_elsewhere(self))
 
     # ---- the dictation pill: the extension's, or a line in the IBus popup ----
-    def _hud(self, view):
+    def _hud(self, view, plain=''):
+        """plain: the message for the line when the view has text for the clipboard, which only the extension has."""
         panel = self._panel()
         if panel is not None and panel.version >= HUD_VERSION:
-            panel.hud(view, lambda shown: shown or self._hud_line(view))
+            panel.hud(view, lambda shown: shown or self._hud_line(view, plain))
         else:
-            self._hud_line(view)
+            self._hud_line(view, plain)
 
-    def _hud_line(self, view):
+    def _hud_line(self, view, plain=''):
         if self.hud_timer:
             GLib.source_remove(self.hud_timer)
             self.hud_timer = 0
@@ -1087,7 +1088,7 @@ class Engine(IBus.EngineSimple):
         elif state in ('recognizing', 'cleaning'):
             line = 'GramaDrama · ' + (tr('Rozpoznaję…') if state == 'recognizing' else tr('Porządkuję…'))
         else:
-            line = view.get('message') or ''
+            line = plain or view.get('message') or ''
             self.hud_timer = GLib.timeout_add(int(float(view.get('seconds') or 3) * 1000), self._hud_line_done)
         self.update_auxiliary_text(IBus.Text.new_from_string(line), True)
 

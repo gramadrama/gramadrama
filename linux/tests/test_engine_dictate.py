@@ -197,6 +197,17 @@ class DictationFlow(FreshIds):
         self.assertEqual(d.event({'ev': 'result', 'id': 1, 'text': 'Tekst.', 'log': {}}, busy=True)[0],
                          dictate.message('busy', copy='Tekst.'))
 
+    def test_the_line_without_the_extension_never_says_the_text_is_on_the_clipboard(self):
+        """Only the extension copies view['copy']; the IBus popup's line (Hud.plain) says what happened there."""
+        for key in ('appChanged', 'secureField', 'busy', 'uncertain'):
+            with self.subTest(key=key):
+                hud = dictate.message(key, copy='Tekst.')
+                self.assertIn('schowku', hud.view['message'])  # the pill: the extension has just copied it
+                self.assertEqual(hud.plain, dictate.NOT_COPIED[key])
+                self.assertNotIn('schow', hud.plain)
+        self.assertEqual(dictate.message('died').plain, '')  # nothing to copy: the same words in both places
+        self.assertEqual(dictate.message('Notatka.', copy='Tekst.').plain, 'Podyktowany tekst nie został wstawiony.')
+
     def test_the_key_in_another_field_while_processing_does_not_take_the_text(self):
         ctx = field()
         d, _ = self.start(ctx)

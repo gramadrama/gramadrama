@@ -39,6 +39,14 @@ MESSAGES = {
     'died': 'Rozpoznawanie mowy przerwało się — spróbuj jeszcze raz.',
     'uncertain': 'Nie wiem, czy tekst trafił do pola — sprawdź; jest też w schowku (Ctrl+V).',
 }
+# The same refusals where nothing puts the text on the clipboard: without the extension the engine has only a line in
+# the IBus popup, and no clipboard.
+NOT_COPIED = {
+    'appChanged': 'Aktywne pole się zmieniło — podyktowany tekst nie został wstawiony. Podyktuj go jeszcze raz.',
+    'secureField': 'To pole hasła — podyktowany tekst nie został wstawiony.',
+    'busy': 'Trwa inna operacja — podyktowany tekst nie został wstawiony. Podyktuj go jeszcze raz.',
+    'uncertain': 'Nie wiem, czy tekst trafił do pola — sprawdź.',
+}
 # The character before the caret after which no space is added, and the text's first characters
 # before which none is needed (macOS TextBridge.leadingSpaceNeeded).
 NO_SPACE_AFTER = '([{„"\'“‘/-–—@#'
@@ -79,6 +87,7 @@ class Speech:
 @dataclasses.dataclass(frozen=True)
 class Hud:
     view: dict  # the extension's pill (docs/dictation.md), or the IBus popup's line without it
+    plain: str = ''  # that line when the view has text to copy: there nothing copies it, so it must not say so
 
 
 @dataclasses.dataclass(frozen=True)
@@ -155,8 +164,9 @@ def leading_space(previous, text):
 def message(key_or_text, copy=None, seconds=MESSAGE_SECONDS):
     # Service messages are already localized; dictated/user text is never translated.
     text = tr(MESSAGES[key_or_text]) if key_or_text in MESSAGES else key_or_text
+    plain = tr(NOT_COPIED.get(key_or_text, 'Podyktowany tekst nie został wstawiony.')) if copy else ''
     return Hud({'v': 1, 'state': 'message', 'message': text, 'seconds': seconds,
-                'copy': copy})
+                'copy': copy}, plain)
 
 
 HIDE = Hud({'v': 1, 'state': 'hidden'})

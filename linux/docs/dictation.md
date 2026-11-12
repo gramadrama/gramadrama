@@ -69,7 +69,8 @@ A timeout or a rejected result keeps the original transcript.
 
 The engine ties the result to the field that was active when recording started. The result must not be inserted
 twice, or into another field after the focus has changed. When the text cannot be inserted safely, the interface
-reports the result; in the cases provided for, the text goes to the clipboard.
+reports the result; in the cases provided for, the text goes to the clipboard. The GNOME extension is what puts it
+there: without the extension the message says only that the text was not inserted.
 The spacing is chosen to fit the text at the cursor.
 
 ## Architecture
